@@ -22,9 +22,8 @@ recruitment-management/
 │   ├── App.vue            # Root component
 │   └── main.js            # App entry point
 ├── Dockerfile             # Docker configuration
-├── docker-compose.yml     # Docker Compose setup
+├── docker-compose.yml     # Docker Compose setup (production)
 ├── docker-compose.dev.yml # Development Docker Compose setup
-├── nginx.conf             # Nginx configuration for production
 ├── clean.ps1              # PowerShell cleanup script 
 └── package.json           # Project dependencies
 ```
@@ -74,9 +73,9 @@ npm run build
 #### Prerequisites
 - Docker and Docker Compose installed on your machine
 
-#### Using Docker Compose (Recommended)
+#### Using Docker Compose for Production
 
-The easiest way to run the application is using Docker Compose:
+Run the application in production mode:
 
 ```bash
 # Build and start the container
@@ -89,31 +88,49 @@ docker-compose up -d
 docker-compose down
 ```
 
-The application will be available at http://localhost:8080
+The application will be available at http://localhost:8080 (even though logs will show it listening on port 3000 inside the container)
 
-#### Using Development Docker Configuration
+#### Using Docker Compose for Development
 
 For development with hot reloading:
 
 ```bash
 # Build and start the development container
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-
-# Or use the helper script
-./scripts/start-local.sh
 ```
 
-#### Using Docker Directly
+This will:
+- Mount your local source code into the container
+- Enable hot-reloading with `npm run dev -- --host` (Vite dev server)
+- Expose the Vite dev server on port 5173
+- Set NODE_ENV to development
 
-You can also build and run the Docker container manually:
+The application will be available at http://localhost:5173 in development mode. Any changes to your source code will trigger hot-reloading.
 
-```bash
-# Build the Docker image
-docker build -t recruitment-management .
+#### About Docker Configuration
 
-# Run the container
-docker run -p 8080:80 recruitment-management
-```
+##### Production Mode (docker-compose.yml)
+- Uses a single Node.js container running `serve` to host the application
+- Builds the application and serves the static files
+- Port mapping: Container's port 3000 → Host's port 8080
+  - Note: The application logs will show it's running on http://localhost:3000, but that's from inside the container
+  - You should access it through http://localhost:8080 on your host machine
+
+##### Development Mode (docker-compose.dev.yml)
+- Uses the same Node.js container but runs Vite dev server instead
+- Mounts your local code into the container for instant updating
+- Port mapping: Container's port 5173 → Host's port 5173
+- Uses the `--host` flag to make Vite accessible from outside the container
+  - Logs will show both http://localhost:5173/ and http://[container-ip]:5173/
+  - You should access it through http://localhost:5173 on your host machine
+
+### Troubleshooting
+
+- If you see warnings about "the attribute `version` is obsolete" in docker-compose files, this is normal and can be ignored
+- If you can't access the application after starting Docker, check that you're using the correct port:
+  - Production: http://localhost:8080
+  - Development: http://localhost:5173
+- If the application still isn't accessible, ensure the `--host` flag is being passed to Vite in development mode
 
 ### Cleanup Local Development Files
 

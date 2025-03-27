@@ -1,10 +1,9 @@
-version: '3.8'
-
 services:
   app:
     build:
-      target: build # Use the build stage instead of production
-    command: npm run dev
+      context: .
+      dockerfile: Dockerfile
+    command: npm run dev -- --host
     volumes:
       - ./:/app
       - /app/node_modules
@@ -12,20 +11,9 @@ services:
       - NODE_ENV=development
     ports:
       - "5173:5173" # Vite dev server port
-    # Use a development Dockerfile if available
-    # dockerfile: Dockerfile.dev
-    
-  # Mock API service for development
-  mock-api:
-    image: node:20-alpine
-    container_name: recruitment-management-api
-    working_dir: /app
-    volumes:
-      - ./mock-api:/app
-    command: sh -c "npm install && npm start"
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
     networks:
-      - recruitment-network 
+      - recruitment-network
+
+networks:
+  recruitment-network:
+    driver: bridge 
