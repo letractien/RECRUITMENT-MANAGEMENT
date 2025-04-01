@@ -530,7 +530,8 @@ const toggleJobStatus = (job) => {
   height: calc(100vh - 64px);
   overflow-y: auto;
   overflow-x: hidden;
-  background-color: #f0f2f5;
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
 
 @keyframes fadeIn {
@@ -562,7 +563,7 @@ const toggleJobStatus = (job) => {
   gap: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.85);
+  color: var(--text-color);
 }
 
 .pagination-container {
@@ -589,7 +590,8 @@ const toggleJobStatus = (job) => {
   margin-top: 12px;
   display: flex;
   gap: 16px;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--text-color);
+  opacity: 0.65;
   font-size: 13px;
   font-weight: 500;
 }
@@ -606,14 +608,15 @@ const toggleJobStatus = (job) => {
 
 .job-section h4 {
   margin: 0 0 6px 0;
-  color: rgba(0, 0, 0, 0.85);
+  color: var(--text-color);
   font-size: 14px;
   font-weight: 700;
 }
 
 .job-section p {
   margin: 0;
-  color: rgba(0, 0, 0, 0.65);
+  color: var(--text-color);
+  opacity: 0.65;
   line-height: 1.5;
   font-size: 13px;
   font-weight: 500;
@@ -650,5 +653,68 @@ const toggleJobStatus = (job) => {
   .pagination-container {
     justify-content: center;
   }
+}
+
+a-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px var(--shadow-color);
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-card-head) {
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+:deep(.ant-card-body) {
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-modal-content) {
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-modal-header) {
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+:deep(.ant-modal-title) {
+  color: var(--text-color);
+}
+
+:deep(.ant-form-item-label > label) {
+  color: var(--text-color);
+}
+
+:deep(.ant-select-dropdown) {
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-empty-description) {
+  color: var(--text-color);
+}
+
+.ant-table {
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-table) {
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-table-thead > tr > th) {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+:deep(.ant-table-tbody > tr > td) {
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+:deep(.ant-table-tbody > tr.ant-table-row:hover > td) {
+  background-color: var(--hover-color);
 }
 </style> 
