@@ -432,12 +432,13 @@ const handleCurrentChange = (page) => {
 .candidate-name {
   font-size: 13px;
   font-weight: 600;
-  color: rgba(0, 0, 0, 0.85);
+  color: var(--text-color);
 }
 
 .candidate-email {
   font-size: 12px;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--text-color);
+  opacity: 0.45;
 }
 
 .action-column {
@@ -477,5 +478,58 @@ const handleCurrentChange = (page) => {
   .pagination-container {
     justify-content: center;
   }
+}
+
+:deep(.ant-card-head) {
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+:deep(.ant-card-body) {
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-table) {
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-table-thead > tr > th) {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+:deep(.ant-table-tbody > tr > td) {
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+:deep(.ant-table-tbody > tr.ant-table-row:hover > td) {
+  background-color: var(--hover-color);
+}
+
+:deep(.ant-modal-content) {
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-modal-header) {
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+:deep(.ant-modal-title) {
+  color: var(--text-color);
+}
+
+:deep(.ant-form-item-label > label) {
+  color: var(--text-color);
+}
+
+:deep(.ant-select-dropdown) {
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-empty-description) {
+  color: var(--text-color);
 }
 </style> 
