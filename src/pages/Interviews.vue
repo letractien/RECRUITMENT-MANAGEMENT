@@ -9,7 +9,7 @@
     </div>
 
     <a-row :gutter="16">
-      <a-col :xs="24" :md="16">
+      <a-col :span="24" :lg="16">
         <a-card class="calendar-card" :bordered="false">
           <template #title>
             <div class="calendar-header">
@@ -67,7 +67,6 @@
               >
                 <div v-if="viewMode !== 'day'" class="date-number">
                   <span>{{ getDateNumber(date) }}</span>
-                  <small v-if="viewMode === 'week'">{{ getDayName(date) }}</small>
                 </div>
                 
                 <div class="interview-events" :class="{ 'day-view-events': viewMode === 'day' }">
@@ -101,11 +100,11 @@
                     <div class="view-buttons">
                       <a @click="showMoreInterviews(date)" class="view-more-link">
                         <plus-outlined />
-                        <span>Xem thêm</span>
+                        <span>5</span>
                       </a>
                       <a @click="showAllInterviews(date)" class="view-all-link">
                         <eye-outlined />
-                        <span>Xem tất cả</span>
+                        <span>Full</span>
                       </a>
                     </div>
                   </div>
@@ -187,7 +186,7 @@
           </div>
         </a-card>
       </a-col>
-      <a-col :xs="24" :md="8">
+      <a-col :span="24" :lg="8">
         <a-card class="upcoming-interviews" :bordered="false">
           <template #title>
             <div class="card-header">
@@ -816,8 +815,11 @@ const interviewTypeStats = computed(() => {
 }
 
 .calendar-day-header {
-  padding: 0 4px;
+  padding: 4px;
   box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  border: 1px solid transparent;
 }
 
 .calendar-cells {
@@ -837,6 +839,8 @@ const interviewTypeStats = computed(() => {
   background-color: var(--card-bg);
   transition: all 0.2s;
   border-radius: 4px;
+  min-width: 0;
+  width: 100%;
 }
 
 .calendar-cell:hover {
@@ -858,6 +862,7 @@ const interviewTypeStats = computed(() => {
   font-size: 14px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
 }
 
@@ -1033,6 +1038,17 @@ const interviewTypeStats = computed(() => {
 }
 
 @media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
   .calendar-days {
     font-size: 12px;
   }
@@ -1050,6 +1066,19 @@ const interviewTypeStats = computed(() => {
   .interview-event {
     padding: 2px 4px;
     font-size: 10px;
+  }
+
+  .view-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .a-row {
+    flex-direction: column;
+  }
+
+  .a-col {
+    width: 100%;
   }
 }
 
@@ -1370,6 +1399,7 @@ const interviewTypeStats = computed(() => {
 
 :deep(.ant-card-body) {
   background-color: var(--card-bg);
+  overflow-x: auto;
 }
 
 :deep(.ant-modal-content) {
