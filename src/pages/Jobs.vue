@@ -49,6 +49,7 @@
         :columns="columns"
         :pagination="false"
         size="middle"
+        :scroll="{ y: 405 }"
       >
         <template #bodyCell="{ column, text, record }">
           <template v-if="column.key === 'title'">
@@ -123,71 +124,18 @@
     <a-modal
       v-model:visible="jobDialog.visible"
       :title="jobDialog.isEdit ? 'Edit Job' : 'Create New Job'"
-      width="600px"
+      width="1000px"
+      :okText="jobDialog.isEdit ? 'Update' : 'Create'"
+      :cancelText="'Cancel'"
+      :okButtonProps="{ type: 'primary', size: 'large' }"
+      :cancelButtonProps="{ size: 'large' }"
       @ok="saveJob"
     >
-      <a-form
-        :model="jobForm"
-        :rules="jobRules"
+      <JobCreationForm
         ref="jobFormRef"
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 18 }"
-      >
-        <a-form-item label="Job Title" name="title">
-          <a-input v-model:value="jobForm.title" />
-        </a-form-item>
-        <a-form-item label="Department" name="department">
-          <a-select v-model:value="jobForm.department" style="width: 100%">
-            <a-select-option
-              v-for="dept in departments"
-              :key="dept"
-              :value="dept"
-            >
-              {{ dept }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="Location" name="location">
-          <a-input v-model:value="jobForm.location" />
-        </a-form-item>
-        <a-form-item label="Description" name="description">
-          <a-textarea v-model:value="jobForm.description" :rows="4" />
-        </a-form-item>
-        <a-form-item label="Requirements" name="requirements">
-          <a-textarea v-model:value="jobForm.requirements" :rows="4" />
-        </a-form-item>
-        <a-form-item label="Salary Range">
-          <a-row :gutter="8">
-            <a-col :span="11">
-              <a-input-number
-                v-model:value="jobForm.salaryMin"
-                :min="0"
-                :step="1000000"
-                style="width: 100%"
-              />
-            </a-col>
-            <a-col :span="2" class="text-center">
-              <span>-</span>
-            </a-col>
-            <a-col :span="11">
-              <a-input-number
-                v-model:value="jobForm.salaryMax"
-                :min="jobForm.salaryMin || 0"
-                :step="1000000"
-                style="width: 100%"
-              />
-            </a-col>
-          </a-row>
-        </a-form-item>
-        <a-form-item label="Status">
-          <a-switch
-            v-model:checked="isJobActive"
-            checked-children="Active"
-            un-checked-children="Inactive"
-            @change="onStatusChange"
-          />
-        </a-form-item>
-      </a-form>
+        :initial-data="jobForm"
+        @submit="handleJobFormSubmit"
+      />
     </a-modal>
 
     <!-- Job Details Dialog -->
@@ -249,6 +197,7 @@ import {
   FundOutlined
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
+import JobCreationForm from '@/components/JobCreationForm.vue'
 
 // Constants
 const departments = [
@@ -362,15 +311,48 @@ const jobDetailsDialog = reactive({
 })
 
 const jobForm = reactive({
-  id: null,
-  title: '',
+  jobTitle: '',
   department: '',
   location: '',
   description: '',
   requirements: '',
-  status: 'Active',
   salaryMin: 0,
-  salaryMax: 0
+  salaryMax: 0,
+  backgroundCriteria: {
+    importanceRatio: 30,
+    required: 'Ứng viên phải là sinh viên năm cuối hoặc mới tốt nghiệp ngành Công nghệ Thông tin, Khoa học Máy tính, Kỹ thuật Phần mềm hoặc các ngành liên quan.',
+    criteria: [
+      { name: 'GPA', maxScore: 10 },
+      { name: 'Chuyên ngành', maxScore: 10 },
+      { name: 'Thành tích học tập', maxScore: 10 }
+    ]
+  },
+  projectCriteria: {
+    importanceRatio: 25,
+    required: 'Có kinh nghiệm tham gia các dự án phần mềm (dự án trong trường học hoặc cá nhân) là một lợi thế.',
+    criteria: [
+      { name: 'Số lượng dự án', maxScore: 10 },
+      { name: 'Vai trò trong dự án', maxScore: 10 },
+      { name: 'Độ phức tạp của dự án', maxScore: 10 }
+    ]
+  },
+  skillCriteria: {
+    importanceRatio: 35,
+    required: 'Kiến thức cơ bản về lập trình, thuật toán, cấu trúc dữ liệu. Thành thạo ít nhất một ngôn ngữ lập trình Java, Python, C#, JavaScript,... Hiểu về mô hình MVC, REST API (lợi thế). Kỹ năng mềm: Làm việc nhóm, tư duy logic, giải quyết vấn đề.',
+    criteria: [
+      { name: 'Kiến thức lập trình', maxScore: 10 },
+      { name: 'Kỹ năng giải quyết vấn đề', maxScore: 10 },
+      { name: 'Kỹ năng làm việc nhóm', maxScore: 10 }
+    ]
+  },
+  certificationCriteria: {
+    importanceRatio: 10,
+    required: 'Không bắt buộc, nhưng có chứng chỉ lập trình (OCA, AWS Certified Developer, v.v.) là lợi thế.',
+    criteria: [
+      { name: 'Chứng chỉ chuyên môn', maxScore: 10 },
+      { name: 'Chứng chỉ ngoại ngữ', maxScore: 10 }
+    ]
+  }
 })
 
 // Form rules
@@ -418,23 +400,70 @@ const formatSalary = (amount) => {
 const showCreateJobDialog = () => {
   jobDialog.isEdit = false
   jobDialog.visible = true
+  // Reset form with default values
   Object.assign(jobForm, {
-    id: null,
-    title: '',
+    jobTitle: '',
     department: '',
     location: '',
     description: '',
     requirements: '',
-    status: 'Active',
     salaryMin: 0,
-    salaryMax: 0
+    salaryMax: 0,
+    backgroundCriteria: {
+      importanceRatio: 30,
+      required: 'Ứng viên phải là sinh viên năm cuối hoặc mới tốt nghiệp ngành Công nghệ Thông tin, Khoa học Máy tính, Kỹ thuật Phần mềm hoặc các ngành liên quan.',
+      criteria: [
+        { name: 'GPA', maxScore: 10 },
+        { name: 'Chuyên ngành', maxScore: 10 },
+        { name: 'Thành tích học tập', maxScore: 10 }
+      ]
+    },
+    projectCriteria: {
+      importanceRatio: 25,
+      required: 'Có kinh nghiệm tham gia các dự án phần mềm (dự án trong trường học hoặc cá nhân) là một lợi thế.',
+      criteria: [
+        { name: 'Số lượng dự án', maxScore: 10 },
+        { name: 'Vai trò trong dự án', maxScore: 10 },
+        { name: 'Độ phức tạp của dự án', maxScore: 10 }
+      ]
+    },
+    skillCriteria: {
+      importanceRatio: 35,
+      required: 'Kiến thức cơ bản về lập trình, thuật toán, cấu trúc dữ liệu. Thành thạo ít nhất một ngôn ngữ lập trình Java, Python, C#, JavaScript,... Hiểu về mô hình MVC, REST API (lợi thế). Kỹ năng mềm: Làm việc nhóm, tư duy logic, giải quyết vấn đề.',
+      criteria: [
+        { name: 'Kiến thức lập trình', maxScore: 10 },
+        { name: 'Kỹ năng giải quyết vấn đề', maxScore: 10 },
+        { name: 'Kỹ năng làm việc nhóm', maxScore: 10 }
+      ]
+    },
+    certificationCriteria: {
+      importanceRatio: 10,
+      required: 'Không bắt buộc, nhưng có chứng chỉ lập trình (OCA, AWS Certified Developer, v.v.) là lợi thế.',
+      criteria: [
+        { name: 'Chứng chỉ chuyên môn', maxScore: 10 },
+        { name: 'Chứng chỉ ngoại ngữ', maxScore: 10 }
+      ]
+    }
   })
 }
 
 const editJob = (job) => {
   jobDialog.isEdit = true
   jobDialog.visible = true
-  Object.assign(jobForm, job)
+  // Copy job data to form
+  Object.assign(jobForm, {
+    jobTitle: job.title,
+    department: job.department,
+    location: job.location,
+    description: job.description,
+    requirements: job.requirements,
+    salaryMin: job.salaryMin,
+    salaryMax: job.salaryMax,
+    backgroundCriteria: job.evaluationCriteria?.background || jobForm.backgroundCriteria,
+    projectCriteria: job.evaluationCriteria?.project || jobForm.projectCriteria,
+    skillCriteria: job.evaluationCriteria?.skill || jobForm.skillCriteria,
+    certificationCriteria: job.evaluationCriteria?.certification || jobForm.certificationCriteria
+  })
 }
 
 const viewJobDetails = (job) => {
@@ -520,6 +549,47 @@ const toggleJobStatus = (job) => {
     }
   })
 }
+
+const handleJobFormSubmit = (formData) => {
+  // Transform the form data to match the API format
+  const jobData = {
+    title: formData.jobTitle,
+    department: formData.department,
+    location: formData.location,
+    description: formData.description,
+    requirements: formData.requirements,
+    salaryMin: formData.salaryMin,
+    salaryMax: formData.salaryMax,
+    status: 'Active',
+    evaluationCriteria: {
+      background: formData.backgroundCriteria,
+      project: formData.projectCriteria,
+      skill: formData.skillCriteria,
+      certification: formData.certificationCriteria
+    }
+  }
+  
+  if (jobDialog.isEdit) {
+    // Update existing job
+    const index = jobs.value.findIndex(job => job.id === jobForm.id)
+    if (index !== -1) {
+      jobs.value[index] = { ...jobs.value[index], ...jobData }
+    }
+  } else {
+    // Create new job
+    const newJob = {
+      ...jobData,
+      id: jobs.value.length + 1,
+      key: jobs.value.length + 1,
+      applications: 0,
+      postedDate: new Date().toISOString().split('T')[0]
+    }
+    jobs.value.push(newJob)
+  }
+  
+  jobDialog.visible = false
+  message.success(`Job ${jobDialog.isEdit ? 'updated' : 'created'} successfully`)
+}
 </script>
 
 <style scoped>
@@ -555,6 +625,22 @@ const toggleJobStatus = (job) => {
   display: flex;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+/* Adjust table styles for scrolling */
+:deep(.ant-table-wrapper) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+:deep(.ant-table-body) {
+  overflow-y: auto !important;
+}
+
+:deep(.ant-table-thead > tr > th) {
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .job-title {

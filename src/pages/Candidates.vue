@@ -37,6 +37,7 @@
         :columns="columns"
         :pagination="false"
         size="middle"
+        :scroll="{ y: 405 }"
       >
         <template #bodyCell="{ column, text, record }">
           <template v-if="column.key === 'candidate'">
@@ -164,7 +165,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, h } from 'vue'
 import { 
   PlusOutlined, 
   SearchOutlined, 
@@ -201,6 +202,15 @@ const columns = [
     customRender: ({ text }) => `${text} years`
   },
   {
+    title: 'Score',
+    key: 'score',
+    width: 100,
+    customRender: ({ record }) => {
+      const score = record.score || 0
+      return `${score}/100`
+    }
+  },
+  {
     title: 'Status',
     key: 'status',
     width: 120
@@ -223,14 +233,34 @@ const candidates = ref(
   Array.from({ length: 1000 }, (_, index) => ({
     key: index + 1,
     id: index + 1,
-    name: `Candidate ${index + 1}`,
+    name: `Nguyễn Văn ${String.fromCharCode(65 + (index % 26))}`,
     email: `candidate${index + 1}@example.com`,
     phone: `+84 ${Math.floor(Math.random() * 900000000) + 100000000}`,
     position: ['Senior Frontend Developer', 'Backend Developer', 'UI/UX Designer', 'Product Manager'][Math.floor(Math.random() * 4)],
     experience: Math.floor(Math.random() * 10) + 1,
+    score: Math.floor(Math.random() * 100),
     status: ['New', 'Screening', 'Interview', 'Hired', 'Rejected'][Math.floor(Math.random() * 5)],
     appliedDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    avatar: ''
+    avatar: '',
+    resume: '',
+    education: [
+      'Bachelor of Computer Science',
+      'Bachelor of Information Technology',
+      'Bachelor of Software Engineering',
+      'Master of Computer Science'
+    ][Math.floor(Math.random() * 4)],
+    skills: [
+      'JavaScript', 'React', 'Vue.js', 'Node.js', 'Python', 'Java', 'SQL',
+      'UI/UX Design', 'Product Management', 'Agile', 'Git', 'Docker'
+    ].sort(() => Math.random() - 0.5).slice(0, Math.floor(Math.random() * 5) + 3),
+    interviewNotes: '',
+    evaluation: {
+      technicalScore: Math.floor(Math.random() * 100),
+      softSkillsScore: Math.floor(Math.random() * 100),
+      experienceScore: Math.floor(Math.random() * 100),
+      overallScore: Math.floor(Math.random() * 100),
+      feedback: ''
+    }
   }))
 )
 
@@ -238,10 +268,30 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 
 const availableJobs = [
-  { label: 'Senior Frontend Developer', value: 'Senior Frontend Developer' },
-  { label: 'Backend Developer', value: 'Backend Developer' },
-  { label: 'UI/UX Designer', value: 'UI/UX Designer' },
-  { label: 'Product Manager', value: 'Product Manager' }
+  { 
+    label: 'Senior Frontend Developer', 
+    value: 'Senior Frontend Developer',
+    department: 'Engineering',
+    requirements: ['React', 'Vue.js', 'TypeScript', '5+ years experience']
+  },
+  { 
+    label: 'Backend Developer', 
+    value: 'Backend Developer',
+    department: 'Engineering',
+    requirements: ['Node.js', 'Python', 'SQL', '3+ years experience']
+  },
+  { 
+    label: 'UI/UX Designer', 
+    value: 'UI/UX Designer',
+    department: 'Design',
+    requirements: ['Figma', 'Adobe XD', 'User Research', '3+ years experience']
+  },
+  { 
+    label: 'Product Manager', 
+    value: 'Product Manager',
+    department: 'Product',
+    requirements: ['Agile', 'Product Strategy', 'User Stories', '5+ years experience']
+  }
 ]
 
 const filteredCandidates = computed(() => {
@@ -275,7 +325,17 @@ const candidateForm = reactive({
   phone: '',
   position: '',
   experience: 0,
-  status: 'New'
+  status: 'New',
+  education: '',
+  skills: [],
+  resume: '',
+  evaluation: {
+    technicalScore: 0,
+    softSkillsScore: 0,
+    experienceScore: 0,
+    overallScore: 0,
+    feedback: ''
+  }
 })
 
 const getStatusType = (status) => {
@@ -310,7 +370,17 @@ const showCreateCandidateDialog = () => {
     phone: '',
     position: '',
     experience: 0,
-    status: 'New'
+    status: 'New',
+    education: '',
+    skills: [],
+    resume: '',
+    evaluation: {
+      technicalScore: 0,
+      softSkillsScore: 0,
+      experienceScore: 0,
+      overallScore: 0,
+      feedback: ''
+    }
   })
 }
 
@@ -344,11 +414,18 @@ const deleteCandidate = (candidate) => {
 }
 
 const saveCandidate = () => {
-  // Add validation here
   if (candidateDialog.isEdit) {
     const index = candidates.value.findIndex(c => c.id === candidateForm.id)
     if (index !== -1) {
-      candidates.value[index] = { ...candidateForm, key: candidateForm.id }
+      candidates.value[index] = { 
+        ...candidates.value[index],
+        ...candidateForm,
+        key: candidateForm.id,
+        evaluation: {
+          ...candidates.value[index].evaluation,
+          ...candidateForm.evaluation
+        }
+      }
     }
   } else {
     const newCandidate = {
@@ -356,7 +433,15 @@ const saveCandidate = () => {
       id: candidates.value.length + 1,
       key: candidates.value.length + 1,
       appliedDate: new Date().toISOString().split('T')[0],
-      avatar: ''
+      avatar: '',
+      skills: candidateForm.skills || [],
+      evaluation: {
+        technicalScore: 0,
+        softSkillsScore: 0,
+        experienceScore: 0,
+        overallScore: 0,
+        feedback: ''
+      }
     }
     candidates.value.push(newCandidate)
   }
@@ -452,6 +537,25 @@ const handleCurrentChange = (page) => {
   padding: 12px;
 }
 
+/* Table scrolling styles */
+:deep(.ant-table-wrapper) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+:deep(.ant-table-body) {
+  overflow-y: auto !important;
+}
+
+:deep(.ant-table-thead > tr > th) {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
 @media (max-width: 768px) {
   .candidates-page {
     padding: 4px;
@@ -531,5 +635,23 @@ const handleCurrentChange = (page) => {
 
 :deep(.ant-empty-description) {
   color: var(--text-color);
+}
+
+.score-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+
+.score-value {
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.score-max {
+  color: var(--text-color);
+  opacity: 0.45;
+  font-size: 0.9em;
 }
 </style> 

@@ -614,6 +614,7 @@ const handleSizeChange = (current, size) => {
   border-radius: 12px;
   box-shadow: 0 2px 8px var(--shadow-color);
   background-color: var(--card-bg);
+  height: 100%;
 }
 
 .chart-card :deep(.ant-card-head) {
@@ -962,6 +963,22 @@ const handleSizeChange = (current, size) => {
     align-items: flex-start;
     gap: 8px;
     margin-bottom: 16px;
+  }
+
+  .chart-section {
+    margin-bottom: 24px;
+  }
+
+  .chart-section :deep(.ant-row) {
+    margin: 0 !important;
+  }
+
+  .chart-section :deep(.ant-col) {
+    margin-bottom: 24px;
+  }
+
+  .chart-section :deep(.ant-col:last-child) {
+    margin-bottom: 0;
   }
 }
 </style> 
