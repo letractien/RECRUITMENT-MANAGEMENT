@@ -73,64 +73,64 @@ npm run build
 #### Prerequisites
 - Docker and Docker Compose installed on your machine
 
-#### Using Docker Compose for Production
+#### Production Environment
 
-Run the application in production mode:
+To run the application in production mode:
 
 ```bash
 # Build and start the container
-docker-compose up --build
+docker compose up --build
 
 # Run in detached mode
-docker-compose up -d
+docker compose up -d
 
 # Stop the container
-docker-compose down
+docker compose down
 ```
 
-The application will be available at http://localhost:8080 (even though logs will show it listening on port 3000 inside the container)
+The application will be available at http://localhost:8080.
 
-#### Using Docker Compose for Development
+#### Development Environment
 
-For development with hot reloading:
+For development with hot reloading (changes to your code will automatically update):
 
 ```bash
 # Build and start the development container
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.dev.yml up
+
+# Run in detached mode
+docker compose -f docker-compose.dev.yml up -d
+
+# Stop the container
+docker compose -f docker-compose.dev.yml down
 ```
 
-This will:
-- Mount your local source code into the container
-- Enable hot-reloading with `npm run dev -- --host` (Vite dev server)
-- Expose the Vite dev server on port 5173
-- Set NODE_ENV to development
-
-The application will be available at http://localhost:5173 in development mode. Any changes to your source code will trigger hot-reloading.
+The application will be available at http://localhost:5173 in development mode.
 
 #### About Docker Configuration
 
 ##### Production Mode (docker-compose.yml)
-- Uses a single Node.js container running `serve` to host the application
 - Builds the application and serves the static files
 - Port mapping: Container's port 3000 → Host's port 8080
-  - Note: The application logs will show it's running on http://localhost:3000, but that's from inside the container
-  - You should access it through http://localhost:8080 on your host machine
+- Optimized for production use
+- Exposes the application on a bridged network (recruitment-network)
+- Accessible on your host machine at http://localhost:8080
 
 ##### Development Mode (docker-compose.dev.yml)
-- Uses the same Node.js container but runs Vite dev server instead
+- Runs Vite dev server with hot reload enabled
 - Mounts your local code into the container for instant updating
 - Port mapping: Container's port 5173 → Host's port 5173
-- Uses the `--host` flag to make Vite accessible from outside the container
-  - Logs will show both http://localhost:5173/ and http://[container-ip]:5173/
-  - You should access it through http://localhost:5173 on your host machine
+- Any changes to your source code will automatically update the running application
+- Exposes the development server on a bridged network (recruitment-network)
+- Accessible on your host machine at http://localhost:5173
+
+> **Note**: Both configurations expose the service to your host network through port mapping. The application uses a bridge network named "recruitment-network" for container communication.
 
 ### Troubleshooting
 
-- If you see warnings about "the attribute `version` is obsolete" in docker-compose files, this is normal and can be ignored
 - If you can't access the application after starting Docker, check that you're using the correct port:
   - Production: http://localhost:8080
   - Development: http://localhost:5173
-- If the application still isn't accessible, ensure the `--host` flag is being passed to Vite in development mode
 
 ### Cleanup Local Development Files
 
