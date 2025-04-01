@@ -139,9 +139,10 @@ const settings = reactive({
 <style scoped>
 .settings-container {
   padding: 4px;
-  background-color: #f0f2f5;
+  background-color: var(--bg-color);
   min-height: 100%;
   overflow-x: hidden;
+  color: var(--text-color);
 }
 
 .page-header {
@@ -160,10 +161,80 @@ const settings = reactive({
 .setting-title {
   font-weight: 500;
   margin-bottom: 4px;
+  color: var(--text-color);
 }
 
 .setting-description {
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--text-color);
+  opacity: 0.45;
   font-size: 14px;
+}
+
+:deep(.ant-card) {
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+:deep(.ant-card-head) {
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+:deep(.ant-card-body) {
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-tabs-nav) {
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-tabs-tab) {
+  color: var(--text-color);
+  opacity: 0.8;
+}
+
+:deep(.ant-tabs-tab-active) {
+  color: #1890ff;
+  opacity: 1;
+}
+
+:deep(.ant-tabs-ink-bar) {
+  background-color: #1890ff;
+}
+
+:deep(.ant-list-item) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+:deep(.ant-form-item-label > label) {
+  color: var(--text-color);
+}
+
+:deep(.ant-input) {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+:deep(.ant-select-selector) {
+  background-color: var(--card-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-color);
+}
+
+:deep(.ant-select-selection-item) {
+  color: var(--text-color);
+}
+
+:deep(.ant-textarea) {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+:deep(.ant-list-empty-text) {
+  color: var(--text-color);
+  opacity: 0.6;
 }
 </style> 

@@ -627,9 +627,15 @@ const getDayName = (date) => {
 
 const getCalendarGridStyle = () => {
   if (viewMode.value === 'month') {
-    return { gridTemplateColumns: 'repeat(7, 1fr)' }
+    return { 
+      gridTemplateColumns: 'repeat(7, 1fr)',
+      width: '100%' 
+    }
   } else if (viewMode.value === 'week') {
-    return { gridTemplateColumns: 'repeat(7, 1fr)' }
+    return { 
+      gridTemplateColumns: 'repeat(7, 1fr)',
+      width: '100%'
+    }
   } else if (viewMode.value === 'day') {
     return { gridTemplateColumns: '1fr' }
   }
@@ -801,9 +807,17 @@ const interviewTypeStats = computed(() => {
   grid-template-columns: repeat(7, 1fr);
   text-align: center;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   font-size: 14px;
   max-width: 100%;
+  box-sizing: border-box;
+  gap: 4px;
+  padding: 0 1px;
+}
+
+.calendar-day-header {
+  padding: 0 4px;
+  box-sizing: border-box;
 }
 
 .calendar-cells {
@@ -811,6 +825,8 @@ const interviewTypeStats = computed(() => {
   grid-template-columns: repeat(7, 1fr);
   gap: 4px;
   max-width: 100%;
+  box-sizing: border-box;
+  padding: 0 1px;
 }
 
 .calendar-cell {
@@ -1345,5 +1361,43 @@ const interviewTypeStats = computed(() => {
     flex-direction: column;
     gap: 8px;
   }
+}
+
+:deep(.ant-card-head) {
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+:deep(.ant-card-body) {
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-modal-content) {
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-modal-header) {
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+:deep(.ant-modal-title) {
+  color: var(--text-color);
+}
+
+:deep(.ant-form-item-label > label) {
+  color: var(--text-color);
+}
+
+:deep(.ant-timeline-item-content) {
+  color: var(--text-color);
+}
+
+:deep(.ant-select-dropdown) {
+  background-color: var(--card-bg);
+}
+
+:deep(.ant-empty-description) {
+  color: var(--text-color);
 }
 </style> 
