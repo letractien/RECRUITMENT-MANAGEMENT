@@ -48,25 +48,36 @@ const actions = {
       const dashboardData = response.data;
       
       // Update all dashboard data at once
-      commit('SET_DASHBOARD_STATS', dashboardData.stats);
-      commit('SET_RECENT_ACTIVITY', dashboardData.recentActivity);
-      commit('SET_JOBS_BY_DEPARTMENT', dashboardData.jobsByDepartment);
-      commit('SET_HIRING_FUNNEL', dashboardData.hiringFunnel);
-      commit('SET_APPLICATION_TREND', dashboardData.applicationTrend);
+      if (dashboardData.stats) commit('SET_DASHBOARD_STATS', dashboardData.stats);
+      if (dashboardData.recentActivity) commit('SET_RECENT_ACTIVITY', dashboardData.recentActivity);
+      if (dashboardData.jobsByDepartment) commit('SET_JOBS_BY_DEPARTMENT', dashboardData.jobsByDepartment);
+      if (dashboardData.hiringFunnel) commit('SET_HIRING_FUNNEL', dashboardData.hiringFunnel);
+      if (dashboardData.applicationTrend) commit('SET_APPLICATION_TREND', dashboardData.applicationTrend);
       
       // Fetch recent applications and upcoming interviews separately
-      await Promise.all([
-        dispatch('fetchRecentApplications'),
-        dispatch('fetchUpcomingInterviews')
-      ]);
+      try {
+        await Promise.all([
+          dispatch('fetchRecentApplications'),
+          dispatch('fetchUpcomingInterviews')
+        ]);
+      } catch (innerError) {
+        console.warn('Failed to fetch some additional dashboard data:', innerError);
+      }
       
       commit('SET_ERROR', null);
       
       console.log('Successfully fetched dashboard data');
       return dashboardData;
     } catch (error) {
-      commit('SET_ERROR', error.message || 'Failed to fetch dashboard data');
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to fetch dashboard data';
+      commit('SET_ERROR', errorMessage);
       console.error('Error fetching dashboard data:', error);
+      
+      if (error.response) {
+        console.error('Status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
       return null;
     } finally {
       commit('SET_LOADING', false);
@@ -92,8 +103,15 @@ const actions = {
       console.log('Successfully fetched dashboard stats');
       return response.data;
     } catch (error) {
-      commit('SET_ERROR', error.message || 'Failed to fetch stats');
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to fetch stats';
+      commit('SET_ERROR', errorMessage);
       console.error('Error fetching stats:', error);
+      
+      if (error.response) {
+        console.error('Status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
       return null;
     } finally {
       commit('SET_LOADING', false);
@@ -113,8 +131,15 @@ const actions = {
       console.log('Successfully fetched recent activity');
       return response.data;
     } catch (error) {
-      commit('SET_ERROR', error.message || 'Failed to fetch recent activity');
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to fetch recent activity';
+      commit('SET_ERROR', errorMessage);
       console.error('Error fetching recent activity:', error);
+      
+      if (error.response) {
+        console.error('Status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
       return null;
     } finally {
       commit('SET_LOADING', false);
@@ -125,25 +150,30 @@ const actions = {
     try {
       commit('SET_LOADING', true);
       
-      // Use API service to fetch recent applications
-      const response = await dashboardService.getRecentApplications(
-        10, // limit
-        state.pagination.currentPage,
-        state.pagination.pageSize
-      );
+      // Use API service to fetch all recent applications with timeRange
+      const response = await dashboardService.getRecentApplications(state.timeRange);
       
       commit('SET_RECENT_APPLICATIONS', response.data.applications);
+      // Still keep track of total count
       commit('SET_PAGINATION', {
         ...state.pagination,
-        total: response.data.total
+        total: response.data.total,
+        currentPage: 1
       });
       commit('SET_ERROR', null);
       
       console.log('Successfully fetched recent applications');
       return response.data;
     } catch (error) {
-      commit('SET_ERROR', error.message || 'Failed to fetch recent applications');
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to fetch recent applications';
+      commit('SET_ERROR', errorMessage);
       console.error('Error fetching recent applications:', error);
+      
+      if (error.response) {
+        console.error('Status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
       return null;
     } finally {
       commit('SET_LOADING', false);
@@ -155,7 +185,7 @@ const actions = {
       commit('SET_LOADING', true);
       
       // Use API service to fetch jobs by department
-      const response = await dashboardService.getJobsByDepartmentStats(state.timeRange);
+      const response = await dashboardService.getJobsByDepartment(state.timeRange);
       
       commit('SET_JOBS_BY_DEPARTMENT', response.data);
       commit('SET_ERROR', null);
@@ -163,8 +193,15 @@ const actions = {
       console.log('Successfully fetched jobs by department');
       return response.data;
     } catch (error) {
-      commit('SET_ERROR', error.message || 'Failed to fetch jobs by department');
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to fetch jobs by department';
+      commit('SET_ERROR', errorMessage);
       console.error('Error fetching jobs by department:', error);
+      
+      if (error.response) {
+        console.error('Status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
       return null;
     } finally {
       commit('SET_LOADING', false);
@@ -184,8 +221,15 @@ const actions = {
       console.log('Successfully fetched hiring funnel');
       return response.data;
     } catch (error) {
-      commit('SET_ERROR', error.message || 'Failed to fetch hiring funnel');
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to fetch hiring funnel';
+      commit('SET_ERROR', errorMessage);
       console.error('Error fetching hiring funnel:', error);
+      
+      if (error.response) {
+        console.error('Status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
       return null;
     } finally {
       commit('SET_LOADING', false);
@@ -205,8 +249,15 @@ const actions = {
       console.log('Successfully fetched application trend');
       return response.data;
     } catch (error) {
-      commit('SET_ERROR', error.message || 'Failed to fetch application trend');
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to fetch application trend';
+      commit('SET_ERROR', errorMessage);
       console.error('Error fetching application trend:', error);
+      
+      if (error.response) {
+        console.error('Status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
       return null;
     } finally {
       commit('SET_LOADING', false);
@@ -226,26 +277,29 @@ const actions = {
       console.log('Successfully fetched upcoming interviews');
       return response.data;
     } catch (error) {
-      commit('SET_ERROR', error.message || 'Failed to fetch upcoming interviews');
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to fetch upcoming interviews';
+      commit('SET_ERROR', errorMessage);
       console.error('Error fetching upcoming interviews:', error);
+      
+      if (error.response) {
+        console.error('Status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      
       return null;
     } finally {
       commit('SET_LOADING', false);
     }
   },
   
-  setPage({ commit, dispatch }, page) {
-    commit('SET_PAGINATION', { ...state.pagination, currentPage: page });
-    dispatch('fetchRecentApplications');
+  setPage({ commit }) {
+    console.log('Pagination is disabled, showing all applications');
+    // No action needed
   },
   
-  setPageSize({ commit, dispatch }, pageSize) {
-    commit('SET_PAGINATION', { 
-      ...state.pagination, 
-      pageSize,
-      currentPage: 1 // Reset to first page when changing page size
-    });
-    dispatch('fetchRecentApplications');
+  setPageSize({ commit }) {
+    console.log('Pagination is disabled, showing all applications');
+    // No action needed
   }
 };
 

@@ -11,8 +11,7 @@ const routes = [
     name: 'Dashboard',
     component: () => import('../features/dashboard/pages/Dashboard.vue'),
     meta: {
-      title: 'Dashboard',
-      requiresAuth: true
+      title: 'Dashboard'
     }
   },
   {
@@ -20,8 +19,7 @@ const routes = [
     name: 'Jobs',
     component: () => import('../features/jobs/pages/Jobs.vue'),
     meta: {
-      title: 'Job Postings',
-      requiresAuth: true
+      title: 'Job Postings'
     }
   },
   {
@@ -29,8 +27,7 @@ const routes = [
     name: 'Candidates',
     component: () => import('../features/candidates/pages/Candidates.vue'),
     meta: {
-      title: 'Candidates',
-      requiresAuth: true
+      title: 'Candidates'
     }
   },
   {
@@ -38,8 +35,7 @@ const routes = [
     name: 'Interviews',
     component: () => import('../features/interviews/pages/Interviews.vue'),
     meta: {
-      title: 'Interviews',
-      requiresAuth: true
+      title: 'Interviews'
     }
   },
   {
@@ -51,8 +47,7 @@ const routes = [
     name: 'Settings',
     component: () => import('../core/pages/Settings.vue'),
     meta: {
-      title: 'Settings',
-      requiresAuth: true
+      title: 'Settings'
     }
   },
   {
@@ -60,8 +55,7 @@ const routes = [
     name: 'NotFound',
     component: () => import('../core/pages/NotFound.vue'),
     meta: {
-      title: 'Page Not Found',
-      requiresAuth: false
+      title: 'Page Not Found'
     }
   }
 ]
@@ -71,23 +65,10 @@ const router = createRouter({
   routes
 })
 
-// Global navigation guard to handle authentication and page titles
+// Global navigation guard to handle page titles
 router.beforeEach((to, from, next) => {
   // Set the document title
   document.title = to.meta.title ? `${to.meta.title} | Recruitment Management` : 'Recruitment Management';
-  
-  // Check authentication if required
-  if (to.meta.requiresAuth) {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      // In a real app, redirect to login page
-      // next({ name: 'Login' });
-      // For now, just proceed
-      next();
-      return;
-    }
-  }
-  
   next();
 });
 

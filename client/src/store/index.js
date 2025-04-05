@@ -14,7 +14,6 @@ for (const path in globModules) {
 export default createStore({
   state: {
     appName: 'Recruitment Management',
-    user: null,
     loading: false,
     error: null,
     darkMode: localStorage.getItem('darkMode') === 'true',
@@ -22,8 +21,6 @@ export default createStore({
   },
   
   getters: {
-    isAuthenticated: state => !!state.user,
-    currentUser: state => state.user,
     isLoading: state => state.loading,
     hasError: state => !!state.error,
     errorMessage: state => state.error,
@@ -32,18 +29,6 @@ export default createStore({
   },
   
   actions: {
-    setUser({ commit }, user) {
-      commit('SET_USER', user);
-    },
-    
-    logOut({ commit }) {
-      // Clear user data
-      commit('SET_USER', null);
-      
-      // Clear any stored token
-      localStorage.removeItem('token');
-    },
-    
     toggleDarkMode({ commit, state }) {
       const newMode = !state.darkMode;
       localStorage.setItem('darkMode', newMode);
@@ -81,10 +66,6 @@ export default createStore({
   },
   
   mutations: {
-    SET_USER(state, user) {
-      state.user = user;
-    },
-    
     SET_LOADING(state, isLoading) {
       state.loading = isLoading;
     },
@@ -120,7 +101,5 @@ export default createStore({
   modules: {
     // Register dynamically loaded modules
     ...featureModules
-    // You can still register non-feature modules here if needed
-    // e.g., auth: authModule
   }
 }); 
