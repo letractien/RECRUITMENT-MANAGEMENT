@@ -324,6 +324,9 @@ const columns = [
     title: 'Applied Date',
     dataIndex: 'appliedDate',
     key: 'appliedDate',
+    customRender: ({ text }) => {
+      return formatDate(text, 'YYYY-MM-DD HH:mm');
+    }
   },
   {
     title: 'Status',

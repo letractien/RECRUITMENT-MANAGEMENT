@@ -58,18 +58,18 @@
                 <a-button type="link" @click="viewJobDetails(record)">
                   {{ record.title }}
                 </a-button>
-                <a-tag :color="record.status === 'Active' ? 'green' : 'blue'">
-                  {{ record.status }}
+                <a-tag :color="getStatusColor(record.status)">
+                  {{ formatStatus(record.status) }}
                 </a-tag>
               </div>
             </template>
             <template v-else-if="column.key === 'applications'">
               <a-button type="link">
-                {{ record.applications }} candidates
+                {{ record.applicants || record.applications || 0 }} candidates
               </a-button>
             </template>
             <template v-else-if="column.key === 'postedDate'">
-              {{ formatDate(record.postedDate) }}
+              {{ formatJobDate(record) }}
             </template>
             <template v-else-if="column.key === 'actions'">
               <a-dropdown>
@@ -149,13 +149,13 @@
     >
       <div class="job-details" v-if="jobDetailsDialog.job">
         <div class="job-details-header">
-          <a-tag :color="jobDetailsDialog.job.status === 'Active' ? 'green' : 'blue'">
-            {{ jobDetailsDialog.job.status }}
+          <a-tag :color="getStatusColor(jobDetailsDialog.job.status)">
+            {{ formatStatus(jobDetailsDialog.job.status) }}
           </a-tag>
           <div class="job-meta">
             <span><environment-outlined /> {{ jobDetailsDialog.job.location }}</span>
             <span><fund-outlined /> {{ jobDetailsDialog.job.department }}</span>
-            <span><calendar-outlined /> Posted {{ formatDate(jobDetailsDialog.job.postedDate) }}</span>
+            <span><calendar-outlined /> Posted {{ formatJobDate(jobDetailsDialog.job) }}</span>
           </div>
         </div>
         
@@ -166,17 +166,37 @@
         
         <div class="job-section">
           <h4>Requirements</h4>
-          <p>{{ jobDetailsDialog.job.requirements }}</p>
+          <div v-if="Array.isArray(jobDetailsDialog.job.requirements)">
+            <ul>
+              <li v-for="(req, index) in jobDetailsDialog.job.requirements" :key="index">{{ req }}</li>
+            </ul>
+          </div>
+          <p v-else>{{ jobDetailsDialog.job.requirements }}</p>
+        </div>
+
+        <div class="job-section">
+          <h4>Responsibilities</h4>
+          <div v-if="Array.isArray(jobDetailsDialog.job.responsibilities)">
+            <ul>
+              <li v-for="(resp, index) in jobDetailsDialog.job.responsibilities" :key="index">{{ resp }}</li>
+            </ul>
+          </div>
+          <p v-else-if="jobDetailsDialog.job.responsibilities">{{ jobDetailsDialog.job.responsibilities }}</p>
+          <p v-else>Not specified</p>
         </div>
 
         <div class="job-section">
           <h4>Salary Range</h4>
-          <p>{{ formatSalary(jobDetailsDialog.job.salaryMin) }} - {{ formatSalary(jobDetailsDialog.job.salaryMax) }} VND</p>
+          <p v-if="jobDetailsDialog.job.min_salary || jobDetailsDialog.job.salaryMin">
+            {{ formatSalary(jobDetailsDialog.job.min_salary || jobDetailsDialog.job.salaryMin) }} - 
+            {{ formatSalary(jobDetailsDialog.job.max_salary || jobDetailsDialog.job.salaryMax) }} VND
+          </p>
+          <p v-else>Competitive</p>
         </div>
 
         <div class="job-section">
           <h4>Applications</h4>
-          <p>{{ jobDetailsDialog.job.applications }} candidates have applied</p>
+          <p>{{ jobDetailsDialog.job.applicants || jobDetailsDialog.job.applications || 0 }} candidates have applied</p>
         </div>
       </div>
     </a-modal>
@@ -245,6 +265,7 @@ const columns = [
   {
     title: 'Posted Date',
     key: 'postedDate',
+    dataIndex: 'postedDate',
     width: 150
   },
   {
@@ -280,9 +301,9 @@ const isLoading = computed(() => store.getters['jobs/isLoading'])
 const filteredJobs = computed(() => {
   return jobs.value.filter(job => {
     const matchesSearch = search.value === '' || 
-      job.title.toLowerCase().includes(search.value.toLowerCase()) ||
-      job.department.toLowerCase().includes(search.value.toLowerCase()) ||
-      job.location.toLowerCase().includes(search.value.toLowerCase())
+      (job.title && job.title.toLowerCase().includes(search.value.toLowerCase())) ||
+      (job.department && job.department.toLowerCase().includes(search.value.toLowerCase())) ||
+      (job.location && job.location.toLowerCase().includes(search.value.toLowerCase()))
     
     const matchesDepartment = departmentFilter.value === '' || 
       job.department === departmentFilter.value
@@ -485,6 +506,37 @@ const handleCurrentChange = (page) => {
 const handleSizeChange = (current, size) => {
   pageSize.value = size
   currentPage.value = 1
+}
+
+const getStatusColor = (status) => {
+  if (!status) return 'blue';
+  
+  const statusLower = status.toLowerCase();
+  if (statusLower === 'open' || statusLower === 'active') return 'green';
+  if (statusLower === 'paused') return 'orange';
+  if (statusLower === 'closed') return 'red';
+  if (statusLower === 'draft') return 'blue';
+  
+  return 'blue'; // Default color
+}
+
+const formatStatus = (status) => {
+  if (!status) return 'Unknown';
+  
+  // Convert first letter to uppercase and the rest to lowercase
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+}
+
+const formatJobDate = (job) => {
+  // Try different field names in priority order
+  const dateValue = job.posted_date || job.postedDate || job.created_at;
+  
+  if (!dateValue) {
+    return 'N/A'; // Return N/A if no date is available
+  }
+  
+  // Use a format that includes date and time (hours and minutes)
+  return formatDate(dateValue, 'YYYY-MM-DD HH:mm');
 }
 </script>
 

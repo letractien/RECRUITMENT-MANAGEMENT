@@ -75,11 +75,31 @@ const actions = {
       // Use API service to fetch jobs
       const response = await jobsService.getAllJobs();
       
-      commit('SET_JOBS', response.data);
-      commit('SET_ERROR', null);
-      
-      console.log('Successfully fetched jobs:', response.data.length);
-      return response.data;
+      if (response.data) {
+        // Map any necessary fields or transformations here if needed
+        const jobs = response.data.map(job => {
+          // Create a default posted date if none exists
+          const postedDate = job.posted_date || job.postedDate || job.created_at || new Date().toISOString();
+          
+          return {
+            ...job,
+            id: job.id || job._id, // Handle both id formats
+            postedDate: postedDate, // Use the determined posted date
+            posted_date: postedDate, // Set both formats for consistency
+            applications: job.applications || job.applicants || 0 // Default to 0 if not provided
+          };
+        });
+        
+        commit('SET_JOBS', jobs);
+        commit('SET_ERROR', null);
+        
+        console.log('Successfully fetched jobs:', jobs.length);
+        return jobs;
+      } else {
+        commit('SET_JOBS', []);
+        commit('SET_ERROR', 'No data received from server');
+        return [];
+      }
     } catch (error) {
       commit('SET_ERROR', error.message || 'Failed to fetch jobs');
       console.error('Error fetching jobs:', error);
@@ -120,12 +140,24 @@ const actions = {
     try {
       commit('SET_LOADING', true);
       
+      // Ensure job data has a posted date
+      const jobWithDate = {
+        ...jobData,
+        posted_date: jobData.posted_date || new Date().toISOString(),
+        postedDate: jobData.postedDate || new Date().toISOString()
+      };
+      
       // Use API service to create a job
-      const response = await jobsService.createJob(jobData);
+      const response = await jobsService.createJob(jobWithDate);
       const newJob = response.data;
       
-      // Add to state
-      commit('ADD_JOB', newJob);
+      // Add to state with consistent date format
+      commit('ADD_JOB', {
+        ...newJob,
+        posted_date: newJob.posted_date || newJob.postedDate || newJob.created_at || new Date().toISOString(),
+        postedDate: newJob.posted_date || newJob.postedDate || newJob.created_at || new Date().toISOString()
+      });
+      
       commit('SET_ERROR', null);
       
       console.log('Successfully created job:', newJob.title);
