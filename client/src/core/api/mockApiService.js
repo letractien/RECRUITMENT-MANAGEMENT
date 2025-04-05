@@ -1,4 +1,5 @@
-import { candidates, jobs, interviews, dashboardData } from '../../utils/mockData';
+import { candidates, jobs, interviews } from '../../utils/mockData';
+import apiClient from './apiClient';
 
 // Helper to simulate API delay
 const delay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
@@ -300,36 +301,41 @@ const mockApiService = {
     return { data: jobInterviews };
   },
 
-  // Dashboard
+  // Dashboard - Sử dụng API thực tế
   getDashboardData: async (timeRange = 'month') => {
-    await delay();
-    // For demo, we don't filter by time range but in a real app, we would
-    return { data: dashboardData };
+    return apiClient.get('/dashboard', { params: { time_range: timeRange } });
   },
 
   getStats: async (timeRange = 'month') => {
-    await delay();
-    return { data: dashboardData.stats };
+    return apiClient.get('/dashboard/stats', { params: { time_range: timeRange } });
   },
 
   getRecentActivity: async (limit = 10) => {
-    await delay();
-    return { data: dashboardData.recentActivity.slice(0, limit) };
+    return apiClient.get('/dashboard/recent-activity', { params: { limit } });
   },
 
   getJobsByDepartmentStats: async (timeRange = 'month') => {
-    await delay();
-    return { data: dashboardData.jobsByDepartment };
+    return apiClient.get('/dashboard/jobs-by-department', { params: { time_range: timeRange } });
   },
 
   getHiringFunnel: async (timeRange = 'month') => {
-    await delay();
-    return { data: dashboardData.hiringFunnel };
+    return apiClient.get('/dashboard/hiring-funnel', { params: { time_range: timeRange } });
   },
 
   getApplicationTrend: async (timeRange = 'month') => {
-    await delay();
-    return { data: dashboardData.applicationTrend };
+    return apiClient.get('/dashboard/application-trend', { params: { time_range: timeRange } });
+  },
+  
+  getRecentApplications: async (limit = 10, page = 1, pageSize = 10) => {
+    return apiClient.get('/dashboard/recent-applications', { 
+      params: { limit, page, page_size: pageSize } 
+    });
+  },
+  
+  getUpcomingInterviews: async (days = 7, limit = 5) => {
+    return apiClient.get('/dashboard/upcoming-interviews', {
+      params: { days, limit }
+    });
   }
 };
 

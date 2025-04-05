@@ -8,8 +8,32 @@ export default {
    * @param {string} timeRange - Time range for the data (week, month, quarter, year)
    * @returns {Promise} - Promise with response data
    */
-  getDashboardData(timeRange = 'month') {
-    return apiClient.get(RESOURCE, { params: { timeRange } });
+  async getDashboardData(timeRange = 'month') {
+    // Fetch all required dashboard data in parallel
+    const [
+      stats,
+      recentActivity,
+      jobsByDepartment,
+      hiringFunnel,
+      applicationTrend
+    ] = await Promise.all([
+      this.getStats(timeRange),
+      this.getRecentActivity(),
+      this.getJobsByDepartment(timeRange),
+      this.getHiringFunnel(timeRange),
+      this.getApplicationTrend(timeRange)
+    ]);
+
+    // Combine all data into one object
+    return {
+      data: {
+        stats: stats.data,
+        recentActivity: recentActivity.data,
+        jobsByDepartment: jobsByDepartment.data,
+        hiringFunnel: hiringFunnel.data,
+        applicationTrend: applicationTrend.data
+      }
+    };
   },
 
   /**
@@ -18,29 +42,7 @@ export default {
    * @returns {Promise} - Promise with response data
    */
   getStats(timeRange = 'month') {
-    return apiClient.get(`${RESOURCE}/stats`, { params: { timeRange } });
-  },
-
-  /**
-   * Get recent activity
-   * @param {number} limit - Number of activities to return
-   * @returns {Promise} - Promise with response data
-   */
-  getRecentActivity(limit = 10) {
-    return apiClient.get(`${RESOURCE}/activity`, { params: { limit } });
-  },
-
-  /**
-   * Get recent applications
-   * @param {number} limit - Number of applications to return
-   * @param {number} page - Page number for pagination
-   * @param {number} pageSize - Number of items per page
-   * @returns {Promise} - Promise with response data
-   */
-  getRecentApplications(limit = 10, page = 1, pageSize = 10) {
-    return apiClient.get(`${RESOURCE}/recent-applications`, { 
-      params: { limit, page, pageSize } 
-    });
+    return apiClient.get(`${RESOURCE}/stats`, { params: { time_range: timeRange } });
   },
 
   /**
@@ -49,7 +51,7 @@ export default {
    * @returns {Promise} - Promise with response data
    */
   getJobsByDepartment(timeRange = 'month') {
-    return apiClient.get(`${RESOURCE}/jobs-by-department`, { params: { timeRange } });
+    return apiClient.get(`${RESOURCE}/jobs-by-department`, { params: { time_range: timeRange } });
   },
 
   /**
@@ -58,7 +60,39 @@ export default {
    * @returns {Promise} - Promise with response data
    */
   getHiringFunnel(timeRange = 'month') {
-    return apiClient.get(`${RESOURCE}/hiring-funnel`, { params: { timeRange } });
+    return apiClient.get(`${RESOURCE}/hiring-funnel`, { params: { time_range: timeRange } });
+  },
+
+  /**
+   * Get recent applications
+   * @param {string} timeRange - Time range for the data (week, month, quarter, year)
+   * @returns {Promise} - Promise with response data
+   */
+  getRecentApplications(timeRange = 'month') {
+    return apiClient.get(`${RESOURCE}/recent-applications`, { 
+      params: { time_range: timeRange } 
+    });
+  },
+
+  /**
+ * Get upcoming interviews
+ * @param {number} days - Number of days to look ahead
+ * @param {number} limit - Maximum number of interviews to return
+ * @returns {Promise} - Promise with response data
+ */
+  getUpcomingInterviews(days = 7, limit = 5) {
+    return apiClient.get(`${RESOURCE}/upcoming-interviews`, {
+      params: { days, limit }
+    });
+  },
+
+  /**
+   * Get recent activity
+   * @param {number} limit - Number of activities to return
+   * @returns {Promise} - Promise with response data
+   */
+  getRecentActivity(limit = 10) {
+    return apiClient.get(`${RESOURCE}/recent-activity`, { params: { limit } });
   },
 
   /**
@@ -67,39 +101,8 @@ export default {
    * @returns {Promise} - Promise with response data
    */
   getApplicationTrend(timeRange = 'month') {
-    return apiClient.get(`${RESOURCE}/application-trend`, { params: { timeRange } });
+    return apiClient.get(`${RESOURCE}/application-trend`, { params: { time_range: timeRange } });
   },
 
-  /**
-   * Get top performing departments
-   * @param {string} timeRange - Time range for the data (week, month, quarter, year)
-   * @param {number} limit - Number of departments to return
-   * @returns {Promise} - Promise with response data
-   */
-  getTopPerformingDepartments(timeRange = 'month', limit = 5) {
-    return apiClient.get(`${RESOURCE}/top-departments`, { 
-      params: { timeRange, limit } 
-    });
-  },
-
-  /**
-   * Get time-to-hire metrics
-   * @param {string} timeRange - Time range for the data (week, month, quarter, year)
-   * @returns {Promise} - Promise with response data
-   */
-  getTimeToHireMetrics(timeRange = 'month') {
-    return apiClient.get(`${RESOURCE}/time-to-hire`, { params: { timeRange } });
-  },
-
-  /**
-   * Get upcoming interviews
-   * @param {number} days - Number of days to look ahead
-   * @param {number} limit - Maximum number of interviews to return
-   * @returns {Promise} - Promise with response data
-   */
-  getUpcomingInterviews(days = 7, limit = 5) {
-    return apiClient.get(`${RESOURCE}/upcoming-interviews`, {
-      params: { days, limit }
-    });
-  }
+  
 }; 
