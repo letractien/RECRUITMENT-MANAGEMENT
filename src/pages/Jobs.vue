@@ -44,66 +44,68 @@
         </a-select>
       </div>
 
-      <a-table
-        :dataSource="paginatedJobs"
-        :columns="columns"
-        :pagination="false"
-        size="middle"
-        :scroll="{ y: 405 }"
-      >
-        <template #bodyCell="{ column, text, record }">
-          <template v-if="column.key === 'title'">
-            <div class="job-title">
-              <a-button type="link" @click="viewJobDetails(record)">
-                {{ record.title }}
+      <a-spin :spinning="isLoading">
+        <a-table
+          :dataSource="paginatedJobs"
+          :columns="columns"
+          :pagination="false"
+          size="middle"
+          :scroll="{ y: 405 }"
+        >
+          <template #bodyCell="{ column, text, record }">
+            <template v-if="column.key === 'title'">
+              <div class="job-title">
+                <a-button type="link" @click="viewJobDetails(record)">
+                  {{ record.title }}
+                </a-button>
+                <a-tag :color="record.status === 'Active' ? 'green' : 'blue'">
+                  {{ record.status }}
+                </a-tag>
+              </div>
+            </template>
+            <template v-else-if="column.key === 'applications'">
+              <a-button type="link">
+                {{ record.applications }} candidates
               </a-button>
-              <a-tag :color="record.status === 'Active' ? 'green' : 'blue'">
-                {{ record.status }}
-              </a-tag>
-            </div>
+            </template>
+            <template v-else-if="column.key === 'postedDate'">
+              {{ formatDate(record.postedDate) }}
+            </template>
+            <template v-else-if="column.key === 'actions'">
+              <a-dropdown>
+                <template #overlay>
+                  <a-menu>
+                    <a-menu-item key="view" @click="viewJobDetails(record)">
+                      <template #icon><eye-outlined /></template>
+                      View Details
+                    </a-menu-item>
+                    <a-menu-item key="edit" @click="editJob(record)">
+                      <template #icon><edit-outlined /></template>
+                      Edit Job
+                    </a-menu-item>
+                    <a-menu-item key="applications" @click="viewApplications(record)">
+                      <template #icon><file-outlined /></template>
+                      View Applications ({{ record.applications }})
+                    </a-menu-item>
+                    <a-menu-item key="toggle" @click="toggleJobStatus(record)">
+                      <template #icon><swap-outlined /></template>
+                      {{ record.status === 'Active' ? 'Deactivate' : 'Activate' }}
+                    </a-menu-item>
+                    <a-menu-divider />
+                    <a-menu-item key="delete" danger @click="deleteJob(record)">
+                      <template #icon><delete-outlined /></template>
+                      Delete Job
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+                <a-button type="primary" size="small">
+                  Actions <down-outlined />
+                </a-button>
+              </a-dropdown>
+            </template>
           </template>
-          <template v-else-if="column.key === 'applications'">
-            <a-button type="link">
-              {{ record.applications }} candidates
-            </a-button>
-          </template>
-          <template v-else-if="column.key === 'postedDate'">
-            {{ formatDate(record.postedDate) }}
-          </template>
-          <template v-else-if="column.key === 'actions'">
-            <a-dropdown>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item key="view" @click="viewJobDetails(record)">
-                    <template #icon><eye-outlined /></template>
-                    View Details
-                  </a-menu-item>
-                  <a-menu-item key="edit" @click="editJob(record)">
-                    <template #icon><edit-outlined /></template>
-                    Edit Job
-                  </a-menu-item>
-                  <a-menu-item key="applications" @click="viewApplications(record)">
-                    <template #icon><file-outlined /></template>
-                    View Applications ({{ record.applications }})
-                  </a-menu-item>
-                  <a-menu-item key="toggle" @click="toggleJobStatus(record)">
-                    <template #icon><swap-outlined /></template>
-                    {{ record.status === 'Active' ? 'Deactivate' : 'Activate' }}
-                  </a-menu-item>
-                  <a-menu-divider />
-                  <a-menu-item key="delete" danger @click="deleteJob(record)">
-                    <template #icon><delete-outlined /></template>
-                    Delete Job
-                  </a-menu-item>
-                </a-menu>
-              </template>
-              <a-button type="primary" size="small">
-                Actions <down-outlined />
-              </a-button>
-            </a-dropdown>
-          </template>
-        </template>
-      </a-table>
+        </a-table>
+      </a-spin>
 
       <div class="pagination-container">
         <a-pagination
@@ -182,7 +184,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useStore } from 'vuex'
 import { 
   PlusOutlined, 
   EditOutlined, 
@@ -198,6 +201,8 @@ import {
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import JobCreationForm from '@/components/JobCreationForm.vue'
+
+const store = useStore()
 
 // Constants
 const departments = [
@@ -256,24 +261,20 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const jobFormRef = ref(null)
 
-const jobs = ref(
-  Array.from({ length: 1000 }, (_, index) => ({
-    key: index + 1,
-    id: index + 1,
-    title: `Job Position ${index + 1}`,
-    department: departments[Math.floor(Math.random() * departments.length)],
-    location: ['Ho Chi Minh City', 'Ha Noi', 'Da Nang', 'Can Tho'][Math.floor(Math.random() * 4)],
-    applications: Math.floor(Math.random() * 50),
-    postedDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    status: Math.random() > 0.3 ? 'Active' : 'Inactive',
-    description: 'We are looking for a talented professional to join our team...',
-    requirements: '- Relevant experience in the field\n- Strong communication skills\n- Team player',
-    salaryMin: 15000000 + Math.floor(Math.random() * 15000000),
-    salaryMax: 35000000 + Math.floor(Math.random() * 25000000)
-  }))
-)
+// Load jobs from API on component mount
+onMounted(async () => {
+  try {
+    await store.dispatch('jobs/fetchJobs')
+  } catch (error) {
+    console.error('Error loading jobs:', error)
+    message.error('Failed to load jobs. Please try again later.')
+  }
+})
 
 // Computed
+const jobs = computed(() => store.getters['jobs/allJobs'])
+const isLoading = computed(() => store.getters['jobs/isLoading'])
+
 const filteredJobs = computed(() => {
   return jobs.value.filter(job => {
     const matchesSearch = search.value === '' || 
@@ -311,48 +312,14 @@ const jobDetailsDialog = reactive({
 })
 
 const jobForm = reactive({
-  jobTitle: '',
+  title: '',
   department: '',
   location: '',
   description: '',
   requirements: '',
   salaryMin: 0,
   salaryMax: 0,
-  backgroundCriteria: {
-    importanceRatio: 30,
-    required: 'Ứng viên phải là sinh viên năm cuối hoặc mới tốt nghiệp ngành Công nghệ Thông tin, Khoa học Máy tính, Kỹ thuật Phần mềm hoặc các ngành liên quan.',
-    criteria: [
-      { name: 'GPA', maxScore: 10 },
-      { name: 'Chuyên ngành', maxScore: 10 },
-      { name: 'Thành tích học tập', maxScore: 10 }
-    ]
-  },
-  projectCriteria: {
-    importanceRatio: 25,
-    required: 'Có kinh nghiệm tham gia các dự án phần mềm (dự án trong trường học hoặc cá nhân) là một lợi thế.',
-    criteria: [
-      { name: 'Số lượng dự án', maxScore: 10 },
-      { name: 'Vai trò trong dự án', maxScore: 10 },
-      { name: 'Độ phức tạp của dự án', maxScore: 10 }
-    ]
-  },
-  skillCriteria: {
-    importanceRatio: 35,
-    required: 'Kiến thức cơ bản về lập trình, thuật toán, cấu trúc dữ liệu. Thành thạo ít nhất một ngôn ngữ lập trình Java, Python, C#, JavaScript,... Hiểu về mô hình MVC, REST API (lợi thế). Kỹ năng mềm: Làm việc nhóm, tư duy logic, giải quyết vấn đề.',
-    criteria: [
-      { name: 'Kiến thức lập trình', maxScore: 10 },
-      { name: 'Kỹ năng giải quyết vấn đề', maxScore: 10 },
-      { name: 'Kỹ năng làm việc nhóm', maxScore: 10 }
-    ]
-  },
-  certificationCriteria: {
-    importanceRatio: 10,
-    required: 'Không bắt buộc, nhưng có chứng chỉ lập trình (OCA, AWS Certified Developer, v.v.) là lợi thế.',
-    criteria: [
-      { name: 'Chứng chỉ chuyên môn', maxScore: 10 },
-      { name: 'Chứng chỉ ngoại ngữ', maxScore: 10 }
-    ]
-  }
+  status: 'Active'
 })
 
 // Form rules
@@ -400,195 +367,130 @@ const formatSalary = (amount) => {
 const showCreateJobDialog = () => {
   jobDialog.isEdit = false
   jobDialog.visible = true
-  // Reset form with default values
+  
+  // Reset form
   Object.assign(jobForm, {
-    jobTitle: '',
+    title: '',
     department: '',
     location: '',
     description: '',
     requirements: '',
     salaryMin: 0,
     salaryMax: 0,
-    backgroundCriteria: {
-      importanceRatio: 30,
-      required: 'Ứng viên phải là sinh viên năm cuối hoặc mới tốt nghiệp ngành Công nghệ Thông tin, Khoa học Máy tính, Kỹ thuật Phần mềm hoặc các ngành liên quan.',
-      criteria: [
-        { name: 'GPA', maxScore: 10 },
-        { name: 'Chuyên ngành', maxScore: 10 },
-        { name: 'Thành tích học tập', maxScore: 10 }
-      ]
-    },
-    projectCriteria: {
-      importanceRatio: 25,
-      required: 'Có kinh nghiệm tham gia các dự án phần mềm (dự án trong trường học hoặc cá nhân) là một lợi thế.',
-      criteria: [
-        { name: 'Số lượng dự án', maxScore: 10 },
-        { name: 'Vai trò trong dự án', maxScore: 10 },
-        { name: 'Độ phức tạp của dự án', maxScore: 10 }
-      ]
-    },
-    skillCriteria: {
-      importanceRatio: 35,
-      required: 'Kiến thức cơ bản về lập trình, thuật toán, cấu trúc dữ liệu. Thành thạo ít nhất một ngôn ngữ lập trình Java, Python, C#, JavaScript,... Hiểu về mô hình MVC, REST API (lợi thế). Kỹ năng mềm: Làm việc nhóm, tư duy logic, giải quyết vấn đề.',
-      criteria: [
-        { name: 'Kiến thức lập trình', maxScore: 10 },
-        { name: 'Kỹ năng giải quyết vấn đề', maxScore: 10 },
-        { name: 'Kỹ năng làm việc nhóm', maxScore: 10 }
-      ]
-    },
-    certificationCriteria: {
-      importanceRatio: 10,
-      required: 'Không bắt buộc, nhưng có chứng chỉ lập trình (OCA, AWS Certified Developer, v.v.) là lợi thế.',
-      criteria: [
-        { name: 'Chứng chỉ chuyên môn', maxScore: 10 },
-        { name: 'Chứng chỉ ngoại ngữ', maxScore: 10 }
-      ]
-    }
+    status: 'Active'
   })
 }
 
 const editJob = (job) => {
   jobDialog.isEdit = true
   jobDialog.visible = true
-  // Copy job data to form
+  
+  // Set form data
   Object.assign(jobForm, {
-    jobTitle: job.title,
+    title: job.title,
     department: job.department,
     location: job.location,
     description: job.description,
     requirements: job.requirements,
     salaryMin: job.salaryMin,
     salaryMax: job.salaryMax,
-    backgroundCriteria: job.evaluationCriteria?.background || jobForm.backgroundCriteria,
-    projectCriteria: job.evaluationCriteria?.project || jobForm.projectCriteria,
-    skillCriteria: job.evaluationCriteria?.skill || jobForm.skillCriteria,
-    certificationCriteria: job.evaluationCriteria?.certification || jobForm.certificationCriteria
+    status: job.status
   })
+  
+  // Store job for reference
+  jobDetailsDialog.job = job
 }
 
-const viewJobDetails = (job) => {
-  jobDetailsDialog.job = job
-  jobDetailsDialog.visible = true
+const viewJobDetails = async (job) => {
+  try {
+    // Fetch job details from API if not already loaded
+    if (!job.description || !job.requirements) {
+      await store.dispatch('jobs/fetchJob', job.id)
+      job = store.getters['jobs/currentJob']
+    }
+    
+    jobDetailsDialog.job = job
+    jobDetailsDialog.visible = true
+  } catch (error) {
+    console.error('Error loading job details:', error)
+    message.error('Failed to load job details. Please try again later.')
+  }
 }
 
 const viewApplications = (job) => {
-  message.info(`Viewing applications for ${job.title} (${job.applications} candidates)`)
-  // Here you would typically navigate to applications view or open a dialog
+  // Navigate to applications page with job filter
+  // This would be implemented in a real app
+  message.info('Viewing applications for job: ' + job.title)
+}
+
+const toggleJobStatus = (job) => {
+  const newStatus = job.status === 'Active' ? 'Inactive' : 'Active'
+  
+  Modal.confirm({
+    title: `Are you sure you want to ${newStatus.toLowerCase()} this job?`,
+    content: `This will ${newStatus.toLowerCase()} the job posting "${job.title}"`,
+    okText: 'Yes',
+    cancelText: 'No',
+    onOk: async () => {
+      try {
+        await store.dispatch('jobs/updateJobStatus', { id: job.id, status: newStatus })
+        message.success(`Job ${newStatus.toLowerCase()} successfully`)
+      } catch (error) {
+        console.error('Error updating job status:', error)
+        message.error('Failed to update job status. Please try again later.')
+      }
+    }
+  })
 }
 
 const deleteJob = (job) => {
   Modal.confirm({
-    title: 'Warning',
-    content: 'Are you sure you want to delete this job posting?',
-    okText: 'Delete',
+    title: 'Are you sure you want to delete this job?',
+    content: `This will permanently delete the job posting "${job.title}"`,
+    okText: 'Yes',
     okType: 'danger',
     cancelText: 'Cancel',
-    onOk() {
-      jobs.value = jobs.value.filter(item => item.id !== job.id)
-      message.success('Job deleted successfully')
+    onOk: async () => {
+      try {
+        await store.dispatch('jobs/deleteJob', job.id)
+        message.success('Job deleted successfully')
+      } catch (error) {
+        console.error('Error deleting job:', error)
+        message.error('Failed to delete job. Please try again later.')
+      }
     }
   })
 }
 
-const onStatusChange = (checked) => {
-  jobForm.status = checked ? 'Active' : 'Inactive'
-}
-
 const saveJob = async () => {
-  if (!jobFormRef.value) return
-
   try {
-    await jobFormRef.value.validate()
-    
     if (jobDialog.isEdit) {
-      const index = jobs.value.findIndex(job => job.id === jobForm.id)
-      if (index !== -1) {
-        jobs.value[index] = { ...jobForm, key: jobForm.id }
-      }
+      await store.dispatch('jobs/updateJob', { id: jobDetailsDialog.job.id, data: jobForm })
+      message.success('Job updated successfully')
     } else {
-      const newJob = {
-        ...jobForm,
-        id: jobs.value.length + 1,
-        key: jobs.value.length + 1,
-        applications: 0,
-        postedDate: new Date().toISOString().split('T')[0]
-      }
-      jobs.value.push(newJob)
+      await store.dispatch('jobs/createJob', jobForm)
+      message.success('Job created successfully')
     }
     
     jobDialog.visible = false
-    message.success(`Job ${jobDialog.isEdit ? 'updated' : 'created'} successfully`)
   } catch (error) {
-    console.error('Validation failed:', error)
+    console.error('Error saving job:', error)
+    message.error('Failed to save job. Please try again later.')
   }
 }
 
-const handleSizeChange = (current, size) => {
-  pageSize.value = size
-  currentPage.value = 1
+const handleJobFormSubmit = (formData) => {
+  Object.assign(jobForm, formData)
+  saveJob()
 }
 
 const handleCurrentChange = (page) => {
   currentPage.value = page
 }
 
-// Toggle job status
-const toggleJobStatus = (job) => {
-  const newStatus = job.status === 'Active' ? 'Inactive' : 'Active'
-  Modal.confirm({
-    title: 'Confirm Status Change',
-    content: `Are you sure you want to ${job.status === 'Active' ? 'deactivate' : 'activate'} this job posting?`,
-    okText: 'Yes',
-    cancelText: 'No',
-    onOk() {
-      const index = jobs.value.findIndex(j => j.id === job.id)
-      if (index !== -1) {
-        jobs.value[index] = { ...job, status: newStatus }
-        message.success(`Job ${newStatus.toLowerCase()} successfully`)
-      }
-    }
-  })
-}
-
-const handleJobFormSubmit = (formData) => {
-  // Transform the form data to match the API format
-  const jobData = {
-    title: formData.jobTitle,
-    department: formData.department,
-    location: formData.location,
-    description: formData.description,
-    requirements: formData.requirements,
-    salaryMin: formData.salaryMin,
-    salaryMax: formData.salaryMax,
-    status: 'Active',
-    evaluationCriteria: {
-      background: formData.backgroundCriteria,
-      project: formData.projectCriteria,
-      skill: formData.skillCriteria,
-      certification: formData.certificationCriteria
-    }
-  }
-  
-  if (jobDialog.isEdit) {
-    // Update existing job
-    const index = jobs.value.findIndex(job => job.id === jobForm.id)
-    if (index !== -1) {
-      jobs.value[index] = { ...jobs.value[index], ...jobData }
-    }
-  } else {
-    // Create new job
-    const newJob = {
-      ...jobData,
-      id: jobs.value.length + 1,
-      key: jobs.value.length + 1,
-      applications: 0,
-      postedDate: new Date().toISOString().split('T')[0]
-    }
-    jobs.value.push(newJob)
-  }
-  
-  jobDialog.visible = false
-  message.success(`Job ${jobDialog.isEdit ? 'updated' : 'created'} successfully`)
+const handleSizeChange = (current, size) => {
+  pageSize.value = size
+  currentPage.value = 1
 }
 </script>
 

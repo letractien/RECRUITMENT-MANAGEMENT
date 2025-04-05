@@ -1,5 +1,4 @@
 import { dashboardService } from '@/utils/api';
-import { generateDashboardData } from '@/utils/mockData';
 
 const state = {
   stats: {
@@ -9,42 +8,44 @@ const state = {
     positionsFilled: 0
   },
   recentActivity: [],
+  recentApplications: [],
   jobsByDepartment: [],
   hiringFunnel: [],
   applicationTrend: [],
+  upcomingInterviews: [],
   timeRange: 'month', // 'week', 'month', 'quarter', 'year'
   loading: false,
-  error: null
+  error: null,
+  pagination: {
+    currentPage: 1,
+    pageSize: 10,
+    total: 0
+  }
 };
 
 const getters = {
   dashboardStats: state => state.stats,
   recentActivity: state => state.recentActivity,
+  recentApplications: state => state.recentApplications,
   jobsByDepartment: state => state.jobsByDepartment,
   hiringFunnel: state => state.hiringFunnel,
   applicationTrend: state => state.applicationTrend,
+  upcomingInterviews: state => state.upcomingInterviews,
   timeRange: state => state.timeRange,
   isLoading: state => state.loading,
   hasError: state => !!state.error,
-  errorMessage: state => state.error
+  errorMessage: state => state.error,
+  pagination: state => state.pagination
 };
 
 const actions = {
-  async fetchDashboardData({ commit, state, rootState }) {
+  async fetchDashboardData({ commit, dispatch, state }) {
     try {
       commit('SET_LOADING', true);
       
-      // Get candidates, jobs, and interviews from state if available
-      const candidates = rootState.candidates?.candidates || [];
-      const jobs = rootState.jobs?.jobs || [];
-      const interviews = rootState.interviews?.interviews || [];
-      
-      // Generate random dashboard data instead of API call
-      // This simulates a successful API response
-      const dashboardData = generateDashboardData(jobs, candidates, interviews);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Use API service to fetch dashboard data
+      const response = await dashboardService.getDashboardData(state.timeRange);
+      const dashboardData = response.data;
       
       // Update all dashboard data at once
       commit('SET_DASHBOARD_STATS', dashboardData.stats);
@@ -52,6 +53,13 @@ const actions = {
       commit('SET_JOBS_BY_DEPARTMENT', dashboardData.jobsByDepartment);
       commit('SET_HIRING_FUNNEL', dashboardData.hiringFunnel);
       commit('SET_APPLICATION_TREND', dashboardData.applicationTrend);
+      
+      // Fetch recent applications and upcoming interviews separately
+      await Promise.all([
+        dispatch('fetchRecentApplications'),
+        dispatch('fetchUpcomingInterviews')
+      ]);
+      
       commit('SET_ERROR', null);
       
       console.log('Successfully fetched dashboard data');
@@ -71,26 +79,18 @@ const actions = {
     await dispatch('fetchDashboardData');
   },
   
-  async fetchStats({ commit, state, rootState }) {
+  async fetchStats({ commit, state }) {
     try {
       commit('SET_LOADING', true);
       
-      // Get candidates, jobs, and interviews from state if available
-      const candidates = rootState.candidates?.candidates || [];
-      const jobs = rootState.jobs?.jobs || [];
-      const interviews = rootState.interviews?.interviews || [];
+      // Use API service to fetch stats
+      const response = await dashboardService.getStats(state.timeRange);
       
-      // Generate only stats data
-      const dashboardData = generateDashboardData(jobs, candidates, interviews);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      commit('SET_DASHBOARD_STATS', dashboardData.stats);
+      commit('SET_DASHBOARD_STATS', response.data);
       commit('SET_ERROR', null);
       
       console.log('Successfully fetched dashboard stats');
-      return dashboardData.stats;
+      return response.data;
     } catch (error) {
       commit('SET_ERROR', error.message || 'Failed to fetch stats');
       console.error('Error fetching stats:', error);
@@ -100,26 +100,18 @@ const actions = {
     }
   },
   
-  async fetchRecentActivity({ commit, rootState }) {
+  async fetchRecentActivity({ commit, state }) {
     try {
       commit('SET_LOADING', true);
       
-      // Get candidates, jobs, and interviews from state if available
-      const candidates = rootState.candidates?.candidates || [];
-      const jobs = rootState.jobs?.jobs || [];
-      const interviews = rootState.interviews?.interviews || [];
+      // Use API service to fetch recent activity
+      const response = await dashboardService.getRecentActivity();
       
-      // Generate only recent activity data
-      const dashboardData = generateDashboardData(jobs, candidates, interviews);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 350));
-      
-      commit('SET_RECENT_ACTIVITY', dashboardData.recentActivity);
+      commit('SET_RECENT_ACTIVITY', response.data);
       commit('SET_ERROR', null);
       
       console.log('Successfully fetched recent activity');
-      return dashboardData.recentActivity;
+      return response.data;
     } catch (error) {
       commit('SET_ERROR', error.message || 'Failed to fetch recent activity');
       console.error('Error fetching recent activity:', error);
@@ -129,24 +121,47 @@ const actions = {
     }
   },
   
-  async fetchJobsByDepartment({ commit, state, rootState }) {
+  async fetchRecentApplications({ commit, state }) {
     try {
       commit('SET_LOADING', true);
       
-      // Get jobs from state if available
-      const jobs = rootState.jobs?.jobs || [];
+      // Use API service to fetch recent applications
+      const response = await dashboardService.getRecentApplications(
+        10, // limit
+        state.pagination.currentPage,
+        state.pagination.pageSize
+      );
       
-      // Generate only jobs by department data
-      const dashboardData = generateDashboardData(jobs, [], []);
+      commit('SET_RECENT_APPLICATIONS', response.data.applications);
+      commit('SET_PAGINATION', {
+        ...state.pagination,
+        total: response.data.total
+      });
+      commit('SET_ERROR', null);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 400));
+      console.log('Successfully fetched recent applications');
+      return response.data;
+    } catch (error) {
+      commit('SET_ERROR', error.message || 'Failed to fetch recent applications');
+      console.error('Error fetching recent applications:', error);
+      return null;
+    } finally {
+      commit('SET_LOADING', false);
+    }
+  },
+  
+  async fetchJobsByDepartment({ commit, state }) {
+    try {
+      commit('SET_LOADING', true);
       
-      commit('SET_JOBS_BY_DEPARTMENT', dashboardData.jobsByDepartment);
+      // Use API service to fetch jobs by department
+      const response = await dashboardService.getJobsByDepartmentStats(state.timeRange);
+      
+      commit('SET_JOBS_BY_DEPARTMENT', response.data);
       commit('SET_ERROR', null);
       
       console.log('Successfully fetched jobs by department');
-      return dashboardData.jobsByDepartment;
+      return response.data;
     } catch (error) {
       commit('SET_ERROR', error.message || 'Failed to fetch jobs by department');
       console.error('Error fetching jobs by department:', error);
@@ -160,23 +175,14 @@ const actions = {
     try {
       commit('SET_LOADING', true);
       
-      // Generate random hiring funnel data
-      const hiringFunnel = [
-        { stage: "Applied", count: Math.floor(Math.random() * 50) + 50 },
-        { stage: "Screening", count: Math.floor(Math.random() * 30) + 20 },
-        { stage: "Interview", count: Math.floor(Math.random() * 15) + 10 },
-        { stage: "Offer", count: Math.floor(Math.random() * 8) + 2 },
-        { stage: "Hired", count: Math.floor(Math.random() * 5) + 1 }
-      ];
+      // Use API service to fetch hiring funnel
+      const response = await dashboardService.getHiringFunnel(state.timeRange);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 450));
-      
-      commit('SET_HIRING_FUNNEL', hiringFunnel);
+      commit('SET_HIRING_FUNNEL', response.data);
       commit('SET_ERROR', null);
       
       console.log('Successfully fetched hiring funnel');
-      return hiringFunnel;
+      return response.data;
     } catch (error) {
       commit('SET_ERROR', error.message || 'Failed to fetch hiring funnel');
       console.error('Error fetching hiring funnel:', error);
@@ -190,27 +196,14 @@ const actions = {
     try {
       commit('SET_LOADING', true);
       
-      // Generate random application trend data
-      const applicationTrend = [];
-      const today = new Date();
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - (i * 7)); // Weekly data
-        
-        applicationTrend.push({
-          date: date.toISOString().split('T')[0],
-          applications: Math.floor(Math.random() * 20) + 10
-        });
-      }
+      // Use API service to fetch application trend
+      const response = await dashboardService.getApplicationTrend(state.timeRange);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 350));
-      
-      commit('SET_APPLICATION_TREND', applicationTrend);
+      commit('SET_APPLICATION_TREND', response.data);
       commit('SET_ERROR', null);
       
       console.log('Successfully fetched application trend');
-      return applicationTrend;
+      return response.data;
     } catch (error) {
       commit('SET_ERROR', error.message || 'Failed to fetch application trend');
       console.error('Error fetching application trend:', error);
@@ -218,6 +211,41 @@ const actions = {
     } finally {
       commit('SET_LOADING', false);
     }
+  },
+  
+  async fetchUpcomingInterviews({ commit }) {
+    try {
+      commit('SET_LOADING', true);
+      
+      // Use API service to fetch upcoming interviews
+      const response = await dashboardService.getUpcomingInterviews(7, 5);
+      
+      commit('SET_UPCOMING_INTERVIEWS', response.data);
+      commit('SET_ERROR', null);
+      
+      console.log('Successfully fetched upcoming interviews');
+      return response.data;
+    } catch (error) {
+      commit('SET_ERROR', error.message || 'Failed to fetch upcoming interviews');
+      console.error('Error fetching upcoming interviews:', error);
+      return null;
+    } finally {
+      commit('SET_LOADING', false);
+    }
+  },
+  
+  setPage({ commit, dispatch }, page) {
+    commit('SET_PAGINATION', { ...state.pagination, currentPage: page });
+    dispatch('fetchRecentApplications');
+  },
+  
+  setPageSize({ commit, dispatch }, pageSize) {
+    commit('SET_PAGINATION', { 
+      ...state.pagination, 
+      pageSize,
+      currentPage: 1 // Reset to first page when changing page size
+    });
+    dispatch('fetchRecentApplications');
   }
 };
 
@@ -228,6 +256,10 @@ const mutations = {
   
   SET_RECENT_ACTIVITY(state, activity) {
     state.recentActivity = activity;
+  },
+  
+  SET_RECENT_APPLICATIONS(state, applications) {
+    state.recentApplications = applications;
   },
   
   SET_JOBS_BY_DEPARTMENT(state, data) {
@@ -242,6 +274,10 @@ const mutations = {
     state.applicationTrend = data;
   },
   
+  SET_UPCOMING_INTERVIEWS(state, interviews) {
+    state.upcomingInterviews = interviews;
+  },
+  
   SET_TIME_RANGE(state, timeRange) {
     state.timeRange = timeRange;
   },
@@ -252,6 +288,10 @@ const mutations = {
   
   SET_ERROR(state, error) {
     state.error = error;
+  },
+  
+  SET_PAGINATION(state, pagination) {
+    state.pagination = { ...state.pagination, ...pagination };
   }
 };
 

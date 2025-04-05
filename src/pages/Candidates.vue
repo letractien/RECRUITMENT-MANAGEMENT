@@ -32,66 +32,68 @@
         </a-select>
       </div>
 
-      <a-table
-        :dataSource="paginatedCandidates"
-        :columns="columns"
-        :pagination="false"
-        size="middle"
-        :scroll="{ y: 405 }"
-      >
-        <template #bodyCell="{ column, text, record }">
-          <template v-if="column.key === 'candidate'">
-            <div class="candidate-info">
-              <a-avatar :size="32">
-                {{ record.name.charAt(0) }}
-              </a-avatar>
-              <div class="candidate-details">
-                <div class="candidate-name">{{ record.name }}</div>
-                <div class="candidate-email">{{ record.email }}</div>
+      <a-spin :spinning="isLoading">
+        <a-table
+          :dataSource="paginatedCandidates"
+          :columns="columns"
+          :pagination="false"
+          size="middle"
+          :scroll="{ y: 405 }"
+        >
+          <template #bodyCell="{ column, text, record }">
+            <template v-if="column.key === 'candidate'">
+              <div class="candidate-info">
+                <a-avatar :size="32">
+                  {{ record.name.charAt(0) }}
+                </a-avatar>
+                <div class="candidate-details">
+                  <div class="candidate-name">{{ record.name }}</div>
+                  <div class="candidate-email">{{ record.email }}</div>
+                </div>
               </div>
-            </div>
+            </template>
+            <template v-else-if="column.key === 'status'">
+              <a-tag :color="getStatusColor(record.status)">
+                {{ record.status }}
+              </a-tag>
+            </template>
+            <template v-else-if="column.key === 'actions'">
+              <a-dropdown>
+                <template #overlay>
+                  <a-menu>
+                    <a-menu-item key="view" @click="viewCandidate(record)">
+                      <template #icon><eye-outlined /></template>
+                      View Profile
+                    </a-menu-item>
+                    <a-menu-item key="schedule" @click="scheduleInterview(record)">
+                      <template #icon><calendar-outlined /></template>
+                      Schedule Interview
+                    </a-menu-item>
+                    <a-menu-item key="status" @click="updateStatus(record)">
+                      <template #icon><edit-outlined /></template>
+                      Update Status
+                    </a-menu-item>
+                    <a-menu-divider />
+                    <a-menu-item key="delete" danger @click="deleteCandidate(record)">
+                      <template #icon><delete-outlined /></template>
+                      Delete
+                    </a-menu-item>
+                  </a-menu>
+                </template>
+                <a-button type="primary" size="small">
+                  Actions <down-outlined />
+                </a-button>
+              </a-dropdown>
+            </template>
           </template>
-          <template v-else-if="column.key === 'status'">
-            <a-tag :color="getStatusColor(record.status)">
-              {{ record.status }}
-            </a-tag>
-          </template>
-          <template v-else-if="column.key === 'actions'">
-            <a-dropdown>
-              <template #overlay>
-                <a-menu>
-                  <a-menu-item key="view" @click="viewCandidate(record)">
-                    <template #icon><eye-outlined /></template>
-                    View Profile
-                  </a-menu-item>
-                  <a-menu-item key="schedule" @click="scheduleInterview(record)">
-                    <template #icon><calendar-outlined /></template>
-                    Schedule Interview
-                  </a-menu-item>
-                  <a-menu-item key="status" @click="updateStatus(record)">
-                    <template #icon><edit-outlined /></template>
-                    Update Status
-                  </a-menu-item>
-                  <a-menu-divider />
-                  <a-menu-item key="delete" danger @click="deleteCandidate(record)">
-                    <template #icon><delete-outlined /></template>
-                    Delete
-                  </a-menu-item>
-                </a-menu>
-              </template>
-              <a-button type="primary" size="small">
-                Actions <down-outlined />
-              </a-button>
-            </a-dropdown>
-          </template>
-        </template>
-      </a-table>
+        </a-table>
+      </a-spin>
 
       <div class="pagination-container">
         <a-pagination
           v-model:current="currentPage"
           v-model:pageSize="pageSize"
-          :total="filteredCandidates.length"
+          :total="totalCandidates"
           :pageSizeOptions="['10', '20', '50', '100']"
           showSizeChanger
           showQuickJumper
@@ -165,7 +167,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, h } from 'vue'
+import { ref, reactive, computed, h, onMounted } from 'vue'
+import { useStore } from 'vuex'
 import { 
   PlusOutlined, 
   SearchOutlined, 
@@ -177,6 +180,8 @@ import {
   UploadOutlined
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
+
+const store = useStore()
 
 const search = ref('')
 const statusFilter = ref('')
@@ -229,40 +234,19 @@ const columns = [
   }
 ]
 
-const candidates = ref(
-  Array.from({ length: 1000 }, (_, index) => ({
-    key: index + 1,
-    id: index + 1,
-    name: `Nguyễn Văn ${String.fromCharCode(65 + (index % 26))}`,
-    email: `candidate${index + 1}@example.com`,
-    phone: `+84 ${Math.floor(Math.random() * 900000000) + 100000000}`,
-    position: ['Senior Frontend Developer', 'Backend Developer', 'UI/UX Designer', 'Product Manager'][Math.floor(Math.random() * 4)],
-    experience: Math.floor(Math.random() * 10) + 1,
-    score: Math.floor(Math.random() * 100),
-    status: ['New', 'Screening', 'Interview', 'Hired', 'Rejected'][Math.floor(Math.random() * 5)],
-    appliedDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    avatar: '',
-    resume: '',
-    education: [
-      'Bachelor of Computer Science',
-      'Bachelor of Information Technology',
-      'Bachelor of Software Engineering',
-      'Master of Computer Science'
-    ][Math.floor(Math.random() * 4)],
-    skills: [
-      'JavaScript', 'React', 'Vue.js', 'Node.js', 'Python', 'Java', 'SQL',
-      'UI/UX Design', 'Product Management', 'Agile', 'Git', 'Docker'
-    ].sort(() => Math.random() - 0.5).slice(0, Math.floor(Math.random() * 5) + 3),
-    interviewNotes: '',
-    evaluation: {
-      technicalScore: Math.floor(Math.random() * 100),
-      softSkillsScore: Math.floor(Math.random() * 100),
-      experienceScore: Math.floor(Math.random() * 100),
-      overallScore: Math.floor(Math.random() * 100),
-      feedback: ''
-    }
-  }))
-)
+// Load candidates from API on component mount
+onMounted(async () => {
+  try {
+    await store.dispatch('candidates/fetchCandidates')
+  } catch (error) {
+    console.error('Error loading candidates:', error)
+    message.error('Failed to load candidates. Please try again later.')
+  }
+})
+
+// Computed
+const candidates = computed(() => store.getters['candidates/allCandidates'])
+const isLoading = computed(() => store.getters['candidates/isLoading'])
 
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -298,7 +282,8 @@ const filteredCandidates = computed(() => {
   return candidates.value.filter(candidate => {
     const matchesSearch = search.value === '' || 
       candidate.name.toLowerCase().includes(search.value.toLowerCase()) ||
-      candidate.email.toLowerCase().includes(search.value.toLowerCase())
+      candidate.email.toLowerCase().includes(search.value.toLowerCase()) ||
+      candidate.position.toLowerCase().includes(search.value.toLowerCase())
     
     const matchesStatus = statusFilter.value === '' || 
       candidate.status === statusFilter.value
@@ -306,6 +291,8 @@ const filteredCandidates = computed(() => {
     return matchesSearch && matchesStatus
   })
 })
+
+const totalCandidates = computed(() => filteredCandidates.value.length)
 
 const paginatedCandidates = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
@@ -326,9 +313,11 @@ const candidateForm = reactive({
   position: '',
   experience: 0,
   status: 'New',
+  appliedDate: new Date().toISOString().split('T')[0],
+  resume: '',
   education: '',
   skills: [],
-  resume: '',
+  interviewNotes: '',
   evaluation: {
     technicalScore: 0,
     softSkillsScore: 0,
@@ -353,16 +342,18 @@ const getStatusColor = (status) => {
   const colors = {
     'New': 'blue',
     'Screening': 'orange',
-    'Interview': 'geekblue',
+    'Interview': 'purple',
     'Hired': 'green',
     'Rejected': 'red'
   }
-  return colors[status] || 'blue'
+  return colors[status] || 'default'
 }
 
 const showCreateCandidateDialog = () => {
   candidateDialog.isEdit = false
   candidateDialog.visible = true
+  
+  // Reset form
   Object.assign(candidateForm, {
     id: null,
     name: '',
@@ -371,9 +362,11 @@ const showCreateCandidateDialog = () => {
     position: '',
     experience: 0,
     status: 'New',
+    appliedDate: new Date().toISOString().split('T')[0],
+    resume: '',
     education: '',
     skills: [],
-    resume: '',
+    interviewNotes: '',
     evaluation: {
       technicalScore: 0,
       softSkillsScore: 0,
@@ -384,78 +377,181 @@ const showCreateCandidateDialog = () => {
   })
 }
 
-const viewCandidate = (candidate) => {
-  // Implement view candidate details
-  console.log('View candidate:', candidate)
-}
-
-const scheduleInterview = (candidate) => {
-  // Implement interview scheduling
-  console.log('Schedule interview for:', candidate)
-}
-
-const updateStatus = (candidate) => {
-  // Implement status update
-  console.log('Update status for:', candidate)
-}
-
-const deleteCandidate = (candidate) => {
-  Modal.confirm({
-    title: 'Warning',
-    content: 'Are you sure you want to delete this candidate?',
-    okText: 'Delete',
-    okType: 'danger',
-    cancelText: 'Cancel',
-    onOk() {
-      candidates.value = candidates.value.filter(item => item.id !== candidate.id)
-      message.success('Candidate deleted successfully')
+const editCandidate = (candidate) => {
+  candidateDialog.isEdit = true
+  candidateDialog.visible = true
+  
+  // Copy candidate data to form
+  Object.assign(candidateForm, {
+    id: candidate.id,
+    name: candidate.name,
+    email: candidate.email,
+    phone: candidate.phone,
+    position: candidate.position,
+    experience: candidate.experience,
+    status: candidate.status,
+    appliedDate: candidate.appliedDate,
+    resume: candidate.resume,
+    education: candidate.education,
+    skills: candidate.skills || [],
+    interviewNotes: candidate.interviewNotes || '',
+    evaluation: {
+      technicalScore: candidate.evaluation?.technicalScore || 0,
+      softSkillsScore: candidate.evaluation?.softSkillsScore || 0,
+      experienceScore: candidate.evaluation?.experienceScore || 0,
+      overallScore: candidate.evaluation?.overallScore || 0,
+      feedback: candidate.evaluation?.feedback || ''
     }
   })
 }
 
-const saveCandidate = () => {
-  if (candidateDialog.isEdit) {
-    const index = candidates.value.findIndex(c => c.id === candidateForm.id)
-    if (index !== -1) {
-      candidates.value[index] = { 
-        ...candidates.value[index],
-        ...candidateForm,
-        key: candidateForm.id,
-        evaluation: {
-          ...candidates.value[index].evaluation,
-          ...candidateForm.evaluation
-        }
-      }
+const viewCandidate = async (candidate) => {
+  try {
+    // Fetch candidate details from API if not already loaded
+    if (!candidate.education || !candidate.skills) {
+      await store.dispatch('candidates/fetchCandidate', candidate.id)
+      candidate = store.getters['candidates/currentCandidate']
     }
-  } else {
-    const newCandidate = {
-      ...candidateForm,
-      id: candidates.value.length + 1,
-      key: candidates.value.length + 1,
-      appliedDate: new Date().toISOString().split('T')[0],
-      avatar: '',
-      skills: candidateForm.skills || [],
-      evaluation: {
-        technicalScore: 0,
-        softSkillsScore: 0,
-        experienceScore: 0,
-        overallScore: 0,
-        feedback: ''
-      }
-    }
-    candidates.value.push(newCandidate)
+    
+    // Show candidate details dialog
+    Modal.info({
+      title: candidate.name,
+      width: 700,
+      content: h('div', { class: 'candidate-details' }, [
+        h('div', { class: 'candidate-header' }, [
+          h('a-avatar', { size: 64, style: 'margin-right: 16px' }, candidate.name.charAt(0)),
+          h('div', { class: 'candidate-info' }, [
+            h('h3', candidate.name),
+            h('p', candidate.email),
+            h('p', candidate.phone)
+          ])
+        ]),
+        h('div', { class: 'candidate-section' }, [
+          h('h4', 'Position'),
+          h('p', candidate.position)
+        ]),
+        h('div', { class: 'candidate-section' }, [
+          h('h4', 'Experience'),
+          h('p', `${candidate.experience} years`)
+        ]),
+        h('div', { class: 'candidate-section' }, [
+          h('h4', 'Education'),
+          h('p', candidate.education)
+        ]),
+        h('div', { class: 'candidate-section' }, [
+          h('h4', 'Skills'),
+          h('div', { class: 'skills-list' }, 
+            candidate.skills.map(skill => h('a-tag', { style: 'margin: 4px' }, skill))
+          )
+        ]),
+        h('div', { class: 'candidate-section' }, [
+          h('h4', 'Evaluation'),
+          h('div', { class: 'evaluation-scores' }, [
+            h('div', { class: 'score-item' }, [
+              h('span', 'Technical: '),
+              h('span', { style: 'font-weight: bold' }, `${candidate.evaluation?.technicalScore || 0}/100`)
+            ]),
+            h('div', { class: 'score-item' }, [
+              h('span', 'Soft Skills: '),
+              h('span', { style: 'font-weight: bold' }, `${candidate.evaluation?.softSkillsScore || 0}/100`)
+            ]),
+            h('div', { class: 'score-item' }, [
+              h('span', 'Experience: '),
+              h('span', { style: 'font-weight: bold' }, `${candidate.evaluation?.experienceScore || 0}/100`)
+            ]),
+            h('div', { class: 'score-item' }, [
+              h('span', 'Overall: '),
+              h('span', { style: 'font-weight: bold' }, `${candidate.evaluation?.overallScore || 0}/100`)
+            ])
+          ]),
+          h('div', { class: 'feedback' }, [
+            h('h5', 'Feedback'),
+            h('p', candidate.evaluation?.feedback || 'No feedback available')
+          ])
+        ])
+      ]),
+      okText: 'Close'
+    })
+  } catch (error) {
+    console.error('Error loading candidate details:', error)
+    message.error('Failed to load candidate details. Please try again later.')
   }
-  candidateDialog.visible = false
-  message.success(`Candidate ${candidateDialog.isEdit ? 'updated' : 'added'} successfully`)
+}
+
+const scheduleInterview = (candidate) => {
+  // This would be implemented in a real app
+  message.info(`Schedule interview for ${candidate.name}`)
+}
+
+const updateStatus = (candidate) => {
+  const statuses = ['New', 'Screening', 'Interview', 'Hired', 'Rejected']
+  const currentIndex = statuses.indexOf(candidate.status)
+  const nextIndex = (currentIndex + 1) % statuses.length
+  const newStatus = statuses[nextIndex]
+  
+  Modal.confirm({
+    title: 'Update Candidate Status',
+    content: `Are you sure you want to update ${candidate.name}'s status to ${newStatus}?`,
+    okText: 'Yes',
+    cancelText: 'No',
+    onOk: async () => {
+      try {
+        await store.dispatch('candidates/updateCandidateStatus', { id: candidate.id, status: newStatus })
+        message.success(`Status updated to ${newStatus}`)
+      } catch (error) {
+        console.error('Error updating candidate status:', error)
+        message.error('Failed to update candidate status. Please try again later.')
+      }
+    }
+  })
+}
+
+const deleteCandidate = (candidate) => {
+  Modal.confirm({
+    title: 'Delete Candidate',
+    content: `Are you sure you want to delete ${candidate.name}?`,
+    okText: 'Yes',
+    okType: 'danger',
+    cancelText: 'Cancel',
+    onOk: async () => {
+      try {
+        await store.dispatch('candidates/deleteCandidate', candidate.id)
+        message.success('Candidate deleted successfully')
+      } catch (error) {
+        console.error('Error deleting candidate:', error)
+        message.error('Failed to delete candidate. Please try again later.')
+      }
+    }
+  })
+}
+
+const saveCandidate = async () => {
+  try {
+    if (candidateDialog.isEdit) {
+      await store.dispatch('candidates/updateCandidate', {
+        id: candidateForm.id,
+        data: candidateForm
+      })
+      message.success('Candidate updated successfully')
+    } else {
+      await store.dispatch('candidates/createCandidate', candidateForm)
+      message.success('Candidate created successfully')
+    }
+    
+    candidateDialog.visible = false
+  } catch (error) {
+    console.error('Error saving candidate:', error)
+    message.error('Failed to save candidate. Please try again later.')
+  }
+}
+
+const handleCurrentChange = (page) => {
+  currentPage.value = page
 }
 
 const handleSizeChange = (current, size) => {
   pageSize.value = size
   currentPage.value = 1
-}
-
-const handleCurrentChange = (page) => {
-  currentPage.value = page
 }
 </script>
 

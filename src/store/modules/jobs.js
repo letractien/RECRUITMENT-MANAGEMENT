@@ -1,5 +1,4 @@
 import { jobsService } from '@/utils/api';
-import { generateJobs } from '@/utils/mockData';
 
 const state = {
   jobs: [],
@@ -73,18 +72,14 @@ const actions = {
     try {
       commit('SET_LOADING', true);
       
-      // Generate random jobs data instead of API call
-      // This simulates a successful API response
-      const randomJobs = generateJobs(12);
+      // Use API service to fetch jobs
+      const response = await jobsService.getAllJobs();
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 700));
-      
-      commit('SET_JOBS', randomJobs);
+      commit('SET_JOBS', response.data);
       commit('SET_ERROR', null);
       
-      console.log('Successfully fetched jobs:', randomJobs.length);
-      return randomJobs;
+      console.log('Successfully fetched jobs:', response.data.length);
+      return response.data;
     } catch (error) {
       commit('SET_ERROR', error.message || 'Failed to fetch jobs');
       console.error('Error fetching jobs:', error);
@@ -102,13 +97,10 @@ const actions = {
       let job = state.jobs.find(j => j.id === Number(id));
       
       if (!job) {
-        // Generate a random job if we need to fetch one
-        job = generateJobs(1)[0];
-        job.id = Number(id); // Ensure ID matches requested ID
+        // Use API service to fetch a single job
+        const response = await jobsService.getJob(id);
+        job = response.data;
       }
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 400));
       
       commit('SET_CURRENT_JOB', job);
       commit('SET_ERROR', null);
@@ -128,19 +120,9 @@ const actions = {
     try {
       commit('SET_LOADING', true);
       
-      // Generate a new job with the provided data plus random fields
-      const randomJob = generateJobs(1)[0];
-      const newJob = {
-        ...randomJob,
-        ...jobData,
-        id: Date.now(), // Generate a unique ID
-        postedDate: new Date().toISOString().split('T')[0], // Today's date
-        applicants: 0,
-        interviews: 0
-      };
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Use API service to create a job
+      const response = await jobsService.createJob(jobData);
+      const newJob = response.data;
       
       // Add to state
       commit('ADD_JOB', newJob);

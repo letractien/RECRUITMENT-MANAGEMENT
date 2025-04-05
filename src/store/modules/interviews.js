@@ -1,5 +1,4 @@
 import { interviewsService } from '@/utils/api';
-import { generateInterviews } from '@/utils/mockData';
 
 const state = {
   interviews: [],
@@ -107,22 +106,14 @@ const actions = {
     try {
       commit('SET_LOADING', true);
       
-      // Get candidates and jobs from state if available
-      const candidates = rootState.candidates?.candidates || [];
-      const jobs = rootState.jobs?.jobs || [];
+      // Use API service to fetch interviews
+      const response = await interviewsService.getAllInterviews();
       
-      // Generate random interviews data instead of API call
-      // This simulates a successful API response
-      const randomInterviews = generateInterviews(candidates, jobs, 18);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 600));
-      
-      commit('SET_INTERVIEWS', randomInterviews);
+      commit('SET_INTERVIEWS', response.data);
       commit('SET_ERROR', null);
       
-      console.log('Successfully fetched interviews:', randomInterviews.length);
-      return randomInterviews;
+      console.log('Successfully fetched interviews:', response.data.length);
+      return response.data;
     } catch (error) {
       commit('SET_ERROR', error.message || 'Failed to fetch interviews');
       console.error('Error fetching interviews:', error);
@@ -132,7 +123,7 @@ const actions = {
     }
   },
   
-  async fetchInterview({ commit, state, rootState }, id) {
+  async fetchInterview({ commit, state }, id) {
     try {
       commit('SET_LOADING', true);
       
@@ -140,17 +131,10 @@ const actions = {
       let interview = state.interviews.find(i => i.id === Number(id));
       
       if (!interview) {
-        // Get candidates and jobs from state if available
-        const candidates = rootState.candidates?.candidates || [];
-        const jobs = rootState.jobs?.jobs || [];
-        
-        // Generate a random interview if we need to fetch one
-        interview = generateInterviews(candidates, jobs, 1)[0];
-        interview.id = Number(id); // Ensure ID matches requested ID
+        // Use API service to fetch a single interview
+        const response = await interviewsService.getInterview(id);
+        interview = response.data;
       }
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 350));
       
       commit('SET_CURRENT_INTERVIEW', interview);
       commit('SET_ERROR', null);
@@ -166,24 +150,13 @@ const actions = {
     }
   },
   
-  async createInterview({ commit, dispatch, rootState }, interviewData) {
+  async createInterview({ commit, dispatch }, interviewData) {
     try {
       commit('SET_LOADING', true);
       
-      // Get candidates and jobs from state if available
-      const candidates = rootState.candidates?.candidates || [];
-      const jobs = rootState.jobs?.jobs || [];
-      
-      // Generate a new interview with the provided data plus random fields
-      const randomInterview = generateInterviews(candidates, jobs, 1)[0];
-      const newInterview = {
-        ...randomInterview,
-        ...interviewData,
-        id: Date.now() // Generate a unique ID
-      };
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 750));
+      // Use API service to create an interview
+      const response = await interviewsService.createInterview(interviewData);
+      const newInterview = response.data;
       
       // Add to state
       commit('ADD_INTERVIEW', newInterview);

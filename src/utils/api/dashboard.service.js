@@ -31,6 +31,19 @@ export default {
   },
 
   /**
+   * Get recent applications
+   * @param {number} limit - Number of applications to return
+   * @param {number} page - Page number for pagination
+   * @param {number} pageSize - Number of items per page
+   * @returns {Promise} - Promise with response data
+   */
+  getRecentApplications(limit = 10, page = 1, pageSize = 10) {
+    return apiClient.get(`${RESOURCE}/recent-applications`, { 
+      params: { limit, page, pageSize } 
+    });
+  },
+
+  /**
    * Get jobs by department data
    * @param {string} timeRange - Time range for the data (week, month, quarter, year)
    * @returns {Promise} - Promise with response data
