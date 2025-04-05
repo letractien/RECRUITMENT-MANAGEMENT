@@ -75,6 +75,10 @@
                     <div class="time-range">9:00 AM - 12:00 PM</div>
                   </div>
                   
+                  <div v-if="getInterviewsForDate(date).length === 0" class="no-interviews">
+                    No interviews
+                  </div>
+                  
                   <div
                     v-for="interview in getInterviewsForDate(date)"
                     :key="interview.id"
@@ -139,9 +143,7 @@
               </div>
               
               <div 
-                class="stat-card" 
-                :class="{ active: activeFilter === 'current' }"
-                @click="setInterviewFilter('current')"
+                class="stat-card stat-info-only" 
               >
                 <div class="stat-icon current">
                   <calendar-outlined />
@@ -154,9 +156,7 @@
               
               <div 
                 v-if="viewMode !== 'day'" 
-                class="stat-card"
-                :class="{ active: activeFilter === 'today' }"
-                @click="setInterviewFilter('today')"
+                class="stat-card stat-info-only"
               >
                 <div class="stat-icon today">
                   <clock-circle-outlined />
@@ -193,7 +193,9 @@
               <span>Upcoming Interviews</span>
             </div>
           </template>
-          <a-timeline>
+          <a-spin v-if="loading" />
+          <a-empty v-else-if="upcomingInterviews.length === 0" description="No upcoming interviews" />
+          <a-timeline v-else>
             <a-timeline-item
               v-for="interview in upcomingInterviews"
               :key="interview.id"
@@ -206,7 +208,7 @@
                 <h4>{{ interview.candidate }}</h4>
                 <p>{{ interview.position }}</p>
                 <p class="interview-type">{{ interview.interviewType }}</p>
-                <p class="interview-time">{{ interview.date + ' ' + interview.time }}</p>
+                <p class="interview-time">{{ formatInterviewDate(interview.date) }}</p>
               </div>
             </a-timeline-item>
           </a-timeline>
@@ -259,9 +261,10 @@
             style="width: 100%"
           >
             <a-select-option value="Phone Screen">Phone Screen</a-select-option>
+            <a-select-option value="Video">Video</a-select-option>
+            <a-select-option value="Onsite">Onsite</a-select-option>
             <a-select-option value="Technical">Technical</a-select-option>
             <a-select-option value="HR">HR</a-select-option>
-            <a-select-option value="Final">Final</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="Date">
@@ -319,11 +322,38 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const activeFilter = ref('all')
 
+// Sample data for testing
+const candidates = [
+  { id: 'candidate-1', name: 'John Doe' },
+  { id: 'candidate-2', name: 'Jane Smith' },
+  { id: 'candidate-3', name: 'Michael Johnson' },
+  { id: 'candidate-4', name: 'Sarah Williams' }
+]
+
+const jobs = [
+  { id: 'job-1', title: 'Frontend Developer' },
+  { id: 'job-2', title: 'Backend Developer' },
+  { id: 'job-3', title: 'UX Designer' },
+  { id: 'job-4', title: 'Product Manager' }
+]
+
 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // Fetch interviews on component mount
 onMounted(async () => {
-  await store.dispatch('interviews/fetchInterviews')
+  console.log("Fetching interviews...")
+  try {
+    await store.dispatch('interviews/fetchInterviews')
+    console.log("Raw interviews data:", store.state.interviews.interviews)
+    console.log("Computed interviews:", interviews.value)
+    if (interviews.value.length > 0) {
+      console.log("Sample interview data structure:", JSON.stringify(interviews.value[0], null, 2))
+      console.log("Sample scheduledAt:", interviews.value[0].scheduledAt)
+      console.log("Sample scheduledAt type:", typeof interviews.value[0].scheduledAt)
+    }
+  } catch (error) {
+    console.error("Error fetching interviews:", error)
+  }
 })
 
 // Computed properties for interviews data
@@ -364,10 +394,61 @@ const getInterviewsForDate = (date) => {
   const endOfDay = new Date(date)
   endOfDay.setHours(23, 59, 59, 999)
   
-  return filteredInterviews.value.filter(interview => {
-    const interviewDate = new Date(interview.scheduledAt)
-    return interviewDate >= startOfDay && interviewDate <= endOfDay
+  // Filter interviews for this date
+  const dateInterviews = filteredInterviews.value.filter(interview => {
+    if (!interview.scheduledAt) {
+      return false
+    }
+    
+    let interviewDate
+    try {
+      // Handle different date formats (ISO string or Date object)
+      if (typeof interview.scheduledAt === 'object') {
+        interviewDate = new Date(interview.scheduledAt.toISOString())
+      } else {
+        interviewDate = new Date(interview.scheduledAt)
+      }
+      
+      if (isNaN(interviewDate.getTime())) {
+        console.warn("Invalid date value:", interview.scheduledAt)
+        return false
+      }
+      
+      const isInRange = interviewDate >= startOfDay && interviewDate <= endOfDay
+      return isInRange
+    } catch (error) {
+      console.error("Error processing date:", error)
+      return false
+    }
   })
+  
+  // Format interviews for display
+  const formattedInterviews = dateInterviews.map(interview => {
+    let interviewDate
+    try {
+      if (typeof interview.scheduledAt === 'object') {
+        interviewDate = new Date(interview.scheduledAt.toISOString())
+      } else {
+        interviewDate = new Date(interview.scheduledAt)
+      }
+    } catch (error) {
+      console.error("Error formatting interview date:", error)
+      interviewDate = new Date()
+    }
+    
+    return {
+      id: interview.id,
+      candidate: interview.candidateName,
+      position: interview.jobTitle,
+      interviewer: interview.interviewer,
+      interviewType: interview.interviewType,
+      time: interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: interviewDate.toLocaleDateString(),
+      status: interview.status
+    }
+  })
+  
+  return formattedInterviews
 }
 
 // Get total interviews count
@@ -400,11 +481,23 @@ const interviewTypeStats = computed(() => {
 
 // Get upcoming interviews
 const upcomingInterviews = computed(() => {
-  const now = new Date()
+  const now = new Date();
   return interviews.value
-    .filter(interview => new Date(interview.scheduledAt) > now)
+    .filter(interview => new Date(interview.scheduledAt) > now && interview.status !== 'cancelled')
     .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))
     .slice(0, 5)
+    .map(interview => {
+      const interviewDate = new Date(interview.scheduledAt);
+      return {
+        id: interview.id,
+        candidate: interview.candidateName,
+        position: interview.jobTitle,
+        interviewer: interview.interviewer,
+        interviewType: interview.interviewType,
+        date: interviewDate.toLocaleDateString(),
+        time: interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+    });
 })
 
 // Interview form data
@@ -447,19 +540,20 @@ const getViewModeLabel = () => {
 const getStatusColor = (type) => {
   switch (type) {
     case 'Phone Screen': return 'blue'
+    case 'Video': return 'cyan'
+    case 'Onsite': return 'gold'
     case 'Technical': return 'green'
     case 'HR': return 'purple'
-    case 'Final': return 'orange'
     default: return 'default'
   }
 }
 
 const getStatusType = (type) => {
-  return type.toLowerCase().replace(' ', '-')
+  return type.toLowerCase().replace(/\s+/g, '-')
 }
 
 const getInterviewClass = (type) => {
-  return `interview-type-${type.toLowerCase().replace(' ', '-')}`
+  return `interview-type-${type.toLowerCase().replace(/\s+/g, '-')}`
 }
 
 const showMoreInterviews = (date) => {
@@ -474,23 +568,38 @@ const showAllInterviews = (date) => {
 
 const saveInterview = async () => {
   try {
-    const interviewData = {
-      ...interviewForm.value,
-      scheduledAt: new Date(
-        interviewForm.value.date.getFullYear(),
-        interviewForm.value.date.getMonth(),
-        interviewForm.value.date.getDate(),
-        interviewForm.value.time.getHours(),
-        interviewForm.value.time.getMinutes()
-      ).toISOString()
-    }
+    // Format datetime from separate date and time inputs
+    const scheduledAt = new Date(
+      interviewForm.value.date.getFullYear(),
+      interviewForm.value.date.getMonth(),
+      interviewForm.value.date.getDate(),
+      interviewForm.value.time.getHours(),
+      interviewForm.value.time.getMinutes()
+    ).toISOString();
     
-    await store.dispatch('interviews/createInterview', interviewData)
-    message.success('Interview scheduled successfully')
-    showScheduleDialog.value = false
-    resetForm()
+    // Get IDs from selected objects
+    const selectedCandidate = candidates.find(c => c.name === interviewForm.value.candidate);
+    const selectedJob = jobs.find(j => j.title === interviewForm.value.position);
+    
+    // Create interview data object
+    const interviewData = {
+      candidateId: selectedCandidate?.id,
+      jobId: selectedJob?.id,
+      interviewerId: "interviewer-123", // This would typically come from a selector
+      interviewType: interviewForm.value.interviewType,
+      scheduledAt,
+      duration: 60, // Default duration
+      notes: interviewForm.value.notes,
+      interviewer: interviewForm.value.interviewer
+    };
+    
+    await store.dispatch('interviews/createInterview', interviewData);
+    message.success('Interview scheduled successfully');
+    showScheduleDialog.value = false;
+    resetForm();
   } catch (error) {
-    message.error('Failed to schedule interview')
+    message.error('Failed to schedule interview: ' + (error.message || 'Unknown error'));
+    console.error('Error scheduling interview:', error);
   }
 }
 
@@ -581,18 +690,44 @@ const calendarDates = computed(() => {
   return []
 })
 
-const previousMonth = () => {
-  currentDate.value = new Date(
-    currentDate.value.getFullYear(),
-    currentDate.value.getMonth() - 1
-  )
+const navigatePrevious = () => {
+  if (viewMode.value === 'month') {
+    currentDate.value = new Date(
+      currentDate.value.getFullYear(),
+      currentDate.value.getMonth() - 1,
+      currentDate.value.getDate()
+    )
+  } else if (viewMode.value === 'week') {
+    const newDate = new Date(currentDate.value)
+    newDate.setDate(newDate.getDate() - 7)
+    currentDate.value = newDate
+  } else if (viewMode.value === 'day') {
+    const newDate = new Date(currentDate.value)
+    newDate.setDate(newDate.getDate() - 1)
+    currentDate.value = newDate
+  }
 }
 
-const nextMonth = () => {
-  currentDate.value = new Date(
-    currentDate.value.getFullYear(),
-    currentDate.value.getMonth() + 1
-  )
+const navigateNext = () => {
+  if (viewMode.value === 'month') {
+    currentDate.value = new Date(
+      currentDate.value.getFullYear(),
+      currentDate.value.getMonth() + 1,
+      currentDate.value.getDate()
+    )
+  } else if (viewMode.value === 'week') {
+    const newDate = new Date(currentDate.value)
+    newDate.setDate(newDate.getDate() + 7)
+    currentDate.value = newDate
+  } else if (viewMode.value === 'day') {
+    const newDate = new Date(currentDate.value)
+    newDate.setDate(newDate.getDate() + 1)
+    currentDate.value = newDate
+  }
+}
+
+const goToday = () => {
+  currentDate.value = new Date()
 }
 
 const isCurrentMonth = (date) => {
@@ -674,6 +809,23 @@ const getDayInterviewsCount = () => {
       interviewDate.getFullYear() === currentDate.value.getFullYear()
     )
   }).length
+}
+
+// Format interview date using the shared date helper
+const formatInterviewDate = (dateString) => {
+  if (!dateString) return '';
+  
+  try {
+    // Convert ISO string or datetime object to proper format
+    if (typeof dateString === 'object') {
+      dateString = dateString.toISOString();
+    }
+    
+    return formatDate(dateString, 'YYYY-MM-DD HH:mm');
+  } catch (error) {
+    console.error('Error formatting date:', error, dateString);
+    return String(dateString);
+  }
 }
 </script>
 
@@ -842,22 +994,27 @@ const getDayInterviewsCount = () => {
   text-overflow: ellipsis;
 }
 
-.interview-event.phone-screen {
+.interview-event.interview-type-phone-screen {
   border-left-color: #1890ff;
   background-color: rgba(24, 144, 255, 0.1);
 }
 
-.interview-event.technical {
+.interview-event.interview-type-video {
+  border-left-color: #13c2c2;
+  background-color: rgba(19, 194, 194, 0.1);
+}
+
+.interview-event.interview-type-onsite {
   border-left-color: #faad14;
   background-color: rgba(250, 173, 20, 0.1);
 }
 
-.interview-event.hr {
+.interview-event.interview-type-technical {
   border-left-color: #52c41a;
   background-color: rgba(82, 196, 26, 0.1);
 }
 
-.interview-event.final {
+.interview-event.interview-type-hr {
   border-left-color: #722ed1;
   background-color: rgba(114, 46, 209, 0.1);
 }
@@ -905,10 +1062,29 @@ const getDayInterviewsCount = () => {
   background-color: var(--card-bg);
 }
 
+.upcoming-interviews :deep(.ant-card-head) {
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.upcoming-interviews :deep(.ant-card-body) {
+  background-color: var(--card-bg);
+  padding: 16px 24px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
+}
+
+.card-header span {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
 }
 
 .timeline-content h4 {
@@ -921,7 +1097,8 @@ const getDayInterviewsCount = () => {
 .timeline-content p {
   margin: 3px 0;
   color: var(--text-color);
-  opacity: 0.8;
+  opacity: 0.75;
+  font-size: 12px;
 }
 
 .timeline-content .interview-type {
@@ -931,7 +1108,8 @@ const getDayInterviewsCount = () => {
 
 .timeline-content .interview-time {
   color: var(--text-color);
-  opacity: 0.6;
+  opacity: 0.65;
+  font-size: 12px;
 }
 
 .custom-dot {
@@ -940,24 +1118,28 @@ const getDayInterviewsCount = () => {
   border-radius: 50%;
 }
 
-.custom-dot.info {
+.custom-dot.info, .custom-dot.primary, .custom-dot.phone-screen {
   background-color: #1890ff;
 }
 
-.custom-dot.warning {
+.custom-dot.warning, .custom-dot.technical {
   background-color: #faad14;
 }
 
-.custom-dot.primary {
-  background-color: #1890ff;
-}
-
-.custom-dot.success {
+.custom-dot.success, .custom-dot.hr {
   background-color: #52c41a;
 }
 
 .custom-dot.danger {
   background-color: #f5222d;
+}
+
+.custom-dot.video {
+  background-color: #13c2c2;
+}
+
+.custom-dot.onsite {
+  background-color: #722ed1;
 }
 
 .interviews-total {
@@ -1162,6 +1344,16 @@ const getDayInterviewsCount = () => {
   background-color: rgba(24, 144, 255, 0.05);
 }
 
+.stat-card.stat-info-only {
+  cursor: default;
+}
+
+.stat-card.stat-info-only:hover {
+  transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-color: var(--border-color);
+}
+
 .stat-icon {
   display: flex;
   align-items: center;
@@ -1362,5 +1554,13 @@ const getDayInterviewsCount = () => {
 
 :deep(.ant-empty-description) {
   color: var(--text-color);
+}
+
+.no-interviews {
+  font-size: 11px;
+  color: #888;
+  text-align: center;
+  padding: 8px 0;
+  font-style: italic;
 }
 </style> 

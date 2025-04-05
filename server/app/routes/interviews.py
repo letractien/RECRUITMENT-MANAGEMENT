@@ -38,7 +38,37 @@ async def get_interviews(
     cursor = interviews_collection.find(query).skip(skip).limit(limit)
     interviews = await cursor.to_list(length=limit)
     
-    return interviews
+    # Enhance interviews with related information
+    enhanced_interviews = []
+    
+    for interview in interviews:
+        # Fetch candidate info
+        candidate = await candidates_collection.find_one({"id": interview["candidate_id"]})
+        if candidate:
+            interview["candidate_name"] = f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}"
+        else:
+            interview["candidate_name"] = "Unknown Candidate"
+            
+        # Fetch job info
+        job = await jobs_collection.find_one({"id": interview["job_id"]})
+        if job:
+            interview["job_title"] = job.get("title", "Unknown Position")
+        else:
+            interview["job_title"] = "Unknown Position"
+            
+        # Fetch interviewer info (assuming there's an interviewers collection)
+        try:
+            interviewer = await candidates_collection.find_one({"id": interview["interviewer_id"]})
+            if interviewer:
+                interview["interviewer_name"] = f"{interviewer.get('first_name', '')} {interviewer.get('last_name', '')}"
+            else:
+                interview["interviewer_name"] = "Unknown Interviewer"
+        except:
+            interview["interviewer_name"] = "Unknown Interviewer"
+            
+        enhanced_interviews.append(interview)
+    
+    return enhanced_interviews
 
 
 @router.post("/", response_model=Interview, status_code=status.HTTP_201_CREATED)
@@ -97,6 +127,31 @@ async def get_interview(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Interview with ID {interview_id} not found",
         )
+    
+    # Enhance interview with related information
+    # Fetch candidate info
+    candidate = await candidates_collection.find_one({"id": interview["candidate_id"]})
+    if candidate:
+        interview["candidate_name"] = f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}"
+    else:
+        interview["candidate_name"] = "Unknown Candidate"
+        
+    # Fetch job info
+    job = await jobs_collection.find_one({"id": interview["job_id"]})
+    if job:
+        interview["job_title"] = job.get("title", "Unknown Position")
+    else:
+        interview["job_title"] = "Unknown Position"
+        
+    # Fetch interviewer info
+    try:
+        interviewer = await candidates_collection.find_one({"id": interview["interviewer_id"]})
+        if interviewer:
+            interview["interviewer_name"] = f"{interviewer.get('first_name', '')} {interviewer.get('last_name', '')}"
+        else:
+            interview["interviewer_name"] = "Unknown Interviewer"
+    except:
+        interview["interviewer_name"] = "Unknown Interviewer"
     
     return interview
 
