@@ -1,8 +1,15 @@
 import { createStore } from 'vuex';
-import candidates from '../modules/candidates';
-import jobs from '../modules/jobs';
-import interviews from '../modules/interviews';
-import dashboard from '../modules/dashboard';
+
+// Dynamically import feature modules
+const featureModules = {};
+const globModules = import.meta.glob('../features/*/store.js', { eager: true });
+
+for (const path in globModules) {
+  const moduleName = path.match(/\.\.\/features\/(.*?)\/store\.js$/)[1];
+  if (moduleName && globModules[path].default) {
+    featureModules[moduleName] = globModules[path].default;
+  }
+}
 
 export default createStore({
   state: {
@@ -111,9 +118,9 @@ export default createStore({
   },
   
   modules: {
-    candidates,
-    jobs,
-    interviews,
-    dashboard
+    // Register dynamically loaded modules
+    ...featureModules
+    // You can still register non-feature modules here if needed
+    // e.g., auth: authModule
   }
 }); 

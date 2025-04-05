@@ -15,7 +15,7 @@
 <script setup>
 import { computed } from 'vue';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons-vue';
-import { formatNumber } from '@/utils';
+import { formatNumber } from '../../shared/utils/formatHelpers.js';
 
 // Props definition
 const props = defineProps({

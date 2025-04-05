@@ -1,4 +1,4 @@
-import { jobsService } from '@/api';
+import jobsService from './api/jobs.service.js';
 
 const state = {
   jobs: [],

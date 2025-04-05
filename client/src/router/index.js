@@ -9,7 +9,7 @@ const routes = [
   {
     path: '/dashboard',
     name: 'Dashboard',
-    component: () => import('../pages/Dashboard.vue'),
+    component: () => import('../features/dashboard/pages/Dashboard.vue'),
     meta: {
       title: 'Dashboard',
       requiresAuth: true
@@ -18,7 +18,7 @@ const routes = [
   {
     path: '/jobs',
     name: 'Jobs',
-    component: () => import('../pages/Jobs.vue'),
+    component: () => import('../features/jobs/pages/Jobs.vue'),
     meta: {
       title: 'Job Postings',
       requiresAuth: true
@@ -27,7 +27,7 @@ const routes = [
   {
     path: '/candidates',
     name: 'Candidates',
-    component: () => import('../pages/Candidates.vue'),
+    component: () => import('../features/candidates/pages/Candidates.vue'),
     meta: {
       title: 'Candidates',
       requiresAuth: true
@@ -36,7 +36,7 @@ const routes = [
   {
     path: '/interviews',
     name: 'Interviews',
-    component: () => import('../pages/Interviews.vue'),
+    component: () => import('../features/interviews/pages/Interviews.vue'),
     meta: {
       title: 'Interviews',
       requiresAuth: true
@@ -49,7 +49,7 @@ const routes = [
   {
     path: '/settings',
     name: 'Settings',
-    component: () => import('../pages/Settings.vue'),
+    component: () => import('../core/pages/Settings.vue'),
     meta: {
       title: 'Settings',
       requiresAuth: true
@@ -58,7 +58,7 @@ const routes = [
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: () => import('../pages/NotFound.vue'),
+    component: () => import('../core/pages/NotFound.vue'),
     meta: {
       title: 'Page Not Found',
       requiresAuth: false
