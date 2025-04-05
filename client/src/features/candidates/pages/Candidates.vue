@@ -14,6 +14,7 @@
           v-model:value="search"
           placeholder="Search candidates..."
           style="max-width: 300px"
+          @change="handleFilterChange"
         >
           <template #prefix><search-outlined /></template>
         </a-input>
@@ -22,29 +23,32 @@
           placeholder="Status"
           style="width: 200px"
           allowClear
+          @change="handleFilterChange"
         >
           <a-select-option value="">All</a-select-option>
-          <a-select-option value="New">New</a-select-option>
-          <a-select-option value="Screening">Screening</a-select-option>
-          <a-select-option value="Interview">Interview</a-select-option>
-          <a-select-option value="Hired">Hired</a-select-option>
-          <a-select-option value="Rejected">Rejected</a-select-option>
+          <a-select-option value="new">New</a-select-option>
+          <a-select-option value="screening">Screening</a-select-option>
+          <a-select-option value="interview">Interview</a-select-option>
+          <a-select-option value="offer">Offer</a-select-option>
+          <a-select-option value="hired">Hired</a-select-option>
+          <a-select-option value="rejected">Rejected</a-select-option>
         </a-select>
       </div>
 
       <a-spin :spinning="isLoading">
         <a-table
-          :dataSource="paginatedCandidates"
+          :dataSource="candidates"
           :columns="columns"
-          :pagination="false"
+          :pagination="pagination"
           size="middle"
-          :scroll="{ y: 405 }"
+          :rowKey="record => record.id"
+          @change="handleTableChange"
         >
           <template #bodyCell="{ column, text, record }">
             <template v-if="column.key === 'candidate'">
               <div class="candidate-info">
                 <a-avatar :size="32">
-                  {{ record.name.charAt(0) }}
+                  {{ record.name ? record.name.charAt(0).toUpperCase() : 'U' }}
                 </a-avatar>
                 <div class="candidate-details">
                   <div class="candidate-name">{{ record.name }}</div>
@@ -57,6 +61,18 @@
                 {{ record.status }}
               </a-tag>
             </template>
+            <template v-else-if="column.key === 'experience'">
+              {{ record.experience }} years
+            </template>
+            <template v-else-if="column.key === 'total_score'">
+              <div class="score-display">
+                <span class="score-value">{{ record.total_score || 0 }}</span>
+                <span class="score-max">/100</span>
+              </div>
+            </template>
+            <template v-else-if="column.key === 'applied_date'">
+              {{ formatDate(record.applied_date || record.created_at) }}
+            </template>
             <template v-else-if="column.key === 'actions'">
               <a-dropdown>
                 <template #overlay>
@@ -64,6 +80,10 @@
                     <a-menu-item key="view" @click="viewCandidate(record)">
                       <template #icon><eye-outlined /></template>
                       View Profile
+                    </a-menu-item>
+                    <a-menu-item key="score" @click="updateScores(record)">
+                      <template #icon><trophy-outlined /></template>
+                      Update Scores
                     </a-menu-item>
                     <a-menu-item key="schedule" @click="scheduleInterview(record)">
                       <template #icon><calendar-outlined /></template>
@@ -88,20 +108,6 @@
           </template>
         </a-table>
       </a-spin>
-
-      <div class="pagination-container">
-        <a-pagination
-          v-model:current="currentPage"
-          v-model:pageSize="pageSize"
-          :total="totalCandidates"
-          :pageSizeOptions="['10', '20', '50', '100']"
-          showSizeChanger
-          showQuickJumper
-          :showTotal="total => `Total ${total} items`"
-          @change="handleCurrentChange"
-          @showSizeChange="handleSizeChange"
-        />
-      </div>
     </a-card>
 
     <!-- Add/Edit Candidate Dialog -->
@@ -163,6 +169,70 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- Add Score Dialog -->
+    <a-modal
+      v-model:visible="scoreDialog.visible"
+      title="Update Candidate Scores"
+      width="600px"
+      @ok="saveScores"
+    >
+      <a-form
+        :model="scoreForm"
+        :label-col="{ span: 8 }"
+        :wrapper-col="{ span: 16 }"
+      >
+        <a-form-item label="Background Score">
+          <a-input-number 
+            v-model:value="scoreForm.background_score" 
+            :min="0" 
+            :max="100" 
+            style="width: 100%"
+          />
+          <div class="score-hint">Evaluate candidate's work history and education</div>
+        </a-form-item>
+        
+        <a-form-item label="Project Score">
+          <a-input-number 
+            v-model:value="scoreForm.project_score" 
+            :min="0" 
+            :max="100" 
+            style="width: 100%"
+          />
+          <div class="score-hint">Evaluate candidate's past projects and accomplishments</div>
+        </a-form-item>
+        
+        <a-form-item label="Skill Score">
+          <a-input-number 
+            v-model:value="scoreForm.skill_score" 
+            :min="0" 
+            :max="100" 
+            style="width: 100%"
+          />
+          <div class="score-hint">Evaluate candidate's technical and soft skills</div>
+        </a-form-item>
+        
+        <a-form-item label="Certificate Score">
+          <a-input-number 
+            v-model:value="scoreForm.certificate_score" 
+            :min="0" 
+            :max="100" 
+            style="width: 100%"
+          />
+          <div class="score-hint">Evaluate candidate's certifications and qualifications</div>
+        </a-form-item>
+        
+        <a-form-item label="Total Score">
+          <a-input-number 
+            v-model:value="scoreForm.total_score" 
+            :min="0" 
+            :max="100" 
+            style="width: 100%"
+          />
+          <a-button type="link" @click="calculateTotalScore">Calculate Average</a-button>
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -177,14 +247,30 @@ import {
   EditOutlined, 
   DeleteOutlined, 
   DownOutlined,
-  UploadOutlined
+  UploadOutlined,
+  TrophyOutlined
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
+import candidatesService from '../api/candidates.service'
+import { formatDate as formatDateUtil } from '../../../shared/utils/dateHelpers'
 
 const store = useStore()
 
 const search = ref('')
 const statusFilter = ref('')
+const isLoading = ref(false)
+const candidates = ref([])
+const total = ref(0)
+
+// Pagination settings
+const pagination = reactive({
+  current: 1,
+  pageSize: 10,
+  total: 0,
+  showSizeChanger: true,
+  pageSizeOptions: ['10', '20', '50', '100'],
+  showTotal: (total) => `Total ${total} items`
+})
 
 // Table columns
 const columns = [
@@ -201,19 +287,14 @@ const columns = [
   },
   {
     title: 'Experience',
-    dataIndex: 'experience',
     key: 'experience',
-    width: 100,
-    customRender: ({ text }) => `${text} years`
+    width: 100
   },
   {
-    title: 'Score',
-    key: 'score',
-    width: 100,
-    customRender: ({ record }) => {
-      const score = record.score || 0
-      return `${score}/100`
-    }
+    title: 'Total Score',
+    key: 'total_score',
+    width: 120,
+    sorter: (a, b) => (a.total_score || 0) - (b.total_score || 0),
   },
   {
     title: 'Status',
@@ -222,8 +303,7 @@ const columns = [
   },
   {
     title: 'Applied Date',
-    dataIndex: 'appliedDate',
-    key: 'appliedDate',
+    key: 'applied_date',
     width: 120
   },
   {
@@ -234,71 +314,62 @@ const columns = [
   }
 ]
 
-// Load candidates from API on component mount
-onMounted(async () => {
+// Format date helper
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  return formatDateUtil(dateString, 'YYYY-MM-DD HH:mm')
+}
+
+// Load candidates from API
+const fetchCandidates = async () => {
+  isLoading.value = true
   try {
-    await store.dispatch('candidates/fetchCandidates')
+    const params = {}
+    if (statusFilter.value) params.status = statusFilter.value
+    if (search.value) params.search = search.value
+    
+    const response = await candidatesService.searchCandidates(params)
+    candidates.value = response.data
+    pagination.total = response.data.length
+    
+    // Update store
+    store.commit('candidates/SET_CANDIDATES', response.data)
   } catch (error) {
     console.error('Error loading candidates:', error)
     message.error('Failed to load candidates. Please try again later.')
+  } finally {
+    isLoading.value = false
   }
-})
+}
 
-// Computed
-const candidates = computed(() => store.getters['candidates/allCandidates'])
-const isLoading = computed(() => store.getters['candidates/isLoading'])
+// Load candidates on component mount
+onMounted(fetchCandidates)
 
-const currentPage = ref(1)
-const pageSize = ref(10)
+// Handle filter changes
+const handleFilterChange = () => {
+  pagination.current = 1 // Reset to first page
+  fetchCandidates()
+}
 
-const availableJobs = [
-  { 
-    label: 'Senior Frontend Developer', 
-    value: 'Senior Frontend Developer',
-    department: 'Engineering',
-    requirements: ['React', 'Vue.js', 'TypeScript', '5+ years experience']
-  },
-  { 
-    label: 'Backend Developer', 
-    value: 'Backend Developer',
-    department: 'Engineering',
-    requirements: ['Node.js', 'Python', 'SQL', '3+ years experience']
-  },
-  { 
-    label: 'UI/UX Designer', 
-    value: 'UI/UX Designer',
-    department: 'Design',
-    requirements: ['Figma', 'Adobe XD', 'User Research', '3+ years experience']
-  },
-  { 
-    label: 'Product Manager', 
-    value: 'Product Manager',
-    department: 'Product',
-    requirements: ['Agile', 'Product Strategy', 'User Stories', '5+ years experience']
+// Handle table pagination and sorting
+const handleTableChange = (pag) => {
+  pagination.current = pag.current
+  pagination.pageSize = pag.pageSize
+  fetchCandidates()
+}
+
+// Status helpers
+const getStatusColor = (status) => {
+  const colors = {
+    'new': 'blue',
+    'screening': 'orange',
+    'interview': 'purple',
+    'offer': 'geekblue',
+    'hired': 'green',
+    'rejected': 'red'
   }
-]
-
-const filteredCandidates = computed(() => {
-  return candidates.value.filter(candidate => {
-    const matchesSearch = search.value === '' || 
-      candidate.name.toLowerCase().includes(search.value.toLowerCase()) ||
-      candidate.email.toLowerCase().includes(search.value.toLowerCase()) ||
-      candidate.position.toLowerCase().includes(search.value.toLowerCase())
-    
-    const matchesStatus = statusFilter.value === '' || 
-      candidate.status === statusFilter.value
-
-    return matchesSearch && matchesStatus
-  })
-})
-
-const totalCandidates = computed(() => filteredCandidates.value.length)
-
-const paginatedCandidates = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filteredCandidates.value.slice(start, end)
-})
+  return colors[status] || 'default'
+}
 
 const candidateDialog = reactive({
   visible: false,
@@ -327,27 +398,32 @@ const candidateForm = reactive({
   }
 })
 
-const getStatusType = (status) => {
-  const types = {
-    'New': 'info',
-    'Screening': 'warning',
-    'Interview': 'primary',
-    'Hired': 'success',
-    'Rejected': 'danger'
+const availableJobs = [
+  { 
+    label: 'Senior Frontend Developer', 
+    value: 'Senior Frontend Developer',
+    department: 'Engineering',
+    requirements: ['React', 'Vue.js', 'TypeScript', '5+ years experience']
+  },
+  { 
+    label: 'Backend Developer', 
+    value: 'Backend Developer',
+    department: 'Engineering',
+    requirements: ['Node.js', 'Python', 'SQL', '3+ years experience']
+  },
+  { 
+    label: 'UI/UX Designer', 
+    value: 'UI/UX Designer',
+    department: 'Design',
+    requirements: ['Figma', 'Adobe XD', 'User Research', '3+ years experience']
+  },
+  { 
+    label: 'Product Manager', 
+    value: 'Product Manager',
+    department: 'Product',
+    requirements: ['Agile', 'Product Strategy', 'User Stories', '5+ years experience']
   }
-  return types[status] || 'info'
-}
-
-const getStatusColor = (status) => {
-  const colors = {
-    'New': 'blue',
-    'Screening': 'orange',
-    'Interview': 'purple',
-    'Hired': 'green',
-    'Rejected': 'red'
-  }
-  return colors[status] || 'default'
-}
+]
 
 const showCreateCandidateDialog = () => {
   candidateDialog.isEdit = false
@@ -361,19 +437,17 @@ const showCreateCandidateDialog = () => {
     phone: '',
     position: '',
     experience: 0,
-    status: 'New',
-    appliedDate: new Date().toISOString().split('T')[0],
-    resume: '',
-    education: '',
+    status: 'new',
+    applied_date: new Date().toISOString().split('T')[0],
+    resume_url: '',
     skills: [],
-    interviewNotes: '',
-    evaluation: {
-      technicalScore: 0,
-      softSkillsScore: 0,
-      experienceScore: 0,
-      overallScore: 0,
-      feedback: ''
-    }
+    notes: '',
+    // Initialize score fields
+    background_score: 0,
+    project_score: 0,
+    skill_score: 0,
+    certificate_score: 0,
+    total_score: 0
   })
 }
 
@@ -392,134 +466,78 @@ const editCandidate = (candidate) => {
     status: candidate.status,
     appliedDate: candidate.appliedDate,
     resume: candidate.resume,
-    education: candidate.education,
     skills: candidate.skills || [],
-    interviewNotes: candidate.interviewNotes || '',
-    evaluation: {
-      technicalScore: candidate.evaluation?.technicalScore || 0,
-      softSkillsScore: candidate.evaluation?.softSkillsScore || 0,
-      experienceScore: candidate.evaluation?.experienceScore || 0,
-      overallScore: candidate.evaluation?.overallScore || 0,
-      feedback: candidate.evaluation?.feedback || ''
-    }
+    notes: candidate.notes || '',
+    // Include score fields
+    background_score: candidate.background_score || 0,
+    project_score: candidate.project_score || 0,
+    skill_score: candidate.skill_score || 0,
+    certificate_score: candidate.certificate_score || 0,
+    total_score: candidate.total_score || 0
   })
 }
 
-const viewCandidate = async (candidate) => {
-  try {
-    // Fetch candidate details from API if not already loaded
-    if (!candidate.education || !candidate.skills) {
-      await store.dispatch('candidates/fetchCandidate', candidate.id)
-      candidate = store.getters['candidates/currentCandidate']
-    }
-    
-    // Show candidate details dialog
-    Modal.info({
-      title: candidate.name,
-      width: 700,
-      content: h('div', { class: 'candidate-details' }, [
-        h('div', { class: 'candidate-header' }, [
-          h('a-avatar', { size: 64, style: 'margin-right: 16px' }, candidate.name.charAt(0)),
-          h('div', { class: 'candidate-info' }, [
-            h('h3', candidate.name),
-            h('p', candidate.email),
-            h('p', candidate.phone)
-          ])
-        ]),
-        h('div', { class: 'candidate-section' }, [
-          h('h4', 'Position'),
-          h('p', candidate.position)
-        ]),
-        h('div', { class: 'candidate-section' }, [
-          h('h4', 'Experience'),
-          h('p', `${candidate.experience} years`)
-        ]),
-        h('div', { class: 'candidate-section' }, [
-          h('h4', 'Education'),
-          h('p', candidate.education)
-        ]),
-        h('div', { class: 'candidate-section' }, [
-          h('h4', 'Skills'),
-          h('div', { class: 'skills-list' }, 
-            candidate.skills.map(skill => h('a-tag', { style: 'margin: 4px' }, skill))
-          )
-        ]),
-        h('div', { class: 'candidate-section' }, [
-          h('h4', 'Evaluation'),
-          h('div', { class: 'evaluation-scores' }, [
-            h('div', { class: 'score-item' }, [
-              h('span', 'Technical: '),
-              h('span', { style: 'font-weight: bold' }, `${candidate.evaluation?.technicalScore || 0}/100`)
-            ]),
-            h('div', { class: 'score-item' }, [
-              h('span', 'Soft Skills: '),
-              h('span', { style: 'font-weight: bold' }, `${candidate.evaluation?.softSkillsScore || 0}/100`)
-            ]),
-            h('div', { class: 'score-item' }, [
-              h('span', 'Experience: '),
-              h('span', { style: 'font-weight: bold' }, `${candidate.evaluation?.experienceScore || 0}/100`)
-            ]),
-            h('div', { class: 'score-item' }, [
-              h('span', 'Overall: '),
-              h('span', { style: 'font-weight: bold' }, `${candidate.evaluation?.overallScore || 0}/100`)
-            ])
-          ]),
-          h('div', { class: 'feedback' }, [
-            h('h5', 'Feedback'),
-            h('p', candidate.evaluation?.feedback || 'No feedback available')
-          ])
-        ])
-      ]),
-      okText: 'Close'
-    })
-  } catch (error) {
-    console.error('Error loading candidate details:', error)
-    message.error('Failed to load candidate details. Please try again later.')
-  }
+const viewCandidate = (candidate) => {
+  // Navigate to candidate detail page or show a detailed modal
+  // For now, we'll just show a message
+  message.info(`Viewing ${candidate.name}'s profile`)
 }
 
 const scheduleInterview = (candidate) => {
-  // This would be implemented in a real app
-  message.info(`Schedule interview for ${candidate.name}`)
+  // For now, just show a message
+  message.info(`Scheduling interview for ${candidate.name}`)
 }
 
 const updateStatus = (candidate) => {
-  const statuses = ['New', 'Screening', 'Interview', 'Hired', 'Rejected']
-  const currentIndex = statuses.indexOf(candidate.status)
-  const nextIndex = (currentIndex + 1) % statuses.length
-  const newStatus = statuses[nextIndex]
-  
   Modal.confirm({
-    title: 'Update Candidate Status',
-    content: `Are you sure you want to update ${candidate.name}'s status to ${newStatus}?`,
-    okText: 'Yes',
-    cancelText: 'No',
-    onOk: async () => {
-      try {
-        await store.dispatch('candidates/updateCandidateStatus', { id: candidate.id, status: newStatus })
-        message.success(`Status updated to ${newStatus}`)
-      } catch (error) {
-        console.error('Error updating candidate status:', error)
-        message.error('Failed to update candidate status. Please try again later.')
-      }
-    }
+    title: `Update status for ${candidate.name}`,
+    content: h('div', {}, [
+      h('p', 'Select new status:'),
+      h('a-select', {
+        style: { width: '100%' },
+        value: candidate.status,
+        onChange: (value) => {
+          updateCandidateStatus(candidate.id, value)
+          Modal.destroyAll()
+        }
+      }, [
+        h('a-select-option', { value: 'new' }, 'New'),
+        h('a-select-option', { value: 'screening' }, 'Screening'),
+        h('a-select-option', { value: 'interview' }, 'Interview'),
+        h('a-select-option', { value: 'offer' }, 'Offer'),
+        h('a-select-option', { value: 'hired' }, 'Hired'),
+        h('a-select-option', { value: 'rejected' }, 'Rejected')
+      ])
+    ])
   })
+}
+
+const updateCandidateStatus = async (id, status) => {
+  try {
+    await candidatesService.updateCandidateStatus(id, status)
+    message.success(`Status updated to ${status}`)
+    fetchCandidates()
+  } catch (error) {
+    console.error('Error updating status:', error)
+    message.error('Failed to update status')
+  }
 }
 
 const deleteCandidate = (candidate) => {
   Modal.confirm({
-    title: 'Delete Candidate',
-    content: `Are you sure you want to delete ${candidate.name}?`,
-    okText: 'Yes',
+    title: 'Are you sure you want to delete this candidate?',
+    content: `This will permanently remove ${candidate.name} from the system.`,
+    okText: 'Yes, Delete',
     okType: 'danger',
-    cancelText: 'Cancel',
+    cancelText: 'No, Cancel',
     onOk: async () => {
       try {
-        await store.dispatch('candidates/deleteCandidate', candidate.id)
+        await candidatesService.deleteCandidate(candidate.id)
         message.success('Candidate deleted successfully')
+        fetchCandidates()
       } catch (error) {
         console.error('Error deleting candidate:', error)
-        message.error('Failed to delete candidate. Please try again later.')
+        message.error('Failed to delete candidate')
       }
     }
   })
@@ -527,31 +545,108 @@ const deleteCandidate = (candidate) => {
 
 const saveCandidate = async () => {
   try {
-    if (candidateDialog.isEdit) {
-      await store.dispatch('candidates/updateCandidate', {
-        id: candidateForm.id,
-        data: candidateForm
-      })
+    // Validate form
+    if (!candidateForm.name || !candidateForm.email || !candidateForm.position) {
+      message.error('Please fill in all required fields')
+      return
+    }
+
+    // Prepare data for API
+    const candidateData = {
+      name: candidateForm.name,
+      email: candidateForm.email,
+      phone: candidateForm.phone || '',
+      position: candidateForm.position,
+      department: candidateForm.department || 'General',
+      experience: candidateForm.experience || 0,
+      status: candidateForm.status.toLowerCase(),
+      skills: candidateForm.skills || [],
+      notes: candidateForm.notes || '',
+      resume_url: candidateForm.resume_url || null,
+      salary_expectation: candidateForm.salary_expectation || null,
+      // Include score fields
+      background_score: candidateForm.background_score || 0,
+      project_score: candidateForm.project_score || 0,
+      skill_score: candidateForm.skill_score || 0,
+      certificate_score: candidateForm.certificate_score || 0,
+      total_score: candidateForm.total_score || 0
+    }
+
+    if (candidateDialog.isEdit && candidateForm.id) {
+      // Update existing candidate
+      await candidatesService.updateCandidate(candidateForm.id, candidateData)
       message.success('Candidate updated successfully')
     } else {
-      await store.dispatch('candidates/createCandidate', candidateForm)
-      message.success('Candidate created successfully')
+      // Create new candidate
+      await candidatesService.createCandidate(candidateData)
+      message.success('Candidate added successfully')
     }
-    
+
+    // Close dialog and refresh list
     candidateDialog.visible = false
+    fetchCandidates()
   } catch (error) {
     console.error('Error saving candidate:', error)
-    message.error('Failed to save candidate. Please try again later.')
+    message.error('Failed to save candidate')
   }
 }
 
-const handleCurrentChange = (page) => {
-  currentPage.value = page
+const scoreDialog = reactive({
+  visible: false,
+  candidateId: null
+})
+
+const scoreForm = reactive({
+  background_score: 0,
+  project_score: 0,
+  skill_score: 0,
+  certificate_score: 0,
+  total_score: 0
+})
+
+const updateScores = (candidate) => {
+  scoreDialog.visible = true
+  scoreDialog.candidateId = candidate.id
+  
+  // Initialize form with existing scores
+  scoreForm.background_score = candidate.background_score || 0
+  scoreForm.project_score = candidate.project_score || 0
+  scoreForm.skill_score = candidate.skill_score || 0
+  scoreForm.certificate_score = candidate.certificate_score || 0
+  scoreForm.total_score = candidate.total_score || 0
 }
 
-const handleSizeChange = (current, size) => {
-  pageSize.value = size
-  currentPage.value = 1
+const calculateTotalScore = () => {
+  // Calculate average of all scores
+  const scores = [
+    scoreForm.background_score,
+    scoreForm.project_score,
+    scoreForm.skill_score,
+    scoreForm.certificate_score
+  ]
+  const sum = scores.reduce((acc, score) => acc + (score || 0), 0)
+  scoreForm.total_score = Math.round(sum / scores.length)
+}
+
+const saveScores = async () => {
+  try {
+    if (!scoreDialog.candidateId) return
+    
+    await candidatesService.updateCandidate(scoreDialog.candidateId, {
+      background_score: scoreForm.background_score,
+      project_score: scoreForm.project_score,
+      skill_score: scoreForm.skill_score, 
+      certificate_score: scoreForm.certificate_score,
+      total_score: scoreForm.total_score
+    })
+    
+    message.success('Candidate scores updated successfully')
+    scoreDialog.visible = false
+    fetchCandidates()
+  } catch (error) {
+    console.error('Error updating scores:', error)
+    message.error('Failed to update scores')
+  }
 }
 </script>
 
@@ -749,5 +844,25 @@ const handleSizeChange = (current, size) => {
   color: var(--text-color);
   opacity: 0.45;
   font-size: 0.9em;
+}
+
+.score-hint {
+  color: var(--text-color);
+  opacity: 0.65;
+  font-size: 0.8em;
+  margin-top: 2px;
+}
+
+/* Add score color classes */
+:deep(.score-high) {
+  color: #52c41a;
+}
+
+:deep(.score-medium) {
+  color: #faad14;
+}
+
+:deep(.score-low) {
+  color: #f5222d;
 }
 </style> 

@@ -1,4 +1,4 @@
-import { candidateService } from '@/core/api';
+import candidatesService from './api/candidates.service';
 import { ElNotification } from 'element-plus';
 
 export default {
@@ -34,7 +34,7 @@ export default {
       commit('SET_ERROR', null);
       
       try {
-        const { data } = await candidateService.getAllCandidates(state.filters);
+        const { data } = await candidatesService.searchCandidates(state.filters);
         commit('SET_CANDIDATES', data);
         return data;
       } catch (error) {
@@ -55,7 +55,7 @@ export default {
       commit('SET_ERROR', null);
       
       try {
-        const { data } = await candidateService.getCandidate(id);
+        const { data } = await candidatesService.getCandidate(id);
         commit('SET_CURRENT_CANDIDATE', data);
         return data;
       } catch (error) {
@@ -76,7 +76,7 @@ export default {
       commit('SET_ERROR', null);
       
       try {
-        const { data } = await candidateService.createCandidate(candidateData);
+        const { data } = await candidatesService.createCandidate(candidateData);
         ElNotification({
           title: 'Success',
           message: 'Candidate created successfully',
@@ -105,7 +105,7 @@ export default {
       commit('SET_ERROR', null);
       
       try {
-        const { data } = await candidateService.updateCandidate(id, candidateData);
+        const { data } = await candidatesService.updateCandidate(id, candidateData);
         ElNotification({
           title: 'Success',
           message: 'Candidate updated successfully',
@@ -139,7 +139,7 @@ export default {
       commit('SET_ERROR', null);
       
       try {
-        await candidateService.deleteCandidate(id);
+        await candidatesService.deleteCandidate(id);
         ElNotification({
           title: 'Success',
           message: 'Candidate deleted successfully',
@@ -166,7 +166,7 @@ export default {
       commit('SET_ERROR', null);
       
       try {
-        const { data } = await candidateService.updateCandidateStatus(id, status);
+        const { data } = await candidatesService.updateCandidateStatus(id, status);
         ElNotification({
           title: 'Success',
           message: `Candidate status updated to ${status}`,
@@ -200,7 +200,7 @@ export default {
       commit('SET_ERROR', null);
       
       try {
-        const { data } = await candidateService.getCandidateInterviews(id);
+        const { data } = await candidatesService.getCandidateInterviews(id);
         commit('SET_CANDIDATE_INTERVIEWS', data);
         return data;
       } catch (error) {

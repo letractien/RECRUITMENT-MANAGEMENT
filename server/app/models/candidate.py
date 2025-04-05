@@ -3,7 +3,6 @@ from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 
-
 class CandidateStatus(str, Enum):
     NEW = "new"
     SCREENING = "screening"
@@ -25,6 +24,12 @@ class CandidateBase(BaseModel):
     skills: List[str] = []
     notes: Optional[str] = None
     salary_expectation: Optional[float] = None
+    # Scoring fields
+    total_score: Optional[float] = 0
+    background_score: Optional[float] = 0
+    project_score: Optional[float] = 0
+    skill_score: Optional[float] = 0
+    certificate_score: Optional[float] = 0
 
 
 class CandidateCreate(CandidateBase):
@@ -43,6 +48,12 @@ class CandidateUpdate(BaseModel):
     skills: Optional[List[str]] = None
     notes: Optional[str] = None
     salary_expectation: Optional[float] = None
+    # Scoring fields
+    total_score: Optional[float] = None
+    background_score: Optional[float] = None
+    project_score: Optional[float] = None
+    skill_score: Optional[float] = None
+    certificate_score: Optional[float] = None
 
 
 class CandidateInDB(CandidateBase):
