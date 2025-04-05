@@ -309,6 +309,7 @@ import {
   ClockCircleOutlined,
   EyeOutlined
 } from '@ant-design/icons-vue'
+import { formatDate } from '../../../shared/utils/dateHelpers.js'
 
 const store = useStore()
 const viewMode = ref('month')
@@ -632,7 +633,7 @@ const shouldShowViewMoreButton = (date) => {
 }
 
 const formatDateKey = (date) => {
-  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+  return formatDate(date, 'YYYY-MM-DD');
 }
 
 const viewInterview = (interview) => {
@@ -658,12 +659,8 @@ const getCalendarGridStyle = () => {
 }
 
 const formatFullDate = (date) => {
-  return date.toLocaleString('default', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  })
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  return new Date(date).toLocaleDateString('default', options);
 }
 
 const getDayInterviewsCount = () => {

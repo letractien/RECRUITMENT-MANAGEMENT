@@ -235,6 +235,8 @@ import {
   FundOutlined
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import { formatNumber } from '../../../shared/utils/formatHelpers.js'
+import { formatDate } from '../../../shared/utils/dateHelpers.js'
 
 const store = useStore()
 const timeRange = ref('month')
@@ -362,10 +364,9 @@ const getStatusColor = (status) => {
   return colors[status] || 'blue'
 }
 
-// Format interview date
+// Format interview date using the shared date helper
 const formatInterviewDate = (dateString) => {
-  const date = new Date(dateString)
-  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+  return formatDate(dateString, 'YYYY-MM-DD HH:mm');
 }
 
 // Department color generator
@@ -376,11 +377,6 @@ const getDepartmentColorClass = (department) => {
   ]
   const index = departments.indexOf(department)
   return `dept-color-${index % 8}`
-}
-
-// Format number with commas
-const formatNumber = (num) => {
-  return new Intl.NumberFormat().format(num)
 }
 
 // Pagination handlers

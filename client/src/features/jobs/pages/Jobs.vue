@@ -200,7 +200,9 @@ import {
   FundOutlined
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
-import JobCreationForm from '@/components/JobCreationForm.vue'
+import JobCreationForm from '../components/JobCreationForm.vue'
+import { formatDate } from '../../../shared/utils/dateHelpers.js'
+import { formatCurrency } from '../../../shared/utils/formatHelpers.js'
 
 const store = useStore()
 
@@ -352,16 +354,8 @@ const isJobActive = computed({
 })
 
 // Methods
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
-
 const formatSalary = (amount) => {
-  return new Intl.NumberFormat('vi-VN').format(amount)
+  return formatCurrency(amount, 'VND');
 }
 
 const showCreateJobDialog = () => {
