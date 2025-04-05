@@ -313,7 +313,6 @@ async def get_application_trend(
     Get application trend data
     """
     now = datetime.now()
-    time_format = "%Y-%m-%d"
     group_id = "$created_at_day"
     
     # Set grouping format based on time range
@@ -439,21 +438,27 @@ async def get_application_trend(
 # Helper functions
 def get_date_from_range(time_range: str) -> datetime:
     """
-    Calculate a date based on the provided time range
+    Calculate the start date of the current time period (week, month, quarter, year)
     """
     now = datetime.now()
     
     if time_range == "week":
-        return now - timedelta(days=7)
+        # Start of current week (Monday)
+        start_of_week = now - timedelta(days=now.weekday())
+        return datetime(start_of_week.year, start_of_week.month, start_of_week.day, 0, 0, 0)
     elif time_range == "month":
-        return now - timedelta(days=30)
+        # Start of current month
+        return datetime(now.year, now.month, 1, 0, 0, 0)
     elif time_range == "quarter":
-        return now - timedelta(days=90)
+        # Start of current quarter
+        quarter_month = ((now.month - 1) // 3) * 3 + 1
+        return datetime(now.year, quarter_month, 1, 0, 0, 0)
     elif time_range == "year":
-        return now - timedelta(days=365)
+        # Start of current year
+        return datetime(now.year, 1, 1, 0, 0, 0)
     else:
         # Default to month
-        return now - timedelta(days=30)
+        return datetime(now.year, now.month, 1, 0, 0, 0)
 
 
 def get_previous_period_start(time_range: str, current_period_start: datetime) -> datetime:
@@ -461,16 +466,36 @@ def get_previous_period_start(time_range: str, current_period_start: datetime) -
     Calculate the start date of the previous period
     """
     if time_range == "week":
+        # Previous week
         return current_period_start - timedelta(days=7)
     elif time_range == "month":
-        return current_period_start - timedelta(days=30)
+        # Previous month
+        if current_period_start.month == 1:
+            return datetime(current_period_start.year - 1, 12, 1, 0, 0, 0)
+        else:
+            return datetime(current_period_start.year, current_period_start.month - 1, 1, 0, 0, 0)
     elif time_range == "quarter":
-        return current_period_start - timedelta(days=90)
+        # Previous quarter
+        if current_period_start.month == 1:  # First quarter
+            return datetime(current_period_start.year - 1, 10, 1, 0, 0, 0)
+        else:
+            previous_quarter_month = ((current_period_start.month - 1) - 3)
+            if previous_quarter_month <= 0:
+                previous_quarter_month += 12
+            return datetime(
+                current_period_start.year if previous_quarter_month > 9 else current_period_start.year - 1,
+                previous_quarter_month, 
+                1, 0, 0, 0
+            )
     elif time_range == "year":
-        return current_period_start - timedelta(days=365)
+        # Previous year
+        return datetime(current_period_start.year - 1, 1, 1, 0, 0, 0)
     else:
-        # Default to month
-        return current_period_start - timedelta(days=30)
+        # Default to previous month
+        if current_period_start.month == 1:
+            return datetime(current_period_start.year - 1, 12, 1, 0, 0, 0)
+        else:
+            return datetime(current_period_start.year, current_period_start.month - 1, 1, 0, 0, 0)
 
 
 def calculate_percentage_change(previous: int, current: int) -> int:

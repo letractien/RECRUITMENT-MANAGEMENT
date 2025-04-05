@@ -14,7 +14,6 @@ from bson import ObjectId
 # Add parent directory to path so we can import modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from app.core.security import get_password_hash
 from app.models.user import UserRole
 
 # MongoDB connection
@@ -38,10 +37,9 @@ sample_users = [
         "email": "admin@example.com",
         "fullname": "Admin User",
         "role": UserRole.ADMIN,
-        "hashed_password": get_password_hash("admin123"),
+        "is_active": True,
         "created_at": datetime.now(),
-        "updated_at": datetime.now(),
-        "is_active": True
+        "updated_at": datetime.now()
     },
     {
         "id": str(datetime.now().timestamp() + 1),
@@ -49,10 +47,9 @@ sample_users = [
         "email": "hr@example.com",
         "fullname": "HR Manager",
         "role": UserRole.HR,
-        "hashed_password": get_password_hash("hr123"),
+        "is_active": True,
         "created_at": datetime.now(),
-        "updated_at": datetime.now(),
-        "is_active": True
+        "updated_at": datetime.now()
     },
     {
         "id": str(datetime.now().timestamp() + 2),
@@ -60,10 +57,9 @@ sample_users = [
         "email": "interviewer1@example.com",
         "fullname": "Technical Interviewer",
         "role": UserRole.INTERVIEWER,
-        "hashed_password": get_password_hash("interviewer123"),
+        "is_active": True,
         "created_at": datetime.now(),
-        "updated_at": datetime.now(),
-        "is_active": True
+        "updated_at": datetime.now()
     },
     {
         "id": str(datetime.now().timestamp() + 3),
@@ -71,10 +67,9 @@ sample_users = [
         "email": "user@example.com",
         "fullname": "Regular User",
         "role": UserRole.USER,
-        "hashed_password": get_password_hash("user123"),
+        "is_active": True,
         "created_at": datetime.now(),
-        "updated_at": datetime.now(),
-        "is_active": True
+        "updated_at": datetime.now()
     }
 ]
 
@@ -111,44 +106,55 @@ skills_by_department = {
     "Finance": ["Financial Analysis", "Accounting", "Forecasting", "Budgeting", "Excel", "QuickBooks", "Financial Reporting"]
 }
 
-# Generate sample jobs
+# Generate sample jobs with different time periods
 sample_jobs = []
 job_id_by_title = {}
+
+# Helper function to generate dates
+def generate_dates():
+    now = datetime.now()
+    return {
+        "this_week": now - timedelta(days=random.randint(0, 7)),
+        "this_month": now - timedelta(days=random.randint(0, 30)),
+        "this_quarter": now - timedelta(days=random.randint(0, 90)),
+        "this_year": now - timedelta(days=random.randint(0, 365))
+    }
 
 for i, dept in enumerate(departments):
     for j, title in enumerate(job_titles[dept]):
         job_id = str(datetime.now().timestamp() + i * 100 + j)
         job_id_by_title[title] = job_id
         
-        posting_date = datetime.now() - timedelta(days=random.randint(1, 60))
-        
-        sample_jobs.append({
-            "id": job_id,
-            "title": title,
-            "description": f"We are looking for a {title} to join our {dept} team.",
-            "department": dept,
-            "location": random.choice(["New York", "San Francisco", "Remote", "Berlin", "London", "Singapore"]),
-            "requirements": random.sample(skills_by_department[dept], min(4, len(skills_by_department[dept]))),
-            "responsibilities": [
-                f"Work with the {dept} team on various projects",
-                "Collaborate with cross-functional teams",
-                "Contribute to the company's growth",
-                "Implement best practices"
-            ],
-            "min_salary": random.randint(40, 80) * 1000,
-            "max_salary": random.randint(90, 150) * 1000,
-            "status": random.choice(["open", "closed", "draft", "paused"]),
-            "is_remote": random.choice([True, False]),
-            "employment_type": random.choice(["full-time", "part-time", "contract"]),
-            "created_at": posting_date,
-            "updated_at": posting_date,
-            "posted_date": posting_date if random.random() > 0.2 else None,
-            "closed_date": None,
-            "applicants": random.randint(0, 20),
-            "interviews": random.randint(0, 10)
-        })
+        # Generate jobs for different time periods
+        dates = generate_dates()
+        for period, posting_date in dates.items():
+            sample_jobs.append({
+                "id": f"{job_id}_{period}",
+                "title": f"{title} ({period.replace('_', ' ')})",
+                "description": f"We are looking for a {title} to join our {dept} team.",
+                "department": dept,
+                "location": random.choice(["New York", "San Francisco", "Remote", "Berlin", "London", "Singapore"]),
+                "requirements": random.sample(skills_by_department[dept], min(4, len(skills_by_department[dept]))),
+                "responsibilities": [
+                    f"Work with the {dept} team on various projects",
+                    "Collaborate with cross-functional teams",
+                    "Contribute to the company's growth",
+                    "Implement best practices"
+                ],
+                "min_salary": random.randint(40, 80) * 1000,
+                "max_salary": random.randint(90, 150) * 1000,
+                "status": random.choice(["open", "closed", "draft", "paused"]),
+                "is_remote": random.choice([True, False]),
+                "employment_type": random.choice(["full-time", "part-time", "contract"]),
+                "created_at": posting_date,
+                "updated_at": posting_date,
+                "posted_date": posting_date if random.random() > 0.2 else None,
+                "closed_date": None,
+                "applicants": random.randint(0, 20),
+                "interviews": random.randint(0, 10)
+            })
 
-# Generate sample candidates
+# Generate sample candidates with different time periods
 sample_candidates = []
 candidate_ids = []
 
@@ -159,57 +165,59 @@ for i in range(30):
     dept = random.choice(departments)
     position = random.choice(job_titles[dept])
     
-    applied_date = datetime.now() - timedelta(days=random.randint(1, 30))
-    
-    sample_candidates.append({
-        "id": candidate_id,
-        "name": f"Candidate {i+1}",
-        "email": f"candidate{i+1}@example.com",
-        "phone": f"+1-555-{random.randint(100, 999)}-{random.randint(1000, 9999)}",
-        "position": position,
-        "department": dept,
-        "experience": random.randint(1, 10),
-        "status": random.choice(["new", "screening", "interview", "offer", "hired", "rejected"]),
-        "resume_url": f"https://example.com/resumes/candidate{i+1}.pdf",
-        "skills": random.sample(skills_by_department[dept], min(5, len(skills_by_department[dept]))),
-        "notes": "Looks promising" if random.random() > 0.5 else "Needs further evaluation",
-        "salary_expectation": random.randint(50, 120) * 1000,
-        "created_at": applied_date,
-        "updated_at": applied_date,
-        "applied_date": applied_date
-    })
+    # Generate candidates for different time periods
+    dates = generate_dates()
+    for period, applied_date in dates.items():
+        sample_candidates.append({
+            "id": f"{candidate_id}_{period}",
+            "name": f"Candidate {i+1} ({period.replace('_', ' ')})",
+            "email": f"candidate{i+1}_{period}@example.com",
+            "phone": f"+1-555-{random.randint(100, 999)}-{random.randint(1000, 9999)}",
+            "position": position,
+            "department": dept,
+            "experience": random.randint(1, 10),
+            "status": random.choice(["new", "screening", "interview", "offer", "hired", "rejected"]),
+            "resume_url": f"https://example.com/resumes/candidate{i+1}_{period}.pdf",
+            "skills": random.sample(skills_by_department[dept], min(5, len(skills_by_department[dept]))),
+            "notes": "Looks promising" if random.random() > 0.5 else "Needs further evaluation",
+            "salary_expectation": random.randint(50, 120) * 1000,
+            "created_at": applied_date,
+            "updated_at": applied_date,
+            "applied_date": applied_date
+        })
 
-# Generate sample interviews
+# Generate sample interviews with different time periods
 sample_interviews = []
 
 for i in range(20):
     # Only create interviews for candidates that exist and jobs that exist
     candidate_id = random.choice(candidate_ids)
-    candidate = next((c for c in sample_candidates if c["id"] == candidate_id), None)
+    candidate = next((c for c in sample_candidates if c["id"].startswith(candidate_id)), None)
     
     if candidate:
         position = candidate["position"]
         job_id = job_id_by_title.get(position)
         
         if job_id:
-            interview_date = datetime.now() + timedelta(days=random.randint(1, 14))
-            
-            sample_interviews.append({
-                "id": str(datetime.now().timestamp() + i * 10),
-                "candidate_id": candidate_id,
-                "job_id": job_id,
-                "interviewer_id": sample_users[2]["id"] if random.random() > 0.5 else sample_users[1]["id"],
-                "scheduled_date": interview_date,
-                "duration_minutes": random.choice([30, 45, 60, 90]),
-                "status": random.choice(["scheduled", "completed", "cancelled", "rescheduled", "pending"]),
-                "type": random.choice(["phone", "video", "onsite", "technical", "hr"]),
-                "description": f"Interview for {position} position",
-                "location": "Video Call" if random.random() > 0.3 else "Office",
-                "meeting_link": "https://meet.example.com/interview",
-                "created_at": datetime.now(),
-                "updated_at": datetime.now(),
-                "result": None
-            })
+            # Generate interviews for different time periods
+            dates = generate_dates()
+            for period, interview_date in dates.items():
+                sample_interviews.append({
+                    "id": f"{datetime.now().timestamp() + i * 10}_{period}",
+                    "candidate_id": f"{candidate_id}_{period}",
+                    "job_id": f"{job_id}_{period}",
+                    "interviewer_id": sample_users[2]["id"] if random.random() > 0.5 else sample_users[1]["id"],
+                    "scheduled_date": interview_date,
+                    "duration_minutes": random.choice([30, 45, 60, 90]),
+                    "status": random.choice(["scheduled", "completed", "cancelled", "rescheduled", "pending"]),
+                    "type": random.choice(["phone", "video", "onsite", "technical", "hr"]),
+                    "description": f"Interview for {position} position ({period.replace('_', ' ')})",
+                    "location": "Video Call" if random.random() > 0.3 else "Office",
+                    "meeting_link": "https://meet.example.com/interview",
+                    "created_at": interview_date,
+                    "updated_at": interview_date,
+                    "result": None
+                })
 
 
 def seed_database():

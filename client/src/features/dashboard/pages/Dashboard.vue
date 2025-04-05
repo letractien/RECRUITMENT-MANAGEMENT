@@ -72,7 +72,7 @@
           <a-card :bordered="false" class="chart-card">
             <template #title>
               <div class="chart-header">
-                <span>Applications by Department</span>
+                <span>Jobs by Department</span>
                 <div class="chart-actions">
                   <a-radio-group 
                     v-model:value="deptSortBy" 
@@ -93,7 +93,7 @@
               <p>No department data available</p>
             </div>
             <div v-else class="department-chart">
-              <div class="dept-total">Total: {{ totalDeptApplications }} applications</div>
+              <div class="dept-total">Total: {{ totalDeptJobs }} Jobs</div>
               <div 
                 v-for="dept in sortedDepartments" 
                 :key="dept.department" 
@@ -272,7 +272,7 @@ const maxDeptCount = computed(() => {
 })
 
 // Calculate total applications across all departments for percentage calculation
-const totalDeptApplications = computed(() => {
+const totalDeptJobs = computed(() => {
   if (jobsByDepartment.value.length === 0) return 0
   return jobsByDepartment.value.reduce((total, dept) => total + dept.count, 0)
 })
@@ -300,8 +300,8 @@ const topDepartments = computed(() => {
 
 // Calculate percentage for a department
 const calculateDeptPercent = (count) => {
-  if (totalDeptApplications.value === 0) return 0
-  return ((count / totalDeptApplications.value) * 100).toFixed(1)
+  if (totalDeptJobs.value === 0) return 0
+  return ((count / totalDeptJobs.value) * 100).toFixed(1)
 }
 
 // Handler for time range changes
