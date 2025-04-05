@@ -1,4 +1,4 @@
-import { dashboardService } from '@/utils/api';
+import { dashboardService } from '@/api';
 
 const state = {
   stats: {

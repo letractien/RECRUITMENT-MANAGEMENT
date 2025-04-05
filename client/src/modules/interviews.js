@@ -1,4 +1,4 @@
-import { interviewsService } from '@/utils/api';
+import { interviewsService } from '@/api';
 
 const state = {
   interviews: [],

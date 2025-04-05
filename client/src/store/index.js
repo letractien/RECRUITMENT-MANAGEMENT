@@ -1,8 +1,8 @@
 import { createStore } from 'vuex';
-import candidates from './modules/candidates';
-import jobs from './modules/jobs';
-import interviews from './modules/interviews';
-import dashboard from './modules/dashboard';
+import candidates from '../modules/candidates';
+import jobs from '../modules/jobs';
+import interviews from '../modules/interviews';
+import dashboard from '../modules/dashboard';
 
 export default createStore({
   state: {

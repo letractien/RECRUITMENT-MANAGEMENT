@@ -1,4 +1,4 @@
-import { jobsService } from '@/utils/api';
+import { jobsService } from '@/api';
 
 const state = {
   jobs: [],
