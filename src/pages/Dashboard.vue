@@ -21,9 +21,10 @@
         <div class="stat-content primary">
           <div class="stat-header">Active Jobs</div>
           <div class="stat-value">{{ dashboardStats.activeJobs }}</div>
-          <div class="stat-change positive">
-            <arrow-up-outlined />
-            +2 this week
+          <div :class="['stat-change', dashboardStats.activeJobsChange >= 0 ? 'positive' : 'negative']">
+            <arrow-up-outlined v-if="dashboardStats.activeJobsChange >= 0" />
+            <arrow-down-outlined v-else />
+            {{ Math.abs(dashboardStats.activeJobsChange) }} this {{ timeRange }}
           </div>
         </div>
       </a-card>
@@ -32,10 +33,10 @@
         <div class="stat-content success">
           <div class="stat-header">New Applications</div>
           <div class="stat-value">{{ formatNumber(dashboardStats.newApplications) }}</div>
-          <div :class="['stat-change', reportStats.applicationsChange >= 0 ? 'positive' : 'negative']">
-            <arrow-up-outlined v-if="reportStats.applicationsChange >= 0" />
+          <div :class="['stat-change', dashboardStats.applicationsChange >= 0 ? 'positive' : 'negative']">
+            <arrow-up-outlined v-if="dashboardStats.applicationsChange >= 0" />
             <arrow-down-outlined v-else />
-            {{ Math.abs(reportStats.applicationsChange) }}% from last period
+            {{ Math.abs(dashboardStats.applicationsChange) }}% from last period
           </div>
         </div>
       </a-card>
@@ -44,10 +45,10 @@
         <div class="stat-content warning">
           <div class="stat-header">Interviews</div>
           <div class="stat-value">{{ formatNumber(dashboardStats.scheduledInterviews) }}</div>
-          <div :class="['stat-change', reportStats.interviewsChange >= 0 ? 'positive' : 'negative']">
-            <arrow-up-outlined v-if="reportStats.interviewsChange >= 0" />
+          <div :class="['stat-change', dashboardStats.interviewsChange >= 0 ? 'positive' : 'negative']">
+            <arrow-up-outlined v-if="dashboardStats.interviewsChange >= 0" />
             <arrow-down-outlined v-else />
-            {{ Math.abs(reportStats.interviewsChange) }}% from last period
+            {{ Math.abs(dashboardStats.interviewsChange) }}% from last period
           </div>
         </div>
       </a-card>
@@ -56,10 +57,10 @@
         <div class="stat-content danger">
           <div class="stat-header">Positions Filled</div>
           <div class="stat-value">{{ formatNumber(dashboardStats.positionsFilled) }}</div>
-          <div :class="['stat-change', reportStats.filledChange >= 0 ? 'positive' : 'negative']">
-            <arrow-up-outlined v-if="reportStats.filledChange >= 0" />
+          <div :class="['stat-change', dashboardStats.filledChange >= 0 ? 'positive' : 'negative']">
+            <arrow-up-outlined v-if="dashboardStats.filledChange >= 0" />
             <arrow-down-outlined v-else />
-            {{ Math.abs(reportStats.filledChange) }}% from last period
+            {{ Math.abs(dashboardStats.filledChange) }}% from last period
           </div>
         </div>
       </a-card>
@@ -166,7 +167,7 @@
         </template>
         
         <a-table 
-          :dataSource="paginatedData" 
+          :dataSource="recentApplications" 
           :columns="columns" 
           :pagination="false"
           size="middle"
@@ -176,9 +177,9 @@
         
         <div class="pagination-container">
           <a-pagination
-            v-model:current="currentPage"
-            v-model:pageSize="pageSize"
-            :total="applications.length"
+            v-model:current="pagination.currentPage"
+            v-model:pageSize="pagination.pageSize"
+            :total="pagination.total"
             :pageSizeOptions="['10', '20', '50', '100']"
             showSizeChanger
             showQuickJumper
@@ -233,101 +234,34 @@ import {
   ArrowDownOutlined,
   FundOutlined
 } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 
 const store = useStore()
-const currentPage = ref(1)
-const pageSize = ref(10)
 const timeRange = ref('month')
 const deptSortBy = ref('count')
 const hoveredDept = ref(null)
 
 // Load dashboard data on mount
 onMounted(async () => {
-  await store.dispatch('dashboard/fetchDashboardData')
-  // Also load interviews for the upcoming interviews section
-  await store.dispatch('interviews/fetchInterviews')
+  try {
+    await store.dispatch('dashboard/fetchDashboardData')
+    // Also load interviews for the upcoming interviews section
+    await store.dispatch('interviews/fetchInterviews')
+  } catch (error) {
+    console.error('Error loading dashboard data:', error)
+    // Show error message to user
+    message.error('Failed to load dashboard data. Please check your connection or try again later.')
+  }
 })
 
 // Get data from Vuex store
 const dashboardStats = computed(() => store.getters['dashboard/dashboardStats'])
-const jobsByDepartment = computed(() => {
-  // If the store has department data, use it
-  const storeData = store.getters['dashboard/jobsByDepartment']
-  if (storeData && storeData.length > 0) {
-    return storeData
-  }
-  
-  // Otherwise, use sample data
-  return [
-    { department: 'Engineering', count: 18 },
-    { department: 'Marketing', count: 12 },
-    { department: 'Design', count: 10 },
-    { department: 'Sales', count: 8 },
-    { department: 'HR', count: 6 },
-    { department: 'Finance', count: 5 },
-    { department: 'Product', count: 15 }
-  ]
-})
+const jobsByDepartment = computed(() => store.getters['dashboard/jobsByDepartment'])
 const hiringFunnel = computed(() => store.getters['dashboard/hiringFunnel'])
 const isLoading = computed(() => store.getters['dashboard/isLoading'])
-
-// Get upcoming interviews from the interviews store
-const storeUpcomingInterviews = computed(() => store.getters['interviews/upcomingInterviews'])
-const upcomingInterviews = computed(() => {
-  // If the store has interview data, use it
-  if (storeUpcomingInterviews.value && storeUpcomingInterviews.value.length > 0) {
-    return storeUpcomingInterviews.value.slice(0, 5)
-  }
-  
-  // Otherwise, use sample data
-  const today = new Date()
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  
-  const dayAfter = new Date(today)
-  dayAfter.setDate(dayAfter.getDate() + 2)
-  
-  const nextWeek = new Date(today)
-  nextWeek.setDate(nextWeek.getDate() + 7)
-  
-  return [
-    {
-      id: 1,
-      candidateName: 'Nguyễn Văn A',
-      jobTitle: 'Frontend Developer',
-      type: 'Technical',
-      scheduledAt: tomorrow.toISOString(),
-    },
-    {
-      id: 2,
-      candidateName: 'Trần Thị B',
-      jobTitle: 'UX/UI Designer',
-      type: 'HR',
-      scheduledAt: tomorrow.toISOString().replace('T12', 'T14'),
-    },
-    {
-      id: 3,
-      candidateName: 'Lê Văn C',
-      jobTitle: 'React Developer',
-      type: 'Final',
-      scheduledAt: dayAfter.toISOString(),
-    },
-    {
-      id: 4,
-      candidateName: 'Phạm Thị D',
-      jobTitle: 'Product Manager',
-      type: 'Phone Screen',
-      scheduledAt: dayAfter.toISOString().replace('T12', 'T15'),
-    },
-    {
-      id: 5,
-      candidateName: 'Hoàng Văn E',
-      jobTitle: 'Backend Developer',
-      type: 'Technical',
-      scheduledAt: nextWeek.toISOString(),
-    }
-  ]
-})
+const recentApplications = computed(() => store.getters['dashboard/recentApplications'])
+const pagination = computed(() => store.getters['dashboard/pagination'])
+const upcomingInterviews = computed(() => store.getters['dashboard/upcomingInterviews'])
 
 // Calculate the maximum count for department chart scaling
 const maxDeptCount = computed(() => {
@@ -444,46 +378,38 @@ const getDepartmentColorClass = (department) => {
   return `dept-color-${index % 8}`
 }
 
-// Stats data
-const reportStats = reactive({
-  applicationsChange: 12.5,
-  interviewsChange: 8.3,
-  filledChange: -5.2,
-  timeToHireChange: -15.8
-})
-
+// Format number with commas
 const formatNumber = (num) => {
   return new Intl.NumberFormat().format(num)
 }
 
-// Generate 1000 test records
-const applications = ref(
-  Array.from({ length: 1000 }, (_, index) => ({
-    key: index + 1,
-    candidate: `Candidate ${index + 1}`,
-    position: `Position ${(index % 5) + 1}`,
-    appliedDate: new Date(Date.now() - Math.random() * 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    status: ['Pending', 'Interview', 'Rejected', 'Hired'][Math.floor(Math.random() * 4)]
-  }))
-)
-
-const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return applications.value.slice(start, end)
-})
-
+// Pagination handlers
 const handlePageChange = (page) => {
-  currentPage.value = page
+  store.dispatch('dashboard/setPage', page)
 }
 
 const handleSizeChange = (current, size) => {
-  pageSize.value = size
-  currentPage.value = 1
+  store.dispatch('dashboard/setPageSize', size)
 }
 </script>
 
 <style scoped>
+/* Override deprecated -ms-high-contrast */
+@media (forced-colors: active) {
+  .stat-card,
+  .chart-card,
+  .recent-applications,
+  .upcoming-interviews {
+    forced-color-adjust: none;
+  }
+  
+  .dept-bar,
+  .funnel-bar,
+  .custom-dot {
+    forced-color-adjust: none;
+  }
+}
+
 .dashboard {
   padding: 4px;
   animation: fadeIn 0.3s ease-in-out;

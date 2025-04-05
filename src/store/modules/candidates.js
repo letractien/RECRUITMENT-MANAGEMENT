@@ -1,5 +1,4 @@
 import { candidatesService } from '@/utils/api';
-import { generateCandidates } from '@/utils/mockData';
 
 const state = {
   candidates: [],
@@ -60,18 +59,14 @@ const actions = {
     try {
       commit('SET_LOADING', true);
       
-      // Generate random candidates data instead of API call
-      // This simulates a successful API response
-      const randomCandidates = generateCandidates(15);
+      // Use API service to fetch candidates
+      const response = await candidatesService.getAllCandidates();
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      commit('SET_CANDIDATES', randomCandidates);
+      commit('SET_CANDIDATES', response.data);
       commit('SET_ERROR', null);
       
-      console.log('Successfully fetched candidates:', randomCandidates.length);
-      return randomCandidates;
+      console.log('Successfully fetched candidates:', response.data.length);
+      return response.data;
     } catch (error) {
       commit('SET_ERROR', error.message || 'Failed to fetch candidates');
       console.error('Error fetching candidates:', error);
@@ -89,13 +84,10 @@ const actions = {
       let candidate = state.candidates.find(c => c.id === Number(id));
       
       if (!candidate) {
-        // Generate a random candidate if we need to fetch one
-        candidate = generateCandidates(1)[0];
-        candidate.id = Number(id); // Ensure ID matches requested ID
+        // Use API service to fetch a single candidate
+        const response = await candidatesService.getCandidate(id);
+        candidate = response.data;
       }
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 300));
       
       commit('SET_CURRENT_CANDIDATE', candidate);
       commit('SET_ERROR', null);
@@ -115,17 +107,9 @@ const actions = {
     try {
       commit('SET_LOADING', true);
       
-      // Generate a new candidate with the provided data plus random fields
-      const randomCandidate = generateCandidates(1)[0];
-      const newCandidate = {
-        ...randomCandidate,
-        ...candidateData,
-        id: Date.now(), // Generate a unique ID
-        appliedDate: new Date().toISOString().split('T')[0] // Today's date
-      };
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 600));
+      // Use API service to create a candidate
+      const response = await candidatesService.createCandidate(candidateData);
+      const newCandidate = response.data;
       
       // Add to state
       commit('ADD_CANDIDATE', newCandidate);

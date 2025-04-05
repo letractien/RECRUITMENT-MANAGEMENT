@@ -295,7 +295,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useStore } from 'vuex'
 import { message } from 'ant-design-vue'
 import { 
   PlusOutlined, 
@@ -309,13 +310,200 @@ import {
   EyeOutlined
 } from '@ant-design/icons-vue'
 
+const store = useStore()
 const viewMode = ref('month')
 const currentDate = ref(new Date())
 const showScheduleDialog = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
+const activeFilter = ref('all')
 
 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+// Fetch interviews on component mount
+onMounted(async () => {
+  await store.dispatch('interviews/fetchInterviews')
+})
+
+// Computed properties for interviews data
+const interviews = computed(() => store.getters['interviews/allInterviews'])
+const loading = computed(() => store.getters['interviews/isLoading'])
+const error = computed(() => store.getters['interviews/errorMessage'])
+
+// Filter interviews based on active filter
+const filteredInterviews = computed(() => {
+  if (activeFilter.value === 'all') return interviews.value
+  if (activeFilter.value === 'current') {
+    const startDate = new Date(currentDate.value)
+    startDate.setHours(0, 0, 0, 0)
+    const endDate = new Date(currentDate.value)
+    endDate.setHours(23, 59, 59, 999)
+    return interviews.value.filter(interview => {
+      const interviewDate = new Date(interview.scheduledAt)
+      return interviewDate >= startDate && interviewDate <= endDate
+    })
+  }
+  if (activeFilter.value === 'today') {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    return interviews.value.filter(interview => {
+      const interviewDate = new Date(interview.scheduledAt)
+      return interviewDate >= today && interviewDate < tomorrow
+    })
+  }
+  return interviews.value.filter(interview => interview.interviewType === activeFilter.value)
+})
+
+// Get interviews for a specific date
+const getInterviewsForDate = (date) => {
+  const startOfDay = new Date(date)
+  startOfDay.setHours(0, 0, 0, 0)
+  const endOfDay = new Date(date)
+  endOfDay.setHours(23, 59, 59, 999)
+  
+  return filteredInterviews.value.filter(interview => {
+    const interviewDate = new Date(interview.scheduledAt)
+    return interviewDate >= startOfDay && interviewDate <= endOfDay
+  })
+}
+
+// Get total interviews count
+const totalInterviews = computed(() => interviews.value.length)
+
+// Get current displayed interviews count
+const currentDisplayedInterviews = computed(() => filteredInterviews.value.length)
+
+// Get today's interviews count
+const getTodayInterviewsCount = () => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  
+  return interviews.value.filter(interview => {
+    const interviewDate = new Date(interview.scheduledAt)
+    return interviewDate >= today && interviewDate < tomorrow
+  }).length
+}
+
+// Get interview type statistics
+const interviewTypeStats = computed(() => {
+  const stats = {}
+  interviews.value.forEach(interview => {
+    stats[interview.interviewType] = (stats[interview.interviewType] || 0) + 1
+  })
+  return stats
+})
+
+// Get upcoming interviews
+const upcomingInterviews = computed(() => {
+  const now = new Date()
+  return interviews.value
+    .filter(interview => new Date(interview.scheduledAt) > now)
+    .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))
+    .slice(0, 5)
+})
+
+// Interview form data
+const interviewForm = ref({
+  candidate: '',
+  position: '',
+  interviewType: '',
+  date: null,
+  time: null,
+  interviewer: '',
+  notes: ''
+})
+
+// Methods
+const setInterviewFilter = (filter) => {
+  activeFilter.value = filter
+}
+
+const getViewModeLabel = () => {
+  const labels = {
+    month: {
+      en: 'This Month',
+      vi: 'Trong tháng'
+    },
+    week: {
+      en: 'This Week',
+      vi: 'Trong tuần'
+    },
+    day: {
+      en: 'Today',
+      vi: 'Trong ngày'
+    }
+  }
+  
+  // You can change 'en' to 'vi' to switch to Vietnamese
+  const lang = 'en'
+  return labels[viewMode.value]?.[lang] || ''
+}
+
+const getStatusColor = (type) => {
+  switch (type) {
+    case 'Phone Screen': return 'blue'
+    case 'Technical': return 'green'
+    case 'HR': return 'purple'
+    case 'Final': return 'orange'
+    default: return 'default'
+  }
+}
+
+const getStatusType = (type) => {
+  return type.toLowerCase().replace(' ', '-')
+}
+
+const getInterviewClass = (type) => {
+  return `interview-type-${type.toLowerCase().replace(' ', '-')}`
+}
+
+const showMoreInterviews = (date) => {
+  viewMode.value = 'day'
+  currentDate.value = new Date(date)
+}
+
+const showAllInterviews = (date) => {
+  viewMode.value = 'day'
+  currentDate.value = new Date(date)
+}
+
+const saveInterview = async () => {
+  try {
+    const interviewData = {
+      ...interviewForm.value,
+      scheduledAt: new Date(
+        interviewForm.value.date.getFullYear(),
+        interviewForm.value.date.getMonth(),
+        interviewForm.value.date.getDate(),
+        interviewForm.value.time.getHours(),
+        interviewForm.value.time.getMinutes()
+      ).toISOString()
+    }
+    
+    await store.dispatch('interviews/createInterview', interviewData)
+    message.success('Interview scheduled successfully')
+    showScheduleDialog.value = false
+    resetForm()
+  } catch (error) {
+    message.error('Failed to schedule interview')
+  }
+}
+
+const resetForm = () => {
+  interviewForm.value = {
+    candidate: '',
+    position: '',
+    interviewType: '',
+    date: null,
+    time: null,
+    interviewer: '',
+    notes: ''
+  }
+}
 
 const currentPeriodLabel = computed(() => {
   const options = { year: 'numeric' }
@@ -392,49 +580,6 @@ const calendarDates = computed(() => {
   return []
 })
 
-const interviews = ref(
-  Array.from({ length: 1000 }, (_, index) => ({
-    id: index + 1,
-    candidate: `Candidate ${index + 1}`,
-    position: ['Senior Frontend Developer', 'UI/UX Designer', 'Product Manager', 'Backend Developer'][Math.floor(Math.random() * 4)],
-    interviewType: ['Phone Screen', 'Technical', 'HR', 'Final'][Math.floor(Math.random() * 4)],
-    date: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    time: `${Math.floor(Math.random() * 8) + 9}:${Math.floor(Math.random() * 4) * 15}`,
-    interviewer: ['Sarah Wilson', 'Mike Johnson', 'David Brown', 'Emily Davis'][Math.floor(Math.random() * 4)],
-    notes: 'Interview notes and feedback will be added after the session.'
-  }))
-)
-
-const candidates = ref([
-  { id: 1, name: 'John Doe' },
-  { id: 2, name: 'Jane Smith' },
-  { id: 3, name: 'Mike Johnson' }
-])
-
-const jobs = ref([
-  { id: 1, title: 'Senior Frontend Developer' },
-  { id: 2, title: 'UI/UX Designer' },
-  { id: 3, title: 'Product Manager' }
-])
-
-const interviewForm = ref({
-  candidate: '',
-  position: '',
-  interviewType: '',
-  date: '',
-  time: '',
-  interviewer: '',
-  notes: ''
-})
-
-const upcomingInterviews = computed(() => {
-  const today = new Date()
-  return interviews.value
-    .filter(interview => new Date(interview.date) >= today)
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .slice(0, 5)
-})
-
 const previousMonth = () => {
   currentDate.value = new Date(
     currentDate.value.getFullYear(),
@@ -468,29 +613,6 @@ const visibleInterviewCounts = ref({})
 const initialVisibleCount = 5
 const incrementVisibleCount = 5
 
-const getInterviewsForDate = (date) => {
-  const interviewsForDate = interviews.value.filter(interview => {
-    const interviewDate = new Date(interview.date)
-    return (
-      interviewDate.getDate() === date.getDate() &&
-      interviewDate.getMonth() === date.getMonth() &&
-      interviewDate.getFullYear() === date.getFullYear()
-    )
-  })
-  
-  const dateKey = formatDateKey(date)
-  
-  if (!visibleInterviewCounts.value[dateKey]) {
-    visibleInterviewCounts.value[dateKey] = initialVisibleCount
-  }
-  
-  return interviewsForDate.slice(0, visibleInterviewCounts.value[dateKey])
-}
-
-const formatDateKey = (date) => {
-  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
-}
-
 const getTotalInterviewsForDate = (date) => {
   return interviews.value.filter(interview => {
     const interviewDate = new Date(interview.date)
@@ -502,16 +624,6 @@ const getTotalInterviewsForDate = (date) => {
   }).length
 }
 
-const showMoreInterviews = (date) => {
-  const dateKey = formatDateKey(date)
-  visibleInterviewCounts.value[dateKey] += incrementVisibleCount
-}
-
-const showAllInterviews = (date) => {
-  const dateKey = formatDateKey(date)
-  visibleInterviewCounts.value[dateKey] = Number.MAX_SAFE_INTEGER
-}
-
 const shouldShowViewMoreButton = (date) => {
   const totalCount = getTotalInterviewsForDate(date)
   const dateKey = formatDateKey(date)
@@ -519,109 +631,13 @@ const shouldShowViewMoreButton = (date) => {
   return totalCount > visibleCount
 }
 
-const getInterviewClass = (type) => {
-  return type?.toLowerCase().replace(/\s+/g, '-') || 'default'
+const formatDateKey = (date) => {
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
 }
 
 const viewInterview = (interview) => {
   // Implement view interview details logic
   console.log('View interview:', interview)
-}
-
-const saveInterview = () => {
-  const newInterview = {
-    id: interviews.value.length + 1,
-    ...interviewForm.value,
-    date: interviewForm.value.date ? interviewForm.value.date.format('YYYY-MM-DD') : '',
-    time: interviewForm.value.time ? interviewForm.value.time.format('HH:mm') : ''
-  }
-  interviews.value.push(newInterview)
-  message.success('Interview scheduled successfully')
-  showScheduleDialog.value = false
-  interviewForm.value = {
-    candidate: '',
-    position: '',
-    interviewType: '',
-    date: '',
-    time: '',
-    interviewer: '',
-    notes: ''
-  }
-}
-
-const totalInterviews = computed(() => interviews.value.length)
-
-const paginatedInterviews = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return interviews.value.slice(start, end)
-})
-
-const handleSizeChange = (current, size) => {
-  pageSize.value = size
-  currentPage.value = 1
-}
-
-const handlePageChange = (page) => {
-  currentPage.value = page
-}
-
-const getStatusType = (status) => {
-  const types = {
-    'Phone Screen': 'info',
-    'Technical': 'warning',
-    'HR': 'primary',
-    'Final': 'success',
-    'Completed': 'danger'
-  }
-  return types[status] || 'info'
-}
-
-const getStatusColor = (status) => {
-  const colors = {
-    'Phone Screen': 'blue',
-    'Technical': 'orange',
-    'HR': 'geekblue',
-    'Final': 'green',
-    'Completed': 'red'
-  }
-  return colors[status] || 'blue'
-}
-
-const navigatePrevious = () => {
-  if (viewMode.value === 'month') {
-    previousMonth()
-  } else if (viewMode.value === 'week') {
-    const newDate = new Date(currentDate.value)
-    newDate.setDate(newDate.getDate() - 7)
-    currentDate.value = newDate
-  } else if (viewMode.value === 'day') {
-    const newDate = new Date(currentDate.value)
-    newDate.setDate(newDate.getDate() - 1)
-    currentDate.value = newDate
-  }
-}
-
-const navigateNext = () => {
-  if (viewMode.value === 'month') {
-    nextMonth()
-  } else if (viewMode.value === 'week') {
-    const newDate = new Date(currentDate.value)
-    newDate.setDate(newDate.getDate() + 7)
-    currentDate.value = newDate
-  } else if (viewMode.value === 'day') {
-    const newDate = new Date(currentDate.value)
-    newDate.setDate(newDate.getDate() + 1)
-    currentDate.value = newDate
-  }
-}
-
-const goToday = () => {
-  currentDate.value = new Date()
-}
-
-const getDayName = (date) => {
-  return date.toLocaleString('default', { weekday: 'short' })
 }
 
 const getCalendarGridStyle = () => {
@@ -662,86 +678,6 @@ const getDayInterviewsCount = () => {
     )
   }).length
 }
-
-const currentDisplayedInterviews = computed(() => {
-  if (viewMode.value === 'month') {
-    return getMonthInterviewsCount()
-  } else if (viewMode.value === 'week') {
-    return getWeekInterviewsCount()
-  } else {
-    return getDayInterviewsCount()
-  }
-})
-
-const getMonthInterviewsCount = () => {
-  const year = currentDate.value.getFullYear()
-  const month = currentDate.value.getMonth()
-  
-  return interviews.value.filter(interview => {
-    const interviewDate = new Date(interview.date)
-    return (
-      interviewDate.getMonth() === month &&
-      interviewDate.getFullYear() === year
-    )
-  }).length
-}
-
-const getWeekInterviewsCount = () => {
-  const startOfWeek = new Date(currentDate.value)
-  const day = startOfWeek.getDay()
-  startOfWeek.setDate(startOfWeek.getDate() - day)
-  startOfWeek.setHours(0, 0, 0, 0)
-  
-  const endOfWeek = new Date(startOfWeek)
-  endOfWeek.setDate(startOfWeek.getDate() + 6)
-  endOfWeek.setHours(23, 59, 59, 999)
-  
-  return interviews.value.filter(interview => {
-    const interviewDate = new Date(interview.date)
-    return interviewDate >= startOfWeek && interviewDate <= endOfWeek
-  }).length
-}
-
-const getTodayInterviewsCount = () => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  
-  return interviews.value.filter(interview => {
-    const interviewDate = new Date(interview.date)
-    return interviewDate >= today && interviewDate < tomorrow
-  }).length
-}
-
-const getViewModeLabel = () => {
-  if (viewMode.value === 'month') {
-    return 'Trong tháng'
-  } else if (viewMode.value === 'week') {
-    return 'Trong tuần'
-  } else {
-    return 'Trong ngày'
-  }
-}
-
-const activeFilter = ref('all')
-
-const setInterviewFilter = (filter) => {
-  activeFilter.value = filter
-  console.log(`Lọc theo: ${filter}`)
-}
-
-const interviewTypeStats = computed(() => {
-  const stats = {}
-  
-  interviews.value.forEach(interview => {
-    const type = interview.interviewType
-    if (!stats[type]) stats[type] = 0
-    stats[type]++
-  })
-  
-  return stats
-})
 </script>
 
 <style scoped>
