@@ -91,12 +91,8 @@ async def get_jobs_by_department(
     """
     Get job distribution by department
     """
-    # Calculate date range
-    start_date = get_date_from_range(time_range)
-    
     # Aggregate jobs by department
     pipeline = [
-        {"$match": {"created_at": {"$gte": start_date}}},
         {"$group": {"_id": "$department", "count": {"$sum": 1}}},
         {"$project": {"department": "$_id", "count": 1, "_id": 0}},
         {"$sort": {"count": -1}}
@@ -212,18 +208,10 @@ async def get_upcoming_interviews(
     # Format and augment interview data
     upcoming = []
     for interview in interviews:
-        # Get candidate info
-        candidate = await candidates_collection.find_one({"id": interview.get("candidate_id")})
-        candidate_name = candidate.get("name", "Unknown") if candidate else "Unknown"
-        
-        # Get job info
-        job = await jobs_collection.find_one({"id": interview.get("job_id")})
-        job_title = job.get("title", "Unknown") if job else "Unknown"
-        
         upcoming.append({
             "id": interview.get("id"),
-            "candidateName": candidate_name,
-            "jobTitle": job_title,
+            "candidateName": interview.get("candidate_name", "Unknown"),
+            "jobTitle": interview.get("job_title", "Unknown"),
             "scheduledAt": interview.get("scheduled_date").isoformat() if interview.get("scheduled_date") else "",
             "type": interview.get("type", "Interview").title()
         })
