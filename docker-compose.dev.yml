@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     command: npm run dev -- --host
     volumes:
-      - ./:/app
+      - ./client:/app
       - /app/node_modules
     environment:
       - NODE_ENV=development

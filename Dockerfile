@@ -3,7 +3,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy package.json and package-lock.json
-COPY package*.json ./
+COPY client/package*.json ./
 
 # Install dependencies
 RUN npm ci
@@ -12,7 +12,7 @@ RUN npm ci
 RUN npm install -g serve
 
 # Copy project files
-COPY . .
+COPY client/ .
 
 # Build the project
 RUN npm run build

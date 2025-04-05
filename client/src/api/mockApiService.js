@@ -1,4 +1,4 @@
-import { candidates, jobs, interviews, dashboardData } from '../mockData';
+import { candidates, jobs, interviews, dashboardData } from '../utils/mockData';
 
 // Helper to simulate API delay
 const delay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
