@@ -27,9 +27,7 @@ dist-ssr
 docker-volumes/
 
 # Environment files
-.env
-.env.local
-.env.*.local
+.env**
 
 # Build artifacts
 .cache/
@@ -37,3 +35,75 @@ coverage/
 
 /cypress/videos/
 /cypress/screenshots/ 
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+.python-version
+
+# Vue.js specific
+.nuxt
+.nitro
+.output
+.vercel
+.netlify 
+
+# Security and keys
+*.pem
+*.key
+*.keystore
+*.p12
+*.pfx
+*.cer
+*.crt
+*_rsa
+*_dsa
+*_ed25519
+*_ecdsa
+*id_rsa*
+*id_dsa*
+*id_ed25519*
+*id_ecdsa*
+secrets.*
+*secrets*
+*credentials*
+*credential*
+*.jks
+google-services.json
+firebase*.json
+serviceAccount*.json
+service-account*.json
+*apikey*
+*api_key*
+*apiKey*
+*api-key*
+.npmrc
+.yarnrc
+aws.json
+aws.yml
+aws.yaml
+aws-config.* 

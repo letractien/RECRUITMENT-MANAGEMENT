@@ -1,6 +1,177 @@
 # Recruitment Management System
 
-A modern recruitment management system built with Vue.js to streamline the hiring process.
+Hệ thống quản lý tuyển dụng với client (Vue.js) và server (FastAPI).
+
+## Cấu trúc dự án
+
+```
+recruitment-management/
+├── client/                 # Frontend Vue.js
+│   ├── src/                # Mã nguồn
+│   ├── Dockerfile          # Cấu hình Docker cho client
+│   ├── package.json        # Dependencies và scripts
+│   └── ...
+├── server/                 # Backend FastAPI
+│   ├── app/                # Mã nguồn
+│   ├── Dockerfile          # Cấu hình Docker cho server
+│   ├── requirements.txt    # Dependencies Python
+│   └── ...
+├── docker-compose.dev.yml  # Cấu hình Docker cho môi trường phát triển
+├── docker-compose.prod.yml # Cấu hình Docker cho môi trường sản phẩm
+└── README.md               # Hướng dẫn
+```
+
+## Cài đặt và chạy ứng dụng
+
+### Yêu cầu cơ bản
+- Node.js 16.x hoặc mới hơn
+- Python 3.11 hoặc mới hơn
+- MongoDB
+- Docker và Docker Compose (nếu sử dụng Docker)
+
+## Cài đặt và chạy với npm (không sử dụng Docker)
+
+### Cài đặt và chạy Client
+
+```bash
+# Di chuyển vào thư mục client
+cd client
+
+# Cài đặt dependencies
+npm install
+
+# Chạy trong môi trường development
+npm run dev
+
+# Build cho môi trường production
+npm run build
+
+# Xem trước bản build
+npm run preview
+```
+
+### Cài đặt và chạy Server
+
+```bash
+# Di chuyển vào thư mục server
+cd server
+
+# Tạo và kích hoạt môi trường ảo Python
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# macOS/Linux
+python -m venv venv
+source venv/bin/activate
+
+# Cài đặt dependencies
+pip install -r requirements.txt
+
+# Chạy server trong môi trường development
+python server.py
+
+# Chạy server trong môi trường production
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+## Cài đặt và chạy với Docker
+
+### Môi trường phát triển (Development)
+
+```bash
+# Khởi động toàn bộ hệ thống (client + server)
+docker-compose -f docker-compose.dev.yml up --build
+
+# Chỉ khởi động client
+docker-compose -f docker-compose.dev.yml up --build client
+
+# Chỉ khởi động server
+docker-compose -f docker-compose.dev.yml up --build server
+
+# Chạy ở chế độ nền (detached mode)
+docker-compose -f docker-compose.dev.yml up --build -d
+
+# Dừng hệ thống
+docker-compose -f docker-compose.dev.yml down
+```
+
+Truy cập ứng dụng:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+
+### Môi trường sản phẩm (Production)
+
+```bash
+# Khởi động toàn bộ hệ thống (client + server)
+docker-compose -f docker-compose.prod.yml up --build
+
+# Chỉ khởi động client
+docker-compose -f docker-compose.prod.yml up --build client
+
+# Chỉ khởi động server
+docker-compose -f docker-compose.prod.yml up --build server
+
+# Chạy ở chế độ nền (detached mode)
+docker-compose -f docker-compose.prod.yml up --build -d
+
+# Dừng hệ thống
+docker-compose -f docker-compose.prod.yml down
+```
+
+Truy cập ứng dụng:
+- Frontend: http://localhost
+- Backend API: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+
+## Thông tin chi tiết về Docker
+
+### Client (Frontend - Vue.js)
+
+#### Môi trường phát triển
+- Sử dụng Node.js 20 Alpine
+- Chạy Vite dev server với hot reload
+- Mount volume từ máy host vào container (thay đổi code tự động cập nhật)
+- Expose port 5173
+
+#### Môi trường sản phẩm
+- Build ứng dụng với Node.js 20 Alpine
+- Phục vụ static files với Nginx Alpine
+- Cấu hình Nginx tùy chỉnh
+- Expose port 80
+
+### Server (Backend - FastAPI)
+
+#### Môi trường phát triển
+- Sử dụng Python 3.11 Slim
+- Chạy qua server.py với hot reload
+- Mount volume từ máy host vào container
+- Expose port 8000
+
+#### Môi trường sản phẩm
+- Sử dụng Python 3.11 Slim
+- Chạy qua Uvicorn với multiple workers cho hiệu suất cao
+- Tối ưu cho production
+- Expose port 8000
+
+## Biến môi trường
+
+### Client
+Biến môi trường cho client được định nghĩa trong các file:
+- `.env.development`: Môi trường phát triển
+- `.env.production`: Môi trường sản phẩm
+
+### Server
+Biến môi trường cho server được định nghĩa trong các file:
+- `.env.development`: Môi trường phát triển
+- `.env.production`: Môi trường sản phẩm
+
+## Xử lý sự cố
+
+- Nếu gặp lỗi khi khởi động Docker, hãy kiểm tra xem các port 5173, 8000, và 80 đã được sử dụng bởi ứng dụng khác chưa
+- Nếu gặp lỗi kết nối đến MongoDB, hãy kiểm tra cấu hình kết nối trong file .env của server
+- Đối với các lỗi liên quan đến mounting volume trong Docker, hãy đảm bảo đường dẫn tuyệt đối chính xác
 
 ## Project Structure
 
@@ -73,64 +244,64 @@ npm run build
 #### Prerequisites
 - Docker and Docker Compose installed on your machine
 
-#### Using Docker Compose for Production
+#### Production Environment
 
-Run the application in production mode:
+To run the application in production mode:
 
 ```bash
 # Build and start the container
-docker-compose up --build
+docker compose up --build
 
 # Run in detached mode
-docker-compose up -d
+docker compose up -d
 
 # Stop the container
-docker-compose down
+docker compose down
 ```
 
-The application will be available at http://localhost:8080 (even though logs will show it listening on port 3000 inside the container)
+The application will be available at http://localhost:8080.
 
-#### Using Docker Compose for Development
+#### Development Environment
 
-For development with hot reloading:
+For development with hot reloading (changes to your code will automatically update):
 
 ```bash
 # Build and start the development container
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.dev.yml up
+
+# Run in detached mode
+docker compose -f docker-compose.dev.yml up -d
+
+# Stop the container
+docker compose -f docker-compose.dev.yml down
 ```
 
-This will:
-- Mount your local source code into the container
-- Enable hot-reloading with `npm run dev -- --host` (Vite dev server)
-- Expose the Vite dev server on port 5173
-- Set NODE_ENV to development
-
-The application will be available at http://localhost:5173 in development mode. Any changes to your source code will trigger hot-reloading.
+The application will be available at http://localhost:5173 in development mode.
 
 #### About Docker Configuration
 
 ##### Production Mode (docker-compose.yml)
-- Uses a single Node.js container running `serve` to host the application
 - Builds the application and serves the static files
 - Port mapping: Container's port 3000 → Host's port 8080
-  - Note: The application logs will show it's running on http://localhost:3000, but that's from inside the container
-  - You should access it through http://localhost:8080 on your host machine
+- Optimized for production use
+- Exposes the application on a bridged network (recruitment-network)
+- Accessible on your host machine at http://localhost:8080
 
 ##### Development Mode (docker-compose.dev.yml)
-- Uses the same Node.js container but runs Vite dev server instead
+- Runs Vite dev server with hot reload enabled
 - Mounts your local code into the container for instant updating
 - Port mapping: Container's port 5173 → Host's port 5173
-- Uses the `--host` flag to make Vite accessible from outside the container
-  - Logs will show both http://localhost:5173/ and http://[container-ip]:5173/
-  - You should access it through http://localhost:5173 on your host machine
+- Any changes to your source code will automatically update the running application
+- Exposes the development server on a bridged network (recruitment-network)
+- Accessible on your host machine at http://localhost:5173
+
+> **Note**: Both configurations expose the service to your host network through port mapping. The application uses a bridge network named "recruitment-network" for container communication.
 
 ### Troubleshooting
 
-- If you see warnings about "the attribute `version` is obsolete" in docker-compose files, this is normal and can be ignored
 - If you can't access the application after starting Docker, check that you're using the correct port:
   - Production: http://localhost:8080
   - Development: http://localhost:5173
-- If the application still isn't accessible, ensure the `--host` flag is being passed to Vite in development mode
 
 ### Cleanup Local Development Files
 
