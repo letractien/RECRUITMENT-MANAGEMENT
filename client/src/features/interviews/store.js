@@ -17,7 +17,8 @@ const state = {
     pageSize: 10,
     total: 0
   },
-  upcomingInterviews: []
+  upcomingInterviews: [],
+  calendarInterviews: {}
 };
 
 const getters = {
@@ -105,6 +106,25 @@ const getters = {
         return interviewDate >= today && interviewDate < tomorrow && interview.status !== 'cancelled';
       })
       .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
+  },
+  calendarInterviews: state => dateStr => {
+    // Try to get interviews from calendar cache first
+    if (state.calendarInterviews[dateStr]) {
+      return state.calendarInterviews[dateStr];
+    }
+    
+    // Fallback to filtering from all interviews
+    const date = new Date(dateStr);
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    return state.interviews.filter(interview => {
+      const interviewDate = new Date(interview.scheduledAt);
+      return interviewDate >= startOfDay && interviewDate <= endOfDay;
+    });
   }
 };
 
@@ -394,6 +414,32 @@ const actions = {
   
   setPagination({ commit }, pagination) {
     commit('SET_PAGINATION', pagination);
+  },
+  
+  async fetchCalendarInterviews({ commit }, date) {
+    try {
+      commit('SET_LOADING', true);
+      
+      // Format date as YYYY-MM-DD for API
+      const formattedDate = typeof date === 'string' ? date : 
+        date.toISOString().split('T')[0];
+      
+      // Use the API service to fetch interviews for this date
+      const response = await interviewsService.getInterviewsByDate(formattedDate);
+      
+      // Store interviews in calendar cache
+      commit('SET_CALENDAR_INTERVIEWS', { date: formattedDate, interviews: response.data });
+      commit('SET_ERROR', null);
+      
+      console.log(`Successfully fetched interviews for calendar date: ${formattedDate}`, response.data.length);
+      return response.data;
+    } catch (error) {
+      commit('SET_ERROR', error.message || `Failed to fetch calendar interviews for date ${date}`);
+      console.error(`Error fetching calendar interviews:`, error);
+      return [];
+    } finally {
+      commit('SET_LOADING', false);
+    }
   }
 };
 
@@ -442,6 +488,13 @@ const mutations = {
   
   SET_UPCOMING_INTERVIEWS(state, interviews) {
     state.upcomingInterviews = interviews;
+  },
+  
+  SET_CALENDAR_INTERVIEWS(state, { date, interviews }) {
+    state.calendarInterviews = { 
+      ...state.calendarInterviews, 
+      [date]: interviews 
+    };
   }
 };
 
