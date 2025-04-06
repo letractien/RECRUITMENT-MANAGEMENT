@@ -468,7 +468,10 @@ const formatInterviewsForCalendar = (interviews) => {
     try {
       if (interview.scheduledAt) {
         interviewDate = new Date(interview.scheduledAt)
-        interviewTime = interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        // Change from toLocaleTimeString to a custom format with only hours and minutes
+        const hours = String(interviewDate.getHours()).padStart(2, '0')
+        const minutes = String(interviewDate.getMinutes()).padStart(2, '0')
+        interviewTime = `${hours}:${minutes}`
       }
     } catch (error) {
       console.error("Error formatting interview time:", error)
@@ -517,22 +520,35 @@ const interviewTypeStats = computed(() => {
 
 // Get upcoming interviews
 const upcomingInterviews = computed(() => {
-  // Pull directly from the API call that fetches from dashboard endpoint
-  const upcoming = store.getters['interviews/upcomingInterviews']
-    .slice(0, 5)
-    .map(interview => {
-      const interviewDate = new Date(interview.scheduledAt);
-      return {
-        id: interview.id,
-        candidate: interview.candidateName,
-        position: interview.jobTitle,
-        interviewType: interview.type,
-        date: interviewDate,
-        time: interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-    });
+  // Get all interviews from the store
+  const allInterviews = store.getters['interviews/upcomingInterviews'];
   
-  return upcoming;
+  // Create date range: today and the next 6 days
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Start of today
+  
+  const endDate = new Date(today);
+  endDate.setDate(today.getDate() + 6); // End of 6 days from today
+  endDate.setHours(23, 59, 59, 999); // End of the day
+  
+  // Filter interviews to include only those within the date range
+  const filteredInterviews = allInterviews.filter(interview => {
+    const interviewDate = new Date(interview.scheduledAt);
+    return interviewDate >= today && interviewDate <= endDate;
+  });
+  
+  // Map and return the filtered interviews
+  return filteredInterviews.map(interview => {
+    const interviewDate = new Date(interview.scheduledAt);
+    return {
+      id: interview.id,
+      candidate: interview.candidateName,
+      position: interview.jobTitle,
+      interviewType: interview.type,
+      date: interviewDate,
+      time: interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+  });
 })
 
 // Fetch upcoming interviews using the store action
@@ -894,9 +910,15 @@ const formatInterviewDate = (dateInput) => {
       dateString = dateInput;
     }
     
-    // For dashboard API format
+    // Format date as YYYY-MM-DD HH:mm
     const date = new Date(dateString);
-    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
   } catch (error) {
     console.error('Error formatting date:', error, dateInput);
     // Fallback format
