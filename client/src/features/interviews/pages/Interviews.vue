@@ -75,7 +75,10 @@
                     <div class="time-range">9:00 AM - 12:00 PM</div>
                   </div>
                   
-                  <div v-if="getInterviewsForDate(date).length === 0" class="no-interviews">
+                  <div v-if="isDateLoading(date)" class="loading-spinner">
+                    <a-spin />
+                  </div>
+                  <div v-else-if="getInterviewsForDate(date).length === 0" class="no-interviews">
                     No interviews
                   </div>
                   
@@ -298,7 +301,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { message } from 'ant-design-vue'
 import { 
@@ -312,7 +315,6 @@ import {
   ClockCircleOutlined,
   EyeOutlined
 } from '@ant-design/icons-vue'
-import { formatDate } from '../../../shared/utils/dateHelpers.js'
 
 const store = useStore()
 const viewMode = ref('month')
@@ -354,18 +356,24 @@ const loadFormData = async () => {
 onMounted(async () => {
   console.log("Fetching interviews...")
   try {
+    // Fetch global interviews for filtering (this will be used as a backup)
     await store.dispatch('interviews/fetchInterviews')
+    
+    // Fetch today's interviews specifically for the calendar
+    const today = new Date()
+    const formattedToday = formatDate(today, 'YYYY-MM-DD')
+    await store.dispatch('interviews/fetchCalendarInterviews', formattedToday)
+    
+    // Fetch upcoming interviews for the sidebar (not mocked, from API)
     await fetchUpcomingInterviews()
+    
+    // Load candidates and jobs data for the form
     await loadFormData()
-    console.log("Raw interviews data:", store.state.interviews.interviews)
-    console.log("Computed interviews:", interviews.value)
-    if (interviews.value.length > 0) {
-      console.log("Sample interview data structure:", JSON.stringify(interviews.value[0], null, 2))
-      console.log("Sample scheduledAt:", interviews.value[0].scheduledAt)
-      console.log("Sample scheduledAt type:", typeof interviews.value[0].scheduledAt)
-    }
+    
+    console.log("Interview data loaded successfully")
   } catch (error) {
     console.error("Error fetching interviews:", error)
+    message.error("Failed to load interview data")
   }
 })
 
@@ -402,51 +410,70 @@ const filteredInterviews = computed(() => {
 
 // Get interviews for a specific date
 const getInterviewsForDate = (date) => {
-  const startOfDay = new Date(date)
-  startOfDay.setHours(0, 0, 0, 0)
-  const endOfDay = new Date(date)
-  endOfDay.setHours(23, 59, 59, 999)
+  // Format date as YYYY-MM-DD for API
+  const formattedDate = formatDate(date, 'YYYY-MM-DD')
   
-  // Filter interviews for this date
-  const dateInterviews = filteredInterviews.value.filter(interview => {
-    if (!interview.scheduledAt) {
-      return false
-    }
-    
-    let interviewDate
-    try {
-      // Handle different date formats (ISO string or Date object)
-      if (typeof interview.scheduledAt === 'object') {
-        interviewDate = new Date(interview.scheduledAt.toISOString())
-      } else {
-        interviewDate = new Date(interview.scheduledAt)
-      }
-      
-      if (isNaN(interviewDate.getTime())) {
-        console.warn("Invalid date value:", interview.scheduledAt)
-        return false
-      }
-      
-      const isInRange = interviewDate >= startOfDay && interviewDate <= endOfDay
-      return isInRange
-    } catch (error) {
-      console.error("Error processing date:", error)
-      return false
-    }
-  })
+  // Get interviews from store using the calendarInterviews getter
+  const dateInterviews = store.getters['interviews/calendarInterviews'](formattedDate)
+  
+  // If no interviews found, fetch them from API
+  if (!dateInterviews || dateInterviews.length === 0) {
+    fetchInterviewsForDate(date)
+  }
   
   // Format interviews for display
-  const formattedInterviews = dateInterviews.map(interview => {
+  return formatInterviewsForCalendar(dateInterviews || [])
+}
+
+// Helper to check if we've already fetched interviews for a date
+const hasInterviewsForDate = (date) => {
+  const formattedDate = formatDate(date, 'YYYY-MM-DD')
+  return store.state.interviews.calendarInterviews[formattedDate] !== undefined
+}
+
+// Add refs for tracking loading state for calendar cells
+const loadingDates = ref({});
+
+// Update the fetchInterviewsForDate method to track loading state
+const fetchInterviewsForDate = async (date) => {
+  try {
+    const formattedDate = formatDate(date, 'YYYY-MM-DD')
+    
+    // Only fetch if we haven't already fetched this date
+    if (!hasInterviewsForDate(date)) {
+      // Set loading state for this date
+      loadingDates.value[formattedDate] = true
+      
+      await store.dispatch('interviews/fetchCalendarInterviews', formattedDate)
+    }
+  } catch (error) {
+    console.error(`Error fetching interviews for date ${date}:`, error)
+  } finally {
+    // Clear loading state for this date
+    const formattedDate = formatDate(date, 'YYYY-MM-DD')
+    loadingDates.value[formattedDate] = false
+  }
+}
+
+// Helper to check if a date is loading
+const isDateLoading = (date) => {
+  const formattedDate = formatDate(date, 'YYYY-MM-DD')
+  return loadingDates.value[formattedDate] === true
+}
+
+// Format interviews for calendar display
+const formatInterviewsForCalendar = (interviews) => {
+  return interviews.map(interview => {
+    let interviewTime = ''
     let interviewDate
+    
     try {
-      if (typeof interview.scheduledAt === 'object') {
-        interviewDate = new Date(interview.scheduledAt.toISOString())
-      } else {
+      if (interview.scheduledAt) {
         interviewDate = new Date(interview.scheduledAt)
+        interviewTime = interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     } catch (error) {
-      console.error("Error formatting interview date:", error)
-      interviewDate = new Date()
+      console.error("Error formatting interview time:", error)
     }
     
     return {
@@ -454,14 +481,12 @@ const getInterviewsForDate = (date) => {
       candidate: interview.candidateName,
       position: interview.jobTitle,
       interviewer: interview.interviewer,
-      interviewType: interview.interviewType,
-      time: interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: interviewDate.toLocaleDateString(),
+      interviewType: interview.interviewType || interview.type,
+      time: interviewTime,
+      date: interviewDate ? interviewDate.toLocaleDateString() : '',
       status: interview.status
     }
   })
-  
-  return formattedInterviews
 }
 
 // Get total interviews count
@@ -847,14 +872,10 @@ const formatFullDate = (date) => {
 const getDayInterviewsCount = () => {
   if (!currentDate.value) return 0
   
-  return interviews.value.filter(interview => {
-    const interviewDate = new Date(interview.date)
-    return (
-      interviewDate.getDate() === currentDate.value.getDate() &&
-      interviewDate.getMonth() === currentDate.value.getMonth() &&
-      interviewDate.getFullYear() === currentDate.value.getFullYear()
-    )
-  }).length
+  const formattedDate = formatDate(currentDate.value, 'YYYY-MM-DD')
+  const interviews = store.getters['interviews/calendarInterviews'](formattedDate)
+  
+  return interviews ? interviews.length : 0
 }
 
 // Format interview date using the shared date helper
@@ -882,6 +903,41 @@ const formatInterviewDate = (dateInput) => {
       dateInput.toLocaleString() : 
       String(dateInput);
   }
+}
+
+// Format date in YYYY-MM-DD format for API
+const formatDateForApi = (date) => {
+  if (!date) return '';
+  
+  try {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+  } catch (error) {
+    console.error('Error formatting date for API:', error);
+    return '';
+  }
+}
+
+// Helper to replace formatDate calls for calendar endpoints
+const formatDate = (date, format) => {
+  if (!date) return '';
+  
+  if (format === 'YYYY-MM-DD') {
+    return formatDateForApi(date);
+  }
+  
+  // For other formats, use existing helper if available
+  if (typeof window.formatDate === 'function') {
+    return window.formatDate(date, format);
+  }
+  
+  // Fallback formatting
+  const d = new Date(date);
+  return d.toLocaleDateString();
 }
 </script>
 
@@ -1626,4 +1682,4 @@ const formatInterviewDate = (dateInput) => {
   padding: 8px 0;
   font-style: italic;
 }
-</style> 
+</style>
