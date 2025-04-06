@@ -1342,7 +1342,7 @@ watch([viewMode, currentDate], () => {
   border-radius: 50%;
 }
 
-.custom-dot.info, .custom-dot.primary, .custom-dot.phone-screen {
+.custom-dot.info, .custom-dot.primary, .custom-dot.phone-screen, .custom-dot.phone {
   background-color: #1890ff;
 }
 
