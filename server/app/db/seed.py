@@ -6,7 +6,7 @@ This creates test data for users, candidates, jobs, and interviews.
 import asyncio
 import os
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import random
 from pymongo import MongoClient
 from bson import ObjectId
@@ -35,47 +35,54 @@ candidates_collection = db["candidates"]
 jobs_collection = db["jobs"]
 interviews_collection = db["interviews"]
 
+# Define UTC+7 timezone
+UTC_PLUS_7 = timezone(timedelta(hours=7))
+
+# Helper function to get current time in UTC+7
+def now_utc7():
+    return datetime.now(UTC_PLUS_7)
+
 # Sample data - Users
 sample_users = [
     {
-        "id": str(datetime.now().timestamp()),
+        "id": str(now_utc7().timestamp()),
         "username": "admin",
         "email": "admin@example.com",
         "fullname": "Admin User",
         "role": UserRole.ADMIN,
         "is_active": True,
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
+        "created_at": now_utc7(),
+        "updated_at": now_utc7()
     },
     {
-        "id": str(datetime.now().timestamp() + 1),
+        "id": str(now_utc7().timestamp() + 1),
         "username": "hr_manager",
         "email": "hr@example.com",
         "fullname": "HR Manager",
         "role": UserRole.HR,
         "is_active": True,
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
+        "created_at": now_utc7(),
+        "updated_at": now_utc7()
     },
     {
-        "id": str(datetime.now().timestamp() + 2),
+        "id": str(now_utc7().timestamp() + 2),
         "username": "interviewer1",
         "email": "interviewer1@example.com",
         "fullname": "Technical Interviewer",
         "role": UserRole.INTERVIEWER,
         "is_active": True,
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
+        "created_at": now_utc7(),
+        "updated_at": now_utc7()
     },
     {
-        "id": str(datetime.now().timestamp() + 3),
+        "id": str(now_utc7().timestamp() + 3),
         "username": "user",
         "email": "user@example.com",
         "fullname": "Regular User",
         "role": UserRole.USER,
         "is_active": True,
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
+        "created_at": now_utc7(),
+        "updated_at": now_utc7()
     }
 ]
 
@@ -118,16 +125,16 @@ job_id_by_title = {}
 
 # Helper function to generate dates
 def generate_date():
-    now = datetime.now()
+    now = now_utc7()
     return now - timedelta(days=random.randint(0, 30))
 
 def generate_future_date():
-    now = datetime.now()
+    now = now_utc7()
     return now + timedelta(days=random.randint(1, 14))
 
 for i, dept in enumerate(departments):
     for j, title in enumerate(job_titles[dept]):
-        job_id = str(datetime.now().timestamp() + i * 100 + j)
+        job_id = str(now_utc7().timestamp() + i * 100 + j)
         job_id_by_title[title] = job_id
         
         posting_date = generate_date()
@@ -162,12 +169,12 @@ sample_candidates = []
 candidate_ids = []
 
 for i in range(30):
-    candidate_id = str(datetime.now().timestamp() + i)
+    candidate_id = str(now_utc7().timestamp() + i)
     candidate_ids.append(candidate_id)
     
     dept = random.choice(departments)
     position = random.choice(job_titles[dept])
-    applied_date = datetime.now() - timedelta(days=random.randint(0, 30))
+    applied_date = now_utc7() - timedelta(days=random.randint(0, 30))
     
     sample_candidates.append({
         "id": candidate_id,
@@ -203,7 +210,7 @@ for i in range(50):
             # Generate past interview
             interview_date = generate_date()
             sample_interviews.append({
-                "id": str(datetime.now().timestamp() + i),
+                "id": str(now_utc7().timestamp() + i),
                 "candidate_id": candidate_id,
                 "job_id": job_id,
                 "interviewer_id": sample_users[2]["id"] if random.random() > 0.5 else sample_users[1]["id"],
@@ -216,7 +223,7 @@ for i in range(50):
                 "meeting_link": "https://meet.example.com/interview",
                 "created_at": interview_date,
                 "updated_at": interview_date,
-                "result": random.choice(["passed", "failed", "pending"]) if interview_date < datetime.now() else None,
+                "result": random.choice(["passed", "failed", "pending"]) if interview_date < now_utc7() else None,
                 "candidate_name": candidate["name"],
                 "job_title": position
             })
@@ -224,7 +231,7 @@ for i in range(50):
             # Generate future interview
             future_interview_date = generate_future_date()
             sample_interviews.append({
-                "id": str(datetime.now().timestamp() + i + 1000),  # Different ID for future interview
+                "id": str(now_utc7().timestamp() + i + 1000),  # Different ID for future interview
                 "candidate_id": candidate_id,
                 "job_id": job_id,
                 "interviewer_id": sample_users[2]["id"] if random.random() > 0.5 else sample_users[1]["id"],
@@ -235,8 +242,8 @@ for i in range(50):
                 "description": f"Upcoming interview for {position} position",
                 "location": "Video Call" if random.random() > 0.3 else "Office",
                 "meeting_link": "https://meet.example.com/interview",
-                "created_at": datetime.now(),
-                "updated_at": datetime.now(),
+                "created_at": now_utc7(),
+                "updated_at": now_utc7(),
                 "result": None,
                 "candidate_name": candidate["name"],
                 "job_title": position
