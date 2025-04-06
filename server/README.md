@@ -1,68 +1,160 @@
-# Recruitment Management Server
+# Server - Recruitment Management System
 
-This is the backend server for the Recruitment Management System, built with FastAPI and MongoDB.
+API backend cho hệ thống quản lý tuyển dụng, xây dựng với FastAPI và MongoDB.
 
-## Prerequisites
+## Công nghệ
 
-- Python 3.8 or higher
-- MongoDB (local installation or MongoDB Atlas account)
-- MongoDB Compass (for database visualization)
+- FastAPI - Framework API hiệu năng cao
+- MongoDB - Database NoSQL
+- Pydantic - Data validation
+- Python 3.11+ 
+- Uvicorn - ASGI server
 
-## Setup Instructions
+## Cấu trúc thư mục
 
-1. **Install MongoDB**:
-   - Follow the instructions at [MongoDB Installation Guide](https://docs.mongodb.com/manual/installation/) to install MongoDB Community Edition
-   - Install MongoDB Compass from [here](https://www.mongodb.com/try/download/compass)
+```
+server/
+├── app/                 # Mã nguồn chính
+│   ├── api/             # API endpoints
+│   ├── core/            # Core functionality
+│   ├── db/              # Database
+│   ├── models/          # Pydantic models
+│   ├── services/        # Business logic
+│   ├── utils/           # Tiện ích
+│   └── main.py          # Ứng dụng FastAPI
+├── Dockerfile           # Cấu hình Docker
+├── .env.development     # Biến môi trường phát triển
+├── .env.production      # Biến môi trường sản phẩm
+├── requirements.txt     # Python dependencies
+└── server.py            # Script khởi động server
+```
 
-2. **Set up Python environment**:
-   ```bash
-   # Create a virtual environment
-   python -m venv venv
+## Cài đặt và phát triển
+
+### Yêu cầu
+
+- Python 3.11 hoặc mới hơn
+- MongoDB (local hoặc MongoDB Atlas)
+- pip (Python package manager)
+
+### Cài đặt và chạy với Python/pip
+
+#### Bước 1: Cài đặt MongoDB
+- Làm theo hướng dẫn tại [MongoDB Installation Guide](https://docs.mongodb.com/manual/installation/)
+- Hoặc sử dụng MongoDB Atlas cloud service
+
+#### Bước 2: Thiết lập môi trường Python
+
+```bash
+# Tạo môi trường ảo
+python -m venv venv
+
+# Kích hoạt môi trường ảo
+# Trên Windows:
+venv\Scripts\activate
+# Trên macOS/Linux:
+source venv/bin/activate
+
+# Cài đặt dependencies
+pip install -r requirements.txt
+```
+
+#### Bước 3: Cấu hình biến môi trường
+- Tạo file `.env` từ `.env.development` hoặc `.env.production`
+- Cập nhật các thông tin cấu hình như kết nối database, secret key
+
+#### Bước 4: Khởi động server
+
+```bash
+# Môi trường phát triển với hot reload
+python server.py
+
+# Hoặc khởi động trực tiếp với Uvicorn
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Cài đặt và chạy với Docker
+
+#### Môi trường phát triển (Development)
+
+```bash
+# Từ thư mục gốc của dự án:
+docker-compose -f docker-compose.dev.yml up --build server
+
+# Hoặc chỉ từ thư mục server:
+docker build -t recruitment-server-dev --target development .
+docker run -p 8000:8000 -v ${PWD}:/app recruitment-server-dev
+
+# Dùng PowerShell trên Windows:
+docker run -p 8000:8000 -v ${PWD}:/app recruitment-server-dev
+```
+
+Truy cập API tại:
+- API: http://localhost:8000
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+#### Môi trường sản phẩm (Production)
+
+```bash
+# Từ thư mục gốc của dự án:
+docker-compose -f docker-compose.prod.yml up --build server
+
+# Hoặc chỉ từ thư mục server:
+docker build -t recruitment-server-prod --target production .
+docker run -p 8000:8000 recruitment-server-prod
+```
+
+Truy cập API tại:
+- API: http://localhost:8000
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+## Chi tiết Docker
+
+### Multi-stage build
+
+Dockerfile sử dụng multi-stage build cho cả môi trường phát triển và sản phẩm:
+
+1. **Base Stage**:
+   - Python 3.11 Slim làm image cơ sở
+   - Cài đặt system dependencies và Python dependencies
    
-   # Activate virtual environment
-   # On Windows:
-   venv\Scripts\activate
-   # On macOS/Linux:
-   source venv/bin/activate
+2. **Development Stage**:
+   - Kế thừa từ base stage
+   - Cấu hình cho môi trường phát triển
+   - Chạy qua server.py với hot reload
    
-   # Install dependencies
-   pip install -r requirements.txt
-   ```
+3. **Production Stage**:
+   - Kế thừa từ base stage
+   - Tối ưu cho môi trường sản phẩm
+   - Chạy qua Uvicorn với multiple workers
 
-3. **Configure Environment Variables**:
-   - Edit the `.env` file with your configuration settings
-   - Make sure to change the `SECRET_KEY` for production use
+## Biến môi trường
 
-4. **Initialize Database**:
-   - Start MongoDB service (if not running)
-   - Run the database initialization script:
-   ```bash
-   python -m app.db.database
-   ```
+Các biến môi trường quan trọng:
 
-5. **Seed Database with Sample Data (Optional)**:
-   - To populate the database with sample data for testing:
-   ```bash
-   python -m app.db.seed
-   ```
-   - This will create sample users, candidates, jobs, and interviews
-   - Default user credentials:
-     - Admin: username `admin`, password `admin123`
-     - HR: username `hr_manager`, password `hr123`
-     - Interviewer: username `interviewer1`, password `interviewer123`
-     - Regular user: username `user`, password `user123`
-
-6. **Start the server**:
-   ```bash
-   python server.py
-   ```
+| Biến                 | Mô tả                          | File               |
+|----------------------|--------------------------------|--------------------|
+| MONGODB_URL          | URL kết nối MongoDB            | .env.development   |
+|                      |                                | .env.production    |
+| JWT_SECRET_KEY       | Secret key cho JWT             | .env.development   |
+|                      |                                | .env.production    |
+| DEBUG                | Chế độ debug                   | .env.development   |
+| HOST                 | Host address                   | Docker environment |
+| PORT                 | Port number                    | Docker environment |
 
 ## API Documentation
 
-When the server is running, you can access the auto-generated API documentation:
+FastAPI tự động tạo tài liệu API interactive dựa trên schema. Khi server đang chạy:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+## Xử lý sự cố
+
+- **Lỗi kết nối MongoDB**: Kiểm tra URL kết nối và xác nhận MongoDB đang chạy
+- **Lỗi môi trường Docker**: Kiểm tra cấu hình trong docker-compose file
+- **Lỗi port bị chiếm**: Kiểm tra xem port 8000 đã được sử dụng bởi ứng dụng khác chưa
 
 ## Data Model
 

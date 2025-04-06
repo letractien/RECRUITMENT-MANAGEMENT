@@ -2,32 +2,28 @@ services:
   client:
     build:
       context: ./client
-      target: development
-    volumes:
-      - ./client:/app
-      - /app/node_modules
+      target: production
     ports:
-      - "5173:5173"
-    environment:
-      - NODE_ENV=development
+      - "80:80"
     depends_on:
       - server
     networks:
       - recruitment-network
-    command: npm run dev -- --host 0.0.0.0
+    restart: unless-stopped
 
   server:
     build:
       context: ./server
-      target: development
-    volumes:
-      - ./server:/app
+      target: production
     ports:
       - "8000:8000"
     env_file:
-      - ./server/.env.development
+      - ./server/.env.production
+    environment:
+      - JWT_SECRET_KEY=your_production_secret_key_change_me
     networks:
       - recruitment-network
+    restart: unless-stopped
 
 networks:
   recruitment-network:

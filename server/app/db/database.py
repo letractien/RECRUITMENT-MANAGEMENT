@@ -2,10 +2,16 @@ import os
 import motor.motor_asyncio
 from pymongo import MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
+from dotenv import load_dotenv
+import pathlib
 
-# Get MongoDB URI from environment variable or use default
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "recruitment_management")
+# Load environment variables from .env.development
+env_path = pathlib.Path(__file__).parents[2] / '.env.development'
+load_dotenv(dotenv_path=env_path)
+
+# Get MongoDB URI from environment variable
+MONGODB_URI = os.getenv("MONGODB_URI")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
 
 # Async client for FastAPI
 async_client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)

@@ -10,15 +10,21 @@ from datetime import datetime, timedelta
 import random
 from pymongo import MongoClient
 from bson import ObjectId
+from dotenv import load_dotenv
+import pathlib
 
 # Add parent directory to path so we can import modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from app.models.user import UserRole
 
-# MongoDB connection
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "recruitment_management")
+# Load environment variables from .env.development
+env_path = pathlib.Path(__file__).parents[2] / '.env.development'
+load_dotenv(dotenv_path=env_path)
+
+# MongoDB connection from environment variables
+MONGODB_URI = os.getenv("MONGODB_URI")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
 
 client = MongoClient(MONGODB_URI)
 db = client[DATABASE_NAME]
