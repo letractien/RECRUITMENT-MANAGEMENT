@@ -2,64 +2,6 @@ import apiClient from '../../../core/api/apiClient';
 
 const RESOURCE = '/interviews';
 
-// Mock data for development
-const MOCK_INTERVIEWS = [
-  {
-    id: '12345',
-    candidate_id: 'candidate-1',
-    candidate_name: 'John Doe',
-    job_id: 'job-1',
-    job_title: 'Frontend Developer',
-    type: 'phone',
-    interviewer_id: 'interviewer-1',
-    interviewer_name: 'Sarah Johnson',
-    status: 'scheduled',
-    scheduled_date: new Date().toISOString(),
-    duration_minutes: 60,
-    location: 'Video call',
-    description: 'Initial screening interview',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: '12346',
-    candidate_id: 'candidate-2',
-    candidate_name: 'Jane Smith',
-    job_id: 'job-2',
-    job_title: 'Backend Developer',
-    type: 'technical',
-    interviewer_id: 'interviewer-2',
-    interviewer_name: 'Michael Brown',
-    status: 'scheduled',
-    scheduled_date: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString(),
-    duration_minutes: 90,
-    location: 'Office',
-    description: 'Technical assessment',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: '12347',
-    candidate_id: 'candidate-3',
-    candidate_name: 'Robert Johnson',
-    job_id: 'job-3',
-    job_title: 'UX Designer',
-    type: 'hr',
-    interviewer_id: 'interviewer-3',
-    interviewer_name: 'Emily Jones',
-    status: 'scheduled',
-    scheduled_date: new Date(new Date().getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-    duration_minutes: 60,
-    location: 'Video call',
-    description: 'HR interview',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-];
-
-// Flag to use mock data instead of API calls
-const USE_MOCK_DATA = false;
-
 // Transform backend interview data to frontend format
 const transformInterviewData = (interview) => {
   if (!interview) return null;
@@ -124,19 +66,35 @@ const transformInterviewsData = (interviews) => {
   return interviews.map(transformInterviewData);
 };
 
+// Transform interviews data for calendar view
+const transformInterviewsForCalendar = (interviews) => {
+  if (!interviews || !Array.isArray(interviews)) return [];
+  
+  return interviews.map(interview => ({
+    id: interview.id,
+    title: `${interview.candidate_name} - ${interview.job_title}`,
+    start: new Date(interview.scheduled_date),
+    end: new Date(new Date(interview.scheduled_date).getTime() + interview.duration_minutes * 60000),
+    allDay: false,
+    type: interview.type,
+    status: interview.status,
+    interviewerId: interview.interviewer_id,
+    interviewer: interview.interviewer_name,
+    candidateId: interview.candidate_id,
+    candidateName: interview.candidate_name,
+    jobId: interview.job_id,
+    jobTitle: interview.job_title,
+    location: interview.location,
+    meetingLink: interview.meeting_link
+  }));
+};
+
 export default {
   /**
    * Get all interviews
    * @returns {Promise} - Promise with transformed response data
    */
   getAllInterviews() {
-    if (USE_MOCK_DATA) {
-      console.log("Using mock interviews data");
-      return Promise.resolve({
-        data: transformInterviewsData(MOCK_INTERVIEWS)
-      });
-    }
-    
     return apiClient.get(RESOURCE)
       .then(response => {
         return {
@@ -146,10 +104,26 @@ export default {
       })
       .catch(error => {
         console.error("Error fetching interviews:", error);
-        console.log("Falling back to mock data");
+        throw error;
+      });
+  },
+
+  /**
+   * Get interviews formatted for calendar view
+   * @param {Object} params - Optional filter parameters (status, interviewer_id, etc.)
+   * @returns {Promise} - Promise with transformed data for calendar
+   */
+  getInterviewsForCalendar(params = {}) {
+    return apiClient.get(RESOURCE, { params })
+      .then(response => {
         return {
-          data: transformInterviewsData(MOCK_INTERVIEWS)
+          ...response,
+          data: transformInterviewsForCalendar(response.data)
         };
+      })
+      .catch(error => {
+        console.error("Error fetching interviews for calendar:", error);
+        throw error;
       });
   },
 
@@ -159,15 +133,6 @@ export default {
    * @returns {Promise} - Promise with transformed response data
    */
   getInterview(id) {
-    if (USE_MOCK_DATA) {
-      const mockInterview = MOCK_INTERVIEWS.find(i => i.id === id);
-      if (mockInterview) {
-        return Promise.resolve({
-          data: transformInterviewData(mockInterview)
-        });
-      }
-    }
-    
     return apiClient.get(`${RESOURCE}/${id}`)
       .then(response => {
         return {
@@ -177,13 +142,6 @@ export default {
       })
       .catch(error => {
         console.error(`Error fetching interview ${id}:`, error);
-        const mockInterview = MOCK_INTERVIEWS.find(i => i.id === id);
-        if (mockInterview) {
-          console.log("Falling back to mock data");
-          return {
-            data: transformInterviewData(mockInterview)
-          };
-        }
         throw error;
       });
   },
@@ -208,35 +166,6 @@ export default {
       meeting_link: interviewData.meetingLink || null
     };
     
-    if (USE_MOCK_DATA) {
-      // Create a new mock interview
-      const newMockInterview = {
-        ...backendData,
-        id: String(Math.floor(Math.random() * 10000) + 20000),
-        candidate_name: backendData.candidate_id === 'candidate-1' ? 'John Doe' : 
-                        backendData.candidate_id === 'candidate-2' ? 'Jane Smith' : 
-                        backendData.candidate_id === 'candidate-3' ? 'Robert Johnson' : 
-                        'New Candidate',
-        job_title: backendData.job_id === 'job-1' ? 'Frontend Developer' : 
-                   backendData.job_id === 'job-2' ? 'Backend Developer' : 
-                   backendData.job_id === 'job-3' ? 'UX Designer' : 
-                   'New Position',
-        interviewer_name: backendData.interviewer_id === 'interviewer-1' ? 'Sarah Johnson' : 
-                          backendData.interviewer_id === 'interviewer-2' ? 'Michael Brown' : 
-                          backendData.interviewer_id === 'interviewer-3' ? 'Emily Jones' : 
-                          'New Interviewer',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      // Add to mock interviews array
-      MOCK_INTERVIEWS.push(newMockInterview);
-      
-      return Promise.resolve({
-        data: transformInterviewData(newMockInterview)
-      });
-    }
-    
     return apiClient.post(RESOURCE, backendData)
       .then(response => {
         return {
@@ -246,23 +175,7 @@ export default {
       })
       .catch(error => {
         console.error("Error creating interview:", error);
-        
-        // Create a fallback mock interview on error
-        const newMockInterview = {
-          ...backendData,
-          id: String(Math.floor(Math.random() * 10000) + 30000),
-          candidate_name: 'Fallback Candidate',
-          job_title: 'Fallback Position',
-          interviewer_name: 'Fallback Interviewer',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        
-        console.log("Creating fallback mock interview");
-        
-        return {
-          data: transformInterviewData(newMockInterview)
-        };
+        throw error;
       });
   },
 
