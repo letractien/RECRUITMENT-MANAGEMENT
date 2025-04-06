@@ -13,6 +13,19 @@ from datetime import datetime
 
 router = APIRouter(prefix="/interviews", tags=["interviews"])
 
+# Thêm route xử lý gốc để tránh redirect
+@router.get("", response_model=List[Interview])
+async def get_interviews_no_slash(
+    status: Optional[str] = None,
+    interviewer_id: Optional[str] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+):
+    """
+    Get all interviews with optional filtering (no trailing slash)
+    """
+    return await get_interviews(status, interviewer_id, skip, limit)
+
 
 @router.get("/", response_model=List[Interview])
 async def get_interviews(
@@ -65,7 +78,13 @@ async def get_interviews(
                 interview["interviewer_name"] = "Unknown Interviewer"
         except:
             interview["interviewer_name"] = "Unknown Interviewer"
-            
+
+        # Ensure result field is properly structured according to InterviewResult model
+        if "result" in interview:
+            # If result is a string like 'passed', 'failed', 'pending', set it to None
+            if isinstance(interview["result"], str) or not isinstance(interview["result"], dict):
+                interview["result"] = None
+        
         enhanced_interviews.append(interview)
     
     return enhanced_interviews
@@ -152,6 +171,12 @@ async def get_interview(
             interview["interviewer_name"] = "Unknown Interviewer"
     except:
         interview["interviewer_name"] = "Unknown Interviewer"
+    
+    # Ensure result field is properly structured according to InterviewResult model
+    if "result" in interview:
+        # If result is a string like 'passed', 'failed', 'pending', set it to None
+        if isinstance(interview["result"], str) or not isinstance(interview["result"], dict):
+            interview["result"] = None
     
     return interview
 
@@ -286,4 +311,33 @@ async def add_interview_result(
             {"$set": {"status": "offer", "updated_at": datetime.now()}}
         )
     
-    return updated_interview 
+    return updated_interview
+
+
+@router.get("/job/{job_id}", response_model=List[Interview])
+async def get_job_interviews(
+    job_id: str,
+):
+    """
+    Get all interviews for a specific job
+    """
+    # Check if job exists
+    job = await jobs_collection.find_one({"id": job_id})
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job with ID {job_id} not found",
+        )
+    
+    # Get interviews
+    cursor = interviews_collection.find({"job_id": job_id})
+    interviews = await cursor.to_list(length=100)
+    
+    # Process interviews to ensure result field is properly structured
+    for interview in interviews:
+        if "result" in interview:
+            # If result is a string like 'passed', 'failed', 'pending', set it to None
+            if isinstance(interview["result"], str) or not isinstance(interview["result"], dict):
+                interview["result"] = None
+    
+    return interviews 
