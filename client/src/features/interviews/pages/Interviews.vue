@@ -193,7 +193,7 @@
               <span>Upcoming Interviews</span>
             </div>
           </template>
-          <a-spin v-if="loading" />
+          <a-spin v-if="loading" class="centered-spinner" />
           <a-empty v-else-if="upcomingInterviews.length === 0" description="No upcoming interviews" />
           <a-timeline v-else>
             <a-timeline-item
@@ -1072,6 +1072,13 @@ const formatInterviewDate = (dateString) => {
   padding: 16px 24px;
   max-height: 500px;
   overflow-y: auto;
+}
+
+.centered-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
 }
 
 .card-header {
