@@ -36,93 +36,97 @@
           </template>
           
           <div class="calendar-grid" :class="[`view-${viewMode}`]">
-            <!-- Calendar Days Header - Hide for day view -->
-            <div v-if="viewMode !== 'day'" class="calendar-days">
-              <div v-for="day in days" :key="day" class="calendar-day-header">
-                {{ day }}
-              </div>
-            </div>
-            
-            <!-- Day view header -->
-            <div v-else class="day-view-header">
-              <div class="day-date">
-                <calendar-outlined />
-                <span>{{ formatFullDate(currentDate) }}</span>
-              </div>
-              <div class="day-info">
-                <span class="interviews-count">{{ getDayInterviewsCount() }} interviews</span>
-              </div>
-            </div>
-            
-            <div class="calendar-cells" :style="getCalendarGridStyle()">
-              <div
-                v-for="date in calendarDates"
-                :key="date"
-                class="calendar-cell"
-                :class="{ 
-                  'other-month': !isCurrentMonth(date), 
-                  'today': isToday(date),
-                  'full-width': viewMode === 'day'
-                }"
-              >
-                <div v-if="viewMode !== 'day'" class="date-number">
-                  <span>{{ getDateNumber(date) }}</span>
+            <!-- Add loading spinner when interviews are loading -->
+            <a-spin v-if="loading" class="full-calendar-spinner" />
+            <template v-else>
+              <!-- Calendar Days Header - Hide for day view -->
+              <div v-if="viewMode !== 'day'" class="calendar-days">
+                <div v-for="day in days" :key="day" class="calendar-day-header">
+                  {{ day }}
                 </div>
-                
-                <div class="interview-events" :class="{ 'day-view-events': viewMode === 'day' }">
-                  <div v-if="viewMode === 'day'" class="time-slots">
-                    <div class="time-label">Morning</div>
-                    <div class="time-range">9:00 AM - 12:00 PM</div>
+              </div>
+              
+              <!-- Day view header -->
+              <div v-else class="day-view-header">
+                <div class="day-date">
+                  <calendar-outlined />
+                  <span>{{ formatFullDate(currentDate) }}</span>
+                </div>
+                <div class="day-info">
+                  <span class="interviews-count">{{ getDayInterviewsCount() }} interviews</span>
+                </div>
+              </div>
+              
+              <div class="calendar-cells" :style="getCalendarGridStyle()">
+                <div
+                  v-for="date in calendarDates"
+                  :key="date"
+                  class="calendar-cell"
+                  :class="{ 
+                    'other-month': !isCurrentMonth(date), 
+                    'today': isToday(date),
+                    'full-width': viewMode === 'day'
+                  }"
+                >
+                  <div v-if="viewMode !== 'day'" class="date-number">
+                    <span>{{ getDateNumber(date) }}</span>
                   </div>
                   
-                  <div v-if="isDateLoading(date)" class="loading-spinner">
-                    <a-spin />
-                  </div>
-                  <div v-else-if="getInterviewsForDate(date).length === 0" class="no-interviews">
-                    No interviews
-                  </div>
-                  
-                  <div
-                    v-for="interview in getInterviewsForDate(date)"
-                    :key="interview.id"
-                    class="interview-event"
-                    :class="[getInterviewClass(interview.interviewType), {'day-view-event': viewMode === 'day'}]"
-                    @click="viewInterview(interview)"
-                  >
-                    <div class="interview-time">{{ interview.time }}</div>
-                    <div class="interview-title">{{ interview.candidate }}</div>
-                    <div v-if="viewMode === 'day'" class="interview-details">
-                      <div class="interview-position">{{ interview.position }}</div>
-                      <div class="interview-interviewer">
-                        <user-outlined />
-                        <span>{{ interview.interviewer }}</span>
+                  <div class="interview-events" :class="{ 'day-view-events': viewMode === 'day' }">
+                    <div v-if="viewMode === 'day'" class="time-slots">
+                      <div class="time-label">Morning</div>
+                      <div class="time-range">9:00 AM - 12:00 PM</div>
+                    </div>
+                    
+                    <div v-if="isDateLoading(date)" class="loading-spinner">
+                      <a-spin />
+                    </div>
+                    <div v-else-if="getInterviewsForDate(date).length === 0" class="no-interviews">
+                      No interviews
+                    </div>
+                    
+                    <div
+                      v-for="interview in getInterviewsForDate(date)"
+                      :key="interview.id"
+                      class="interview-event"
+                      :class="[getInterviewClass(interview.interviewType), {'day-view-event': viewMode === 'day'}]"
+                      @click="viewInterview(interview)"
+                    >
+                      <div class="interview-time">{{ interview.time }}</div>
+                      <div class="interview-title">{{ interview.candidate }}</div>
+                      <div v-if="viewMode === 'day'" class="interview-details">
+                        <div class="interview-position">{{ interview.position }}</div>
+                        <div class="interview-interviewer">
+                          <user-outlined />
+                          <span>{{ interview.interviewer }}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div v-if="shouldShowViewMoreButton(date)" class="interviews-view-more">
-                    <div class="interviews-count-info">
-                      Hiển thị {{ getInterviewsForDate(date).length }} / {{ getTotalInterviewsForDate(date) }}
+                    
+                    <div v-if="shouldShowViewMoreButton(date)" class="interviews-view-more">
+                      <div class="interviews-count-info">
+                        Hiển thị {{ getInterviewsForDate(date).length }} / {{ getTotalInterviewsForDate(date) }}
+                      </div>
+                      <div class="view-buttons">
+                        <a @click="showMoreInterviews(date)" class="view-more-link">
+                          <plus-outlined />
+                          <span>5</span>
+                        </a>
+                        <a @click="showAllInterviews(date)" class="view-all-link">
+                          <eye-outlined />
+                          <span>Full</span>
+                        </a>
+                      </div>
                     </div>
-                    <div class="view-buttons">
-                      <a @click="showMoreInterviews(date)" class="view-more-link">
-                        <plus-outlined />
-                        <span>5</span>
-                      </a>
-                      <a @click="showAllInterviews(date)" class="view-all-link">
-                        <eye-outlined />
-                        <span>Full</span>
-                      </a>
+                    
+                    <div v-if="viewMode === 'day'" class="time-slots">
+                      <div class="time-label">Afternoon</div>
+                      <div class="time-range">1:00 PM - 5:00 PM</div>
                     </div>
-                  </div>
-                  
-                  <div v-if="viewMode === 'day'" class="time-slots">
-                    <div class="time-label">Afternoon</div>
-                    <div class="time-range">1:00 PM - 5:00 PM</div>
                   </div>
                 </div>
               </div>
-            </div>
+            </template>
           </div>
           
           <div class="interviews-stats">
@@ -130,7 +134,8 @@
               <bar-chart-outlined />
               <span>Thống kê phỏng vấn</span>
             </div>
-            <div class="stats-container">
+            <a-spin v-if="loading" class="stats-spinner" />
+            <div v-else class="stats-container">
               <div 
                 class="stat-card" 
                 :class="{ active: activeFilter === 'all' }"
@@ -359,10 +364,8 @@ onMounted(async () => {
     // Fetch global interviews for filtering (this will be used as a backup)
     await store.dispatch('interviews/fetchInterviews')
     
-    // Fetch today's interviews specifically for the calendar
-    const today = new Date()
-    const formattedToday = formatDate(today, 'YYYY-MM-DD')
-    await store.dispatch('interviews/fetchCalendarInterviews', formattedToday)
+    // Fetch current month's interviews for the calendar
+    await fetchInterviewsForCurrentView()
     
     // Fetch upcoming interviews for the sidebar (not mocked, from API)
     await fetchUpcomingInterviews()
@@ -410,16 +413,11 @@ const filteredInterviews = computed(() => {
 
 // Get interviews for a specific date
 const getInterviewsForDate = (date) => {
-  // Format date as YYYY-MM-DD for API
+  // Format date as YYYY-MM-DD for store lookup
   const formattedDate = formatDate(date, 'YYYY-MM-DD')
   
   // Get interviews from store using the calendarInterviews getter
   const dateInterviews = store.getters['interviews/calendarInterviews'](formattedDate)
-  
-  // If no interviews found, fetch them from API
-  if (!dateInterviews || dateInterviews.length === 0) {
-    fetchInterviewsForDate(date)
-  }
   
   // Format interviews for display
   return formatInterviewsForCalendar(dateInterviews || [])
@@ -777,6 +775,7 @@ const navigatePrevious = () => {
     newDate.setDate(newDate.getDate() - 1)
     currentDate.value = newDate
   }
+  // Interviews will be fetched by the watcher
 }
 
 const navigateNext = () => {
@@ -795,10 +794,12 @@ const navigateNext = () => {
     newDate.setDate(newDate.getDate() + 1)
     currentDate.value = newDate
   }
+  // Interviews will be fetched by the watcher
 }
 
 const goToday = () => {
   currentDate.value = new Date()
+  // Interviews will be fetched by the watcher
 }
 
 const isCurrentMonth = (date) => {
@@ -939,6 +940,88 @@ const formatDate = (date, format) => {
   const d = new Date(date);
   return d.toLocaleDateString();
 }
+
+// Add a new function to fetch interviews for the current view (month, week, or day)
+const fetchInterviewsForCurrentView = async () => {
+  let startDate, endDate;
+  
+  if (viewMode.value === 'month') {
+    // For month view, get the first and last dates displayed in the calendar
+    const dates = getMonthViewDateRange();
+    startDate = dates.startDate;
+    endDate = dates.endDate;
+  } else if (viewMode.value === 'week') {
+    // For week view, get the first and last dates of the current week
+    const dates = getWeekViewDateRange();
+    startDate = dates.startDate;
+    endDate = dates.endDate;
+  } else {
+    // For day view, use the current date
+    startDate = formatDate(currentDate.value, 'YYYY-MM-DD');
+    endDate = startDate;
+  }
+  
+  try {
+    // Fetch interviews for the date range
+    await store.dispatch('interviews/fetchCalendarInterviews', { 
+      startDate: startDate, 
+      endDate: endDate 
+    });
+    
+    console.log(`Fetched interviews for date range: ${startDate} to ${endDate}`);
+  } catch (error) {
+    console.error(`Error fetching interviews for date range:`, error);
+    message.error('Failed to load interviews for the calendar');
+  }
+}
+
+// Get the date range for the month view
+const getMonthViewDateRange = () => {
+  // This should return the first and last dates displayed in the calendar for month view
+  const year = currentDate.value.getFullYear();
+  const month = currentDate.value.getMonth();
+  
+  // Get the first date displayed (may be from previous month)
+  const firstDay = new Date(year, month, 1);
+  const startingDayOfWeek = firstDay.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  
+  // Calculate the actual first date shown in the calendar (can be from previous month)
+  const firstDateShown = new Date(year, month, 1 - startingDayOfWeek);
+  
+  // Calculate the last date shown (can be from next month)
+  // Month view typically shows 6 weeks (42 days)
+  const lastDateShown = new Date(firstDateShown);
+  lastDateShown.setDate(firstDateShown.getDate() + 41); // 42 days - 1
+  
+  return {
+    startDate: formatDate(firstDateShown, 'YYYY-MM-DD'),
+    endDate: formatDate(lastDateShown, 'YYYY-MM-DD')
+  };
+}
+
+// Get the date range for the week view
+const getWeekViewDateRange = () => {
+  const current = new Date(currentDate.value);
+  const day = current.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  
+  // Calculate the first day of the week (Sunday)
+  const firstDayOfWeek = new Date(current);
+  firstDayOfWeek.setDate(current.getDate() - day);
+  
+  // Calculate the last day of the week (Saturday)
+  const lastDayOfWeek = new Date(firstDayOfWeek);
+  lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+  
+  return {
+    startDate: formatDate(firstDayOfWeek, 'YYYY-MM-DD'),
+    endDate: formatDate(lastDayOfWeek, 'YYYY-MM-DD')
+  };
+}
+
+// Update the functions to refresh the calendar when view or date changes
+watch([viewMode, currentDate], () => {
+  fetchInterviewsForCurrentView();
+});
 </script>
 
 <style scoped>
@@ -1681,5 +1764,25 @@ const formatDate = (date, format) => {
   text-align: center;
   padding: 8px 0;
   font-style: italic;
+}
+
+.full-calendar-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  width: 100%;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  padding: 15px 0;
+}
+
+.stats-spinner {
+  display: flex;
+  justify-content: center;
+  padding: 15px 0;
 }
 </style>

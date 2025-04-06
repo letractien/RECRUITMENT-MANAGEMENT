@@ -190,7 +190,7 @@ for i in range(30):
 # Generate sample interviews
 sample_interviews = []
 
-for i in range(20):
+for i in range(50):
     # Only create interviews for candidates that exist and jobs that exist
     candidate_id = random.choice(candidate_ids)
     candidate = next((c for c in sample_candidates if c["id"].startswith(candidate_id)), None)

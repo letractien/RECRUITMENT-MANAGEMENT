@@ -488,4 +488,68 @@ async def get_interviews_by_date(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid date format. Please use YYYY-MM-DD."
+        )
+
+
+@router.get("/by-date-range/{start_date}/{end_date}", response_model=List[dict])
+async def get_interviews_by_date_range(
+    start_date: str,  # Format: YYYY-MM-DD
+    end_date: str     # Format: YYYY-MM-DD
+):
+    """
+    Get all interviews scheduled between a start date and end date (inclusive)
+    """
+    try:
+        # Parse the date strings to datetime
+        parsed_start_date = datetime.strptime(start_date, "%Y-%m-%d")
+        start_day = parsed_start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        parsed_end_date = datetime.strptime(end_date, "%Y-%m-%d")
+        end_day = parsed_end_date.replace(hour=23, minute=59, second=59, microsecond=999)
+        
+        # Find interviews within the specified date range
+        cursor = interviews_collection.find({
+            "scheduled_date": {"$gte": start_day, "$lte": end_day}
+        }).sort("scheduled_date", 1)
+        
+        interviews = await cursor.to_list(length=500)
+        
+        # Format and augment interview data
+        range_interviews = []
+        for interview in interviews:
+            # Get additional data for each interview
+            candidate_name = "Unknown"
+            job_title = "Unknown Position"
+            
+            # Fetch candidate info
+            candidate = await candidates_collection.find_one({"id": interview.get("candidate_id")})
+            if candidate:
+                candidate_name = f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}"
+                if not candidate_name.strip():  # If name is empty
+                    candidate_name = candidate.get("name", "Unknown")
+            
+            # Fetch job info
+            job = await jobs_collection.find_one({"id": interview.get("job_id")})
+            if job:
+                job_title = job.get("title", "Unknown Position")
+            
+            # Format interview data
+            range_interviews.append({
+                "id": interview.get("id"),
+                "candidateId": interview.get("candidate_id"),
+                "candidateName": candidate_name,
+                "jobId": interview.get("job_id"),
+                "jobTitle": job_title,
+                "interviewType": interview.get("type", "Interview"),
+                "scheduledAt": interview.get("scheduled_date").isoformat() if interview.get("scheduled_date") else "",
+                "duration": interview.get("duration_minutes", 60),
+                "status": interview.get("status", "scheduled"),
+                "interviewer": interview.get("interviewer_name", "")
+            })
+        
+        return range_interviews
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid date format. Please use YYYY-MM-DD."
         ) 
