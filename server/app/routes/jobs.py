@@ -15,7 +15,7 @@ from datetime import datetime
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
-
+# Thêm route xử lý gốc để tránh redirect
 @router.get("", response_model=List[Job])
 async def get_jobs_no_slash(
     status: Optional[str] = None,

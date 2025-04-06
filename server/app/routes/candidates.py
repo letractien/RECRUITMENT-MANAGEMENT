@@ -13,7 +13,7 @@ from ..models.interview import Interview
 
 router = APIRouter(prefix="/candidates", tags=["candidates"])
 
-
+# Thêm route xử lý gốc để tránh redirect
 @router.get("", response_model=List[Candidate])
 async def get_candidates_no_slash(
     status: Optional[str] = None,

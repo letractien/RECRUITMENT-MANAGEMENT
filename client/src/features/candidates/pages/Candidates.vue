@@ -37,9 +37,9 @@
 
       <a-spin :spinning="isLoading">
         <a-table
-          :dataSource="candidates"
+          :dataSource="paginatedCandidates"
           :columns="columns"
-          :pagination="pagination"
+          :pagination="false"
           size="middle"
           :rowKey="record => record.id"
           @change="handleTableChange"
@@ -108,6 +108,20 @@
           </template>
         </a-table>
       </a-spin>
+
+      <div class="pagination-container">
+        <a-pagination
+          v-model:current="currentPage"
+          v-model:pageSize="pageSize"
+          :total="total"
+          :pageSizeOptions="['10', '20', '50', '100']"
+          showSizeChanger
+          showQuickJumper
+          :showTotal="total => `Total ${total} items`"
+          @change="handleCurrentChange"
+          @showSizeChange="handleSizeChange"
+        />
+      </div>
     </a-card>
 
     <!-- Add/Edit Candidate Dialog -->
@@ -263,13 +277,14 @@ const candidates = ref([])
 const total = ref(0)
 
 // Pagination settings
-const pagination = reactive({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showSizeChanger: true,
-  pageSizeOptions: ['10', '20', '50', '100'],
-  showTotal: (total) => `Total ${total} items`
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+// Add computed property for paginated candidates
+const paginatedCandidates = computed(() => {
+  const startIndex = (currentPage.value - 1) * pageSize.value
+  const endIndex = startIndex + pageSize.value
+  return candidates.value.slice(startIndex, endIndex)
 })
 
 // Table columns
@@ -324,13 +339,16 @@ const formatDate = (dateString) => {
 const fetchCandidates = async () => {
   isLoading.value = true
   try {
-    const params = {}
+    const params = {
+      page: currentPage.value,
+      pageSize: pageSize.value
+    }
     if (statusFilter.value) params.status = statusFilter.value
     if (search.value) params.search = search.value
     
     const response = await candidatesService.searchCandidates(params)
     candidates.value = response.data
-    pagination.total = response.data.length
+    total.value = response.data.length
     
     // Update store
     store.commit('candidates/SET_CANDIDATES', response.data)
@@ -347,14 +365,24 @@ onMounted(fetchCandidates)
 
 // Handle filter changes
 const handleFilterChange = () => {
-  pagination.current = 1 // Reset to first page
+  currentPage.value = 1 // Reset to first page
   fetchCandidates()
 }
 
 // Handle table pagination and sorting
 const handleTableChange = (pag) => {
-  pagination.current = pag.current
-  pagination.pageSize = pag.pageSize
+  fetchCandidates()
+}
+
+// Add these new pagination methods
+const handleCurrentChange = (page) => {
+  currentPage.value = page
+  fetchCandidates()
+}
+
+const handleSizeChange = (current, size) => {
+  pageSize.value = size
+  currentPage.value = 1
   fetchCandidates()
 }
 
