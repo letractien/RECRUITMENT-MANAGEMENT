@@ -16,6 +16,20 @@ from datetime import datetime
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
+@router.get("", response_model=List[Job])
+async def get_jobs_no_slash(
+    status: Optional[str] = None,
+    department: Optional[str] = None,
+    search: Optional[str] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+):
+    """
+    Get all jobs with optional filtering (no trailing slash)
+    """
+    return await get_jobs(status, department, search, skip, limit)
+
+
 @router.get("/", response_model=List[Job])
 async def get_jobs(
     status: Optional[str] = None,

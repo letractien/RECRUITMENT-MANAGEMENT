@@ -10,6 +10,7 @@ app = FastAPI(
     title="Recruitment Management API",
     description="API for managing recruitment processes",
     version="1.0.0",
+    redirect_slashes=False
 )
 
 # Configure CORS
