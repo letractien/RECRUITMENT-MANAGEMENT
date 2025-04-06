@@ -10,6 +10,8 @@ const state = {
     candidateId: null,
     jobId: null,
     date: null,
+    startDate: null,
+    endDate: null,
     search: ''
   },
   pagination: {
@@ -56,6 +58,18 @@ const getters = {
       result = result.filter(interview => {
         const interviewDate = new Date(interview.scheduledAt);
         return interviewDate >= filterDate && interviewDate < nextDay;
+      });
+    } else if (state.filters.startDate && state.filters.endDate) {
+      // Apply date range filter
+      const startDate = new Date(state.filters.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      
+      const endDate = new Date(state.filters.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      
+      result = result.filter(interview => {
+        const interviewDate = new Date(interview.scheduledAt);
+        return interviewDate >= startDate && interviewDate <= endDate;
       });
     }
     
@@ -416,25 +430,40 @@ const actions = {
     commit('SET_PAGINATION', pagination);
   },
   
-  async fetchCalendarInterviews({ commit }, date) {
+  async fetchCalendarInterviews({ commit }, { startDate, endDate }) {
     try {
       commit('SET_LOADING', true);
       
-      // Format date as YYYY-MM-DD for API
-      const formattedDate = typeof date === 'string' ? date : 
-        date.toISOString().split('T')[0];
+      // Format dates as YYYY-MM-DD for API
+      const formattedStartDate = typeof startDate === 'string' ? startDate : 
+        startDate.toISOString().split('T')[0];
+      const formattedEndDate = typeof endDate === 'string' ? endDate : 
+        endDate.toISOString().split('T')[0];
       
-      // Use the API service to fetch interviews for this date
-      const response = await interviewsService.getInterviewsByDate(formattedDate);
+      // Use the API service to fetch interviews for this date range
+      const response = await interviewsService.getInterviewsByDate(formattedStartDate, formattedEndDate);
+      const interviews = response.data || [];
       
       // Store interviews in calendar cache
-      commit('SET_CALENDAR_INTERVIEWS', { date: formattedDate, interviews: response.data });
+      interviews.forEach(interview => {
+        const interviewDate = new Date(interview.scheduledAt).toISOString().split('T')[0];
+        if (!state.calendarInterviews[interviewDate]) {
+          state.calendarInterviews[interviewDate] = [];
+        }
+        
+        // Check if interview is already in the cache
+        const existingIndex = state.calendarInterviews[interviewDate].findIndex(i => i.id === interview.id);
+        if (existingIndex === -1) {
+          commit('ADD_CALENDAR_INTERVIEW', { date: interviewDate, interview });
+        }
+      });
+      
       commit('SET_ERROR', null);
       
-      console.log(`Successfully fetched interviews for calendar date: ${formattedDate}`, response.data.length);
-      return response.data;
+      console.log(`Successfully fetched interviews for calendar date range: ${formattedStartDate} to ${formattedEndDate}`, interviews.length);
+      return interviews;
     } catch (error) {
-      commit('SET_ERROR', error.message || `Failed to fetch calendar interviews for date ${date}`);
+      commit('SET_ERROR', error.message || `Failed to fetch calendar interviews for date range`);
       console.error(`Error fetching calendar interviews:`, error);
       return [];
     } finally {
@@ -495,6 +524,13 @@ const mutations = {
       ...state.calendarInterviews, 
       [date]: interviews 
     };
+  },
+  
+  ADD_CALENDAR_INTERVIEW(state, { date, interview }) {
+    if (!state.calendarInterviews[date]) {
+      state.calendarInterviews[date] = [];
+    }
+    state.calendarInterviews[date].push(interview);
   }
 };
 

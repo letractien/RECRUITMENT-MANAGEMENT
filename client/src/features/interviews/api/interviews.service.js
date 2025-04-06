@@ -90,12 +90,13 @@ export default {
   },
 
   /**
-   * Get interviews by date
-   * @param {string} date - The date in YYYY-MM-DD format
+   * Get interviews by date range
+   * @param {string} startDate - The start date in YYYY-MM-DD format
+   * @param {string} endDate - The end date in YYYY-MM-DD format
    * @returns {Promise} - Promise with response data
    */
-  getInterviewsByDate(date) {
-    return apiClient.get(`${RESOURCE}/by-date/${date}`);
+  getInterviewsByDate(startDate, endDate) {
+    return apiClient.get(`${RESOURCE}/by-date-range/${startDate}/${endDate}`);
   },
 
   /**
