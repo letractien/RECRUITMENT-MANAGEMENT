@@ -9,7 +9,7 @@ from ..models.interview import (
     InterviewUpdate,
     InterviewResult
 )
-from datetime import datetime
+from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/interviews", tags=["interviews"])
 
@@ -340,4 +340,152 @@ async def get_job_interviews(
             if isinstance(interview["result"], str) or not isinstance(interview["result"], dict):
                 interview["result"] = None
     
-    return interviews 
+    return interviews
+
+
+@router.get("/upcoming", response_model=List[dict])
+async def get_upcoming_interviews(
+    days: int = Query(7, description="Number of days to look ahead"),
+    limit: int = Query(5, description="Maximum number of interviews to return")
+):
+    """
+    Get upcoming interviews
+    """
+    # Calculate date range
+    now = datetime.now()
+    end_date = now + timedelta(days=days)
+    
+    # Find upcoming interviews
+    cursor = interviews_collection.find({
+        "scheduled_date": {"$gte": now, "$lte": end_date},
+        "status": {"$nin": ["cancelled", "completed"]}
+    }).sort("scheduled_date", 1).limit(limit)
+    
+    interviews = await cursor.to_list(length=limit)
+    
+    # Format and augment interview data
+    upcoming = []
+    for interview in interviews:
+        upcoming.append({
+            "id": interview.get("id"),
+            "candidateName": interview.get("candidate_name", "Unknown"),
+            "jobTitle": interview.get("job_title", "Unknown"),
+            "scheduledAt": interview.get("scheduled_date").isoformat() if interview.get("scheduled_date") else "",
+            "type": interview.get("type", "Interview").title()
+        })
+    
+    return upcoming
+
+
+@router.get("/today", response_model=List[dict])
+async def get_today_interviews():
+    """
+    Get all interviews scheduled for today
+    """
+    # Calculate today's date range
+    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timedelta(days=1)
+    
+    # Find today's interviews
+    cursor = interviews_collection.find({
+        "scheduled_date": {"$gte": today_start, "$lt": today_end},
+        "status": {"$nin": ["cancelled"]}
+    }).sort("scheduled_date", 1)
+    
+    interviews = await cursor.to_list(length=100)
+    
+    # Format and augment interview data
+    today_interviews = []
+    for interview in interviews:
+        # Get additional data for each interview
+        candidate_name = "Unknown"
+        job_title = "Unknown Position"
+        
+        # Fetch candidate info
+        candidate = await candidates_collection.find_one({"id": interview.get("candidate_id")})
+        if candidate:
+            candidate_name = f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}"
+            if not candidate_name.strip():  # If name is empty
+                candidate_name = candidate.get("name", "Unknown")
+        
+        # Fetch job info
+        job = await jobs_collection.find_one({"id": interview.get("job_id")})
+        if job:
+            job_title = job.get("title", "Unknown Position")
+        
+        # Format interview data
+        today_interviews.append({
+            "id": interview.get("id"),
+            "candidateId": interview.get("candidate_id"),
+            "candidateName": candidate_name,
+            "jobId": interview.get("job_id"),
+            "jobTitle": job_title,
+            "interviewType": interview.get("type", "Interview"),
+            "scheduledAt": interview.get("scheduled_date").isoformat() if interview.get("scheduled_date") else "",
+            "duration": interview.get("duration_minutes", 60),
+            "status": interview.get("status", "scheduled"),
+            "interviewer": interview.get("interviewer_name", "")
+        })
+    
+    return today_interviews
+
+
+@router.get("/by-date/{date}", response_model=List[dict])
+async def get_interviews_by_date(
+    date: str  # Format: YYYY-MM-DD
+):
+    """
+    Get all interviews scheduled for a specific date
+    """
+    try:
+        # Parse the date string to datetime
+        parsed_date = datetime.strptime(date, "%Y-%m-%d")
+        day_start = parsed_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        
+        # Find interviews for the specified date
+        cursor = interviews_collection.find({
+            "scheduled_date": {"$gte": day_start, "$lt": day_end}
+        }).sort("scheduled_date", 1)
+        
+        interviews = await cursor.to_list(length=100)
+        
+        # Format and augment interview data
+        day_interviews = []
+        for interview in interviews:
+            # Get additional data for each interview
+            candidate_name = "Unknown"
+            job_title = "Unknown Position"
+            
+            # Fetch candidate info
+            candidate = await candidates_collection.find_one({"id": interview.get("candidate_id")})
+            if candidate:
+                candidate_name = f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}"
+                if not candidate_name.strip():  # If name is empty
+                    candidate_name = candidate.get("name", "Unknown")
+            
+            # Fetch job info
+            job = await jobs_collection.find_one({"id": interview.get("job_id")})
+            if job:
+                job_title = job.get("title", "Unknown Position")
+            
+            # Format interview data
+            day_interviews.append({
+                "id": interview.get("id"),
+                "candidateId": interview.get("candidate_id"),
+                "candidateName": candidate_name,
+                "jobId": interview.get("job_id"),
+                "jobTitle": job_title,
+                "interviewType": interview.get("type", "Interview"),
+                "scheduledAt": interview.get("scheduled_date").isoformat() if interview.get("scheduled_date") else "",
+                "duration": interview.get("duration_minutes", 60),
+                "status": interview.get("status", "scheduled"),
+                "interviewer": interview.get("interviewer_name", "")
+            })
+        
+        return day_interviews
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid date format. Please use YYYY-MM-DD."
+        ) 

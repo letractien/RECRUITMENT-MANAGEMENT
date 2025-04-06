@@ -321,29 +321,42 @@ const showScheduleDialog = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const activeFilter = ref('all')
-
-// Sample data for testing
-const candidates = [
-  { id: 'candidate-1', name: 'John Doe' },
-  { id: 'candidate-2', name: 'Jane Smith' },
-  { id: 'candidate-3', name: 'Michael Johnson' },
-  { id: 'candidate-4', name: 'Sarah Williams' }
-]
-
-const jobs = [
-  { id: 'job-1', title: 'Frontend Developer' },
-  { id: 'job-2', title: 'Backend Developer' },
-  { id: 'job-3', title: 'UX Designer' },
-  { id: 'job-4', title: 'Product Manager' }
-]
-
 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+// Candidates and jobs lists for the interview form
+const candidates = ref([])
+const jobs = ref([])
+
+// Load candidates and jobs data
+const loadFormData = async () => {
+  try {
+    // Load candidates
+    const candidatesResponse = await store.dispatch('candidates/fetchCandidates')
+    if (candidatesResponse) {
+      candidates.value = candidatesResponse
+    }
+    
+    // Load jobs
+    const jobsResponse = await store.dispatch('jobs/fetchJobs')
+    if (jobsResponse) {
+      jobs.value = jobsResponse
+    }
+
+    console.log('Loaded candidates:', candidates.value.length)
+    console.log('Loaded jobs:', jobs.value.length)
+  } catch (error) {
+    console.error('Error loading form data:', error)
+    message.error('Failed to load candidates or jobs data')
+  }
+}
 
 // Fetch interviews on component mount
 onMounted(async () => {
   console.log("Fetching interviews...")
   try {
     await store.dispatch('interviews/fetchInterviews')
+    await fetchUpcomingInterviews()
+    await loadFormData()
     console.log("Raw interviews data:", store.state.interviews.interviews)
     console.log("Computed interviews:", interviews.value)
     if (interviews.value.length > 0) {
@@ -481,10 +494,8 @@ const interviewTypeStats = computed(() => {
 
 // Get upcoming interviews
 const upcomingInterviews = computed(() => {
-  const now = new Date();
-  return interviews.value
-    .filter(interview => new Date(interview.scheduledAt) > now && interview.status !== 'cancelled')
-    .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))
+  // Pull directly from the API call that fetches from dashboard endpoint
+  const upcoming = store.getters['interviews/upcomingInterviews']
     .slice(0, 5)
     .map(interview => {
       const interviewDate = new Date(interview.scheduledAt);
@@ -492,13 +503,24 @@ const upcomingInterviews = computed(() => {
         id: interview.id,
         candidate: interview.candidateName,
         position: interview.jobTitle,
-        interviewer: interview.interviewer,
-        interviewType: interview.interviewType,
-        date: interviewDate.toLocaleDateString(),
+        interviewType: interview.type,
+        date: interviewDate,
         time: interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
     });
+  
+  return upcoming;
 })
+
+// Fetch upcoming interviews using the store action
+const fetchUpcomingInterviews = async () => {
+  try {
+    await store.dispatch('interviews/fetchUpcomingInterviews');
+  } catch (error) {
+    console.error('Error fetching upcoming interviews:', error);
+    message.error('Failed to load upcoming interviews');
+  }
+}
 
 // Interview form data
 const interviewForm = ref({
@@ -568,6 +590,14 @@ const showAllInterviews = (date) => {
 
 const saveInterview = async () => {
   try {
+    // Check if form is valid
+    if (!interviewForm.value.candidate || !interviewForm.value.position || 
+        !interviewForm.value.interviewType || !interviewForm.value.date || 
+        !interviewForm.value.time) {
+      message.warning('Please fill out all required fields');
+      return;
+    }
+    
     // Format datetime from separate date and time inputs
     const scheduledAt = new Date(
       interviewForm.value.date.getFullYear(),
@@ -577,26 +607,42 @@ const saveInterview = async () => {
       interviewForm.value.time.getMinutes()
     ).toISOString();
     
-    // Get IDs from selected objects
-    const selectedCandidate = candidates.find(c => c.name === interviewForm.value.candidate);
-    const selectedJob = jobs.find(j => j.title === interviewForm.value.position);
+    // Find selected candidate and job from selectors
+    const selectedCandidate = candidates.value.find(c => c.name === interviewForm.value.candidate || c.fullName === interviewForm.value.candidate);
+    const selectedJob = jobs.value.find(j => j.title === interviewForm.value.position);
+    
+    if (!selectedCandidate || !selectedJob) {
+      message.warning('Invalid candidate or job selection');
+      return;
+    }
     
     // Create interview data object
     const interviewData = {
-      candidateId: selectedCandidate?.id,
-      jobId: selectedJob?.id,
-      interviewerId: "interviewer-123", // This would typically come from a selector
+      candidateId: selectedCandidate.id,
+      candidateName: selectedCandidate.name || selectedCandidate.fullName,
+      jobId: selectedJob.id,
+      jobTitle: selectedJob.title,
       interviewType: interviewForm.value.interviewType,
       scheduledAt,
-      duration: 60, // Default duration
+      duration: 60, // Default duration in minutes
       notes: interviewForm.value.notes,
-      interviewer: interviewForm.value.interviewer
+      interviewer: interviewForm.value.interviewer,
+      status: 'scheduled'
     };
     
-    await store.dispatch('interviews/createInterview', interviewData);
-    message.success('Interview scheduled successfully');
-    showScheduleDialog.value = false;
-    resetForm();
+    console.log('Creating interview with data:', interviewData)
+    const result = await store.dispatch('interviews/createInterview', interviewData);
+    
+    if (result) {
+      message.success('Interview scheduled successfully');
+      showScheduleDialog.value = false;
+      resetForm();
+      
+      // Refresh upcoming interviews list
+      fetchUpcomingInterviews();
+    } else {
+      message.error('Failed to schedule interview');
+    }
   } catch (error) {
     message.error('Failed to schedule interview: ' + (error.message || 'Unknown error'));
     console.error('Error scheduling interview:', error);
@@ -812,19 +858,29 @@ const getDayInterviewsCount = () => {
 }
 
 // Format interview date using the shared date helper
-const formatInterviewDate = (dateString) => {
-  if (!dateString) return '';
+const formatInterviewDate = (dateInput) => {
+  if (!dateInput) return '';
   
   try {
-    // Convert ISO string or datetime object to proper format
-    if (typeof dateString === 'object') {
-      dateString = dateString.toISOString();
+    let dateString;
+    
+    // Convert Date object to ISO string
+    if (dateInput instanceof Date) {
+      dateString = dateInput.toISOString();
+    } else {
+      // Assume it's already a string
+      dateString = dateInput;
     }
     
-    return formatDate(dateString, 'YYYY-MM-DD HH:mm');
+    // For dashboard API format
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
   } catch (error) {
-    console.error('Error formatting date:', error, dateString);
-    return String(dateString);
+    console.error('Error formatting date:', error, dateInput);
+    // Fallback format
+    return typeof dateInput === 'object' ? 
+      dateInput.toLocaleString() : 
+      String(dateInput);
   }
 }
 </script>
@@ -1070,8 +1126,8 @@ const formatInterviewDate = (dateString) => {
 .upcoming-interviews :deep(.ant-card-body) {
   background-color: var(--card-bg);
   padding: 16px 24px;
-  max-height: 500px;
-  overflow-y: auto;
+  max-height: unset;
+  overflow-y: initial;
 }
 
 .centered-spinner {
