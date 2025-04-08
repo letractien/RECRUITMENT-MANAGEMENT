@@ -24,6 +24,7 @@ class CandidateBase(BaseModel):
     skills: List[str] = []
     notes: Optional[str] = None
     salary_expectation: Optional[float] = None
+    
     # Scoring fields
     total_score: Optional[float] = 0
     background_score: Optional[float] = 0
@@ -48,6 +49,7 @@ class CandidateUpdate(BaseModel):
     skills: Optional[List[str]] = None
     notes: Optional[str] = None
     salary_expectation: Optional[float] = None
+
     # Scoring fields
     total_score: Optional[float] = None
     background_score: Optional[float] = None
@@ -68,7 +70,6 @@ class Candidate(CandidateBase):
     created_at: datetime
     updated_at: datetime
     applied_date: datetime
-
 
 class CandidateSearchParams(BaseModel):
     status: Optional[CandidateStatus] = None

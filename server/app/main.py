@@ -56,4 +56,4 @@ async def root():
         "message": "Welcome to the Recruitment Management API",
         "docs": "/docs",
         "redoc": "/redoc"
-    } 
+    }

@@ -342,7 +342,27 @@ const jobForm = reactive({
   requirements: '',
   salaryMin: 0,
   salaryMax: 0,
-  status: 'Active'
+  status: 'Active',
+  backgroundCriteria: {
+    importanceRatio: 25,
+    required: '',
+    criteria: []
+  },
+  projectCriteria: {
+    importanceRatio: 25,
+    required: '',
+    criteria: []
+  },
+  skillCriteria: {
+    importanceRatio: 25,
+    required: '',
+    criteria: []
+  },
+  certificationCriteria: {
+    importanceRatio: 25,
+    required: '',
+    criteria: []
+  }
 })
 
 // Form rules
@@ -383,7 +403,7 @@ const showCreateJobDialog = () => {
   jobDialog.isEdit = false
   jobDialog.visible = true
   
-  // Reset form
+  // Reset form with all required nested properties
   Object.assign(jobForm, {
     title: '',
     department: '',
@@ -392,7 +412,27 @@ const showCreateJobDialog = () => {
     requirements: '',
     salaryMin: 0,
     salaryMax: 0,
-    status: 'Active'
+    status: 'Active',
+    backgroundCriteria: {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    },
+    projectCriteria: {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    },
+    skillCriteria: {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    },
+    certificationCriteria: {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    }
   })
 }
 
@@ -400,7 +440,7 @@ const editJob = (job) => {
   jobDialog.isEdit = true
   jobDialog.visible = true
   
-  // Set form data
+  // Set form data with all required nested properties
   Object.assign(jobForm, {
     title: job.title,
     department: job.department,
@@ -409,7 +449,27 @@ const editJob = (job) => {
     requirements: job.requirements,
     salaryMin: job.salaryMin,
     salaryMax: job.salaryMax,
-    status: job.status
+    status: job.status,
+    backgroundCriteria: job.backgroundCriteria || {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    },
+    projectCriteria: job.projectCriteria || {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    },
+    skillCriteria: job.skillCriteria || {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    },
+    certificationCriteria: job.certificationCriteria || {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    }
   })
   
   // Store job for reference
