@@ -461,4 +461,117 @@ body {
 
 .ant-btn-group .ant-btn:not(:first-child):not(:last-child) {
   border-radius: 0 !important;
-} 
+}
+
+.ant-pagination-item-active a {
+  color: #000000 !important;
+}
+
+.dark-theme .ant-pagination-item-active a {
+  color: #ffffff !important;
+}
+
+.ant-pagination-item-link {
+  background-color: var(--card-bg, #fff) !important;
+  color: var(--text-color, rgba(0, 0, 0, 0.85)) !important;
+}
+
+.dark-theme .ant-pagination-item-link {
+  background-color: var(--card-bg) !important;
+  color: var(--text-color) !important;
+}
+
+/* Common input styles */
+.ant-input,
+.ant-input-number-input,
+.ant-select-selector,
+.ant-picker-input input,
+.ant-input-affix-wrapper,
+.ant-input-password,
+.ant-input-search,
+.ant-mentions,
+.ant-mentions-textarea,
+.ant-textarea {
+  --input-bg: var(--card-bg, #fff);
+  --input-color: var(--text-color, rgba(0, 0, 0, 0.85));
+  --input-border: var(--border-color, #d9d9d9);
+  --input-placeholder: var(--text-color, rgba(0, 0, 0, 0.25));
+
+  background-color: var(--input-bg) !important;
+  color: var(--input-color) !important;
+  border-color: var(--input-border) !important;
+}
+
+/* Input placeholders */
+.ant-input::placeholder,
+.ant-input-number-input::placeholder,
+.ant-select-selector::placeholder,
+.ant-picker-input input::placeholder,
+.ant-input-affix-wrapper::placeholder,
+.ant-input-password::placeholder,
+.ant-input-search::placeholder,
+.ant-mentions::placeholder,
+.ant-mentions-textarea::placeholder,
+.ant-textarea::placeholder {
+  color: var(--input-placeholder) !important;
+}
+
+/* Dark theme overrides */
+.dark-theme {
+  --input-bg: var(--card-bg);
+  --input-color: var(--text-color);
+  --input-border: var(--border-color);
+  --input-placeholder: var(--text-color);
+}
+
+
+.dark-theme .ant-input::placeholder,
+.dark-theme .ant-input-number-input::placeholder,
+.dark-theme .ant-select-selector::placeholder,
+.dark-theme .ant-picker-input input::placeholder,
+.dark-theme .ant-input-affix-wrapper::placeholder,
+.dark-theme .ant-input-password::placeholder,
+.dark-theme .ant-input-search::placeholder,
+.dark-theme .ant-mentions::placeholder,
+.dark-theme .ant-mentions-textarea::placeholder,
+.dark-theme .ant-textarea::placeholder {
+  opacity: 0.5;
+}
+
+.dark-theme .ant-pagination .ant-pagination-item {
+  color: #ffffff;
+}
+
+.dark-theme .ant-pagination .ant-pagination-item a {
+  color: #ffffff;
+}
+
+.dark-theme .ant-pagination .ant-pagination-item:hover a {
+  color: #1890ff;
+}
+
+.dark-theme .ant-pagination .ant-pagination-prev,
+.dark-theme .ant-pagination .ant-pagination-next {
+  color: #ffffff;
+}
+
+.dark-theme .ant-pagination .ant-pagination-prev:hover,
+.dark-theme .ant-pagination .ant-pagination-next:hover {
+  color: #1890ff;
+}
+
+.dark-theme .ant-pagination .ant-pagination-options .ant-select-selector {
+  color: #ffffff;
+}
+
+.dark-theme .ant-pagination .ant-pagination-options-quick-jumper {
+  color: #ffffff;
+}
+
+.dark-theme .ant-pagination .ant-pagination-options-quick-jumper input {
+  color: #ffffff;
+}
+
+.dark-theme .ant-pagination .ant-pagination-total-text {
+  color: #ffffff;
+}
