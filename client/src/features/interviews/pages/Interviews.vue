@@ -225,83 +225,12 @@
     </a-row>
 
     <!-- Schedule Interview Dialog -->
-    <a-modal
+    <ScheduleInterviewForm
       v-model:visible="showScheduleDialog"
-      title="Schedule Interview"
-      width="550px"
-      @ok="saveInterview"
-    >
-      <a-form :model="interviewForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-        <a-form-item label="Candidate">
-          <a-select
-            v-model:value="interviewForm.candidate"
-            placeholder="Select candidate"
-            style="width: 100%"
-          >
-            <a-select-option
-              v-for="candidate in candidates"
-              :key="candidate.id"
-              :value="candidate.name"
-            >
-              {{ candidate.name }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="Position">
-          <a-select
-            v-model:value="interviewForm.position"
-            placeholder="Select position"
-            style="width: 100%"
-          >
-            <a-select-option
-              v-for="job in jobs"
-              :key="job.id"
-              :value="job.title"
-            >
-              {{ job.title }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="Interview Type">
-          <a-select
-            v-model:value="interviewForm.interviewType"
-            placeholder="Select type"
-            style="width: 100%"
-          >
-            <a-select-option value="Phone Screen">Phone Screen</a-select-option>
-            <a-select-option value="Video">Video</a-select-option>
-            <a-select-option value="Onsite">Onsite</a-select-option>
-            <a-select-option value="Technical">Technical</a-select-option>
-            <a-select-option value="HR">HR</a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="Date">
-          <a-date-picker
-            v-model:value="interviewForm.date"
-            style="width: 100%"
-            placeholder="Select date"
-          />
-        </a-form-item>
-        <a-form-item label="Time">
-          <a-time-picker
-            v-model:value="interviewForm.time"
-            format="HH:mm"
-            placeholder="Select time"
-            style="width: 100%"
-          />
-        </a-form-item>
-        <a-form-item label="Interviewer">
-          <a-input v-model:value="interviewForm.interviewer" />
-        </a-form-item>
-        <a-form-item label="Notes">
-          <a-textarea
-            v-model:value="interviewForm.notes"
-            :rows="4"
-            placeholder="Additional notes about the interview"
-          />
-        </a-form-item>
-      </a-form>
-    </a-modal>
+      :candidates="candidates"
+      :jobs="jobs"
+      @saved="fetchUpcomingInterviews"
+    />
   </div>
 </template>
 
@@ -320,6 +249,7 @@ import {
   ClockCircleOutlined,
   EyeOutlined
 } from '@ant-design/icons-vue'
+import ScheduleInterviewForm from '../components/ScheduleInterviewForm.vue'
 
 const store = useStore()
 const viewMode = ref('month')
