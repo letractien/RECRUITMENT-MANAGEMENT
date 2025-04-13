@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
@@ -9,6 +9,13 @@ class JobStatus(str, Enum):
     CLOSED = "closed"
     DRAFT = "draft"
     PAUSED = "paused"
+
+
+class EmploymentType(str, Enum):
+    FULL_TIME = "full-time"
+    PART_TIME = "part-time"
+    CONTRACT = "contract"
+    INTERNSHIP = "internship"
 
 
 class JobBase(BaseModel):
@@ -22,7 +29,9 @@ class JobBase(BaseModel):
     max_salary: Optional[float] = None
     status: JobStatus = JobStatus.DRAFT
     is_remote: bool = False
-    employment_type: str  # full-time, part-time, contract
+    employment_type: EmploymentType
+    created_by: str  # Foreign key to User model (HR/Admin who created the job)
+    hiring_manager: Optional[str] = None  # Foreign key to User model
 
 
 class JobCreate(JobBase):
@@ -40,7 +49,8 @@ class JobUpdate(BaseModel):
     max_salary: Optional[float] = None
     status: Optional[JobStatus] = None
     is_remote: Optional[bool] = None
-    employment_type: Optional[str] = None
+    employment_type: Optional[EmploymentType] = None
+    hiring_manager: Optional[str] = None
 
 
 class JobInDB(JobBase):
@@ -66,4 +76,5 @@ class Job(JobBase):
 class JobSearchParams(BaseModel):
     status: Optional[JobStatus] = None
     department: Optional[str] = None
+    employment_type: Optional[EmploymentType] = None
     search: Optional[str] = None 

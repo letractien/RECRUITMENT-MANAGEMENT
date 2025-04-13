@@ -16,7 +16,7 @@ class CandidateBase(BaseModel):
     name: str
     email: EmailStr
     phone: str
-    position: str
+    job_id: str  # Foreign key to Job model
     department: str
     experience: int
     status: CandidateStatus = CandidateStatus.NEW
@@ -24,6 +24,10 @@ class CandidateBase(BaseModel):
     skills: List[str] = []
     notes: Optional[str] = None
     salary_expectation: Optional[float] = None
+    source: Optional[str] = None  # How did they find the job posting
+    current_company: Optional[str] = None
+    current_position: Optional[str] = None
+    notice_period: Optional[int] = None  # In days
     
     # Scoring fields
     total_score: Optional[float] = 0
@@ -41,7 +45,7 @@ class CandidateUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
-    position: Optional[str] = None
+    job_id: Optional[str] = None
     department: Optional[str] = None
     experience: Optional[int] = None
     status: Optional[CandidateStatus] = None
@@ -49,6 +53,10 @@ class CandidateUpdate(BaseModel):
     skills: Optional[List[str]] = None
     notes: Optional[str] = None
     salary_expectation: Optional[float] = None
+    source: Optional[str] = None
+    current_company: Optional[str] = None
+    current_position: Optional[str] = None
+    notice_period: Optional[int] = None
 
     # Scoring fields
     total_score: Optional[float] = None
@@ -63,6 +71,7 @@ class CandidateInDB(CandidateBase):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     applied_date: datetime = Field(default_factory=datetime.now)
+    assigned_recruiter: Optional[str] = None  # Foreign key to User model
 
 
 class Candidate(CandidateBase):
@@ -70,8 +79,11 @@ class Candidate(CandidateBase):
     created_at: datetime
     updated_at: datetime
     applied_date: datetime
+    assigned_recruiter: Optional[str] = None
+
 
 class CandidateSearchParams(BaseModel):
     status: Optional[CandidateStatus] = None
     department: Optional[str] = None
+    job_id: Optional[str] = None
     search: Optional[str] = None 
