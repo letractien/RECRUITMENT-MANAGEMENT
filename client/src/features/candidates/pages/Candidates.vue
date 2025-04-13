@@ -125,64 +125,12 @@
     </a-card>
 
     <!-- Add/Edit Candidate Dialog -->
-    <a-modal
+    <CreateCandidateForm
       v-model:visible="candidateDialog.visible"
-      :title="candidateDialog.isEdit ? 'Edit Candidate' : 'Add Candidate'"
-      width="600px"
-      @ok="saveCandidate"
-    >
-      <a-form
-        :model="candidateForm"
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 18 }"
-      >
-        <a-form-item label="Full Name" required>
-          <a-input v-model:value="candidateForm.name" />
-        </a-form-item>
-        <a-form-item label="Email" required>
-          <a-input v-model:value="candidateForm.email" type="email" />
-        </a-form-item>
-        <a-form-item label="Phone">
-          <a-input v-model:value="candidateForm.phone" />
-        </a-form-item>
-        <a-form-item label="Position" required>
-          <a-select v-model:value="candidateForm.position" style="width: 100%">
-            <a-select-option
-              v-for="job in availableJobs"
-              :key="job.value"
-              :value="job.value"
-            >
-              {{ job.label }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="Experience">
-          <a-input-number v-model:value="candidateForm.experience" :min="0" :max="50" />
-          <span class="ml-2">years</span>
-        </a-form-item>
-        <a-form-item label="Status">
-          <a-select v-model:value="candidateForm.status" style="width: 100%">
-            <a-select-option value="New">New</a-select-option>
-            <a-select-option value="Screening">Screening</a-select-option>
-            <a-select-option value="Interview">Interview</a-select-option>
-            <a-select-option value="Hired">Hired</a-select-option>
-            <a-select-option value="Rejected">Rejected</a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="Resume">
-          <a-upload
-            action="#"
-            :multiple="false"
-            :showUploadList="true"
-          >
-            <a-button>
-              <template #icon><upload-outlined /></template>
-              Select File
-            </a-button>
-          </a-upload>
-        </a-form-item>
-      </a-form>
-    </a-modal>
+      :is-edit="candidateDialog.isEdit"
+      :candidate="candidateForm"
+      @saved="fetchCandidates"
+    />
 
     <!-- Add Score Dialog -->
     <a-modal
@@ -261,12 +209,12 @@ import {
   EditOutlined, 
   DeleteOutlined, 
   DownOutlined,
-  UploadOutlined,
   TrophyOutlined
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import candidatesService from '../api/candidates.service'
 import { formatDate as formatDateUtil } from '../../../shared/utils/dateHelpers'
+import CreateCandidateForm from '../components/CreateCandidateForm.vue'
 
 const store = useStore()
 
@@ -411,53 +359,21 @@ const candidateForm = reactive({
   phone: '',
   position: '',
   experience: 0,
-  status: 'New',
-  appliedDate: new Date().toISOString().split('T')[0],
-  resume: '',
-  education: '',
+  status: 'new',
+  applied_date: new Date().toISOString().split('T')[0],
+  resume_url: '',
   skills: [],
-  interviewNotes: '',
-  evaluation: {
-    technicalScore: 0,
-    softSkillsScore: 0,
-    experienceScore: 0,
-    overallScore: 0,
-    feedback: ''
-  }
+  notes: '',
+  background_score: 0,
+  project_score: 0,
+  skill_score: 0,
+  certificate_score: 0,
+  total_score: 0
 })
-
-const availableJobs = [
-  { 
-    label: 'Senior Frontend Developer', 
-    value: 'Senior Frontend Developer',
-    department: 'Engineering',
-    requirements: ['React', 'Vue.js', 'TypeScript', '5+ years experience']
-  },
-  { 
-    label: 'Backend Developer', 
-    value: 'Backend Developer',
-    department: 'Engineering',
-    requirements: ['Node.js', 'Python', 'SQL', '3+ years experience']
-  },
-  { 
-    label: 'UI/UX Designer', 
-    value: 'UI/UX Designer',
-    department: 'Design',
-    requirements: ['Figma', 'Adobe XD', 'User Research', '3+ years experience']
-  },
-  { 
-    label: 'Product Manager', 
-    value: 'Product Manager',
-    department: 'Product',
-    requirements: ['Agile', 'Product Strategy', 'User Stories', '5+ years experience']
-  }
-]
 
 const showCreateCandidateDialog = () => {
   candidateDialog.isEdit = false
   candidateDialog.visible = true
-  
-  // Reset form
   Object.assign(candidateForm, {
     id: null,
     name: '',
@@ -470,7 +386,6 @@ const showCreateCandidateDialog = () => {
     resume_url: '',
     skills: [],
     notes: '',
-    // Initialize score fields
     background_score: 0,
     project_score: 0,
     skill_score: 0,
@@ -482,8 +397,6 @@ const showCreateCandidateDialog = () => {
 const editCandidate = (candidate) => {
   candidateDialog.isEdit = true
   candidateDialog.visible = true
-  
-  // Copy candidate data to form
   Object.assign(candidateForm, {
     id: candidate.id,
     name: candidate.name,
@@ -496,7 +409,6 @@ const editCandidate = (candidate) => {
     resume: candidate.resume,
     skills: candidate.skills || [],
     notes: candidate.notes || '',
-    // Include score fields
     background_score: candidate.background_score || 0,
     project_score: candidate.project_score || 0,
     skill_score: candidate.skill_score || 0,
@@ -569,54 +481,6 @@ const deleteCandidate = (candidate) => {
       }
     }
   })
-}
-
-const saveCandidate = async () => {
-  try {
-    // Validate form
-    if (!candidateForm.name || !candidateForm.email || !candidateForm.position) {
-      message.error('Please fill in all required fields')
-      return
-    }
-
-    // Prepare data for API
-    const candidateData = {
-      name: candidateForm.name,
-      email: candidateForm.email,
-      phone: candidateForm.phone || '',
-      position: candidateForm.position,
-      department: candidateForm.department || 'General',
-      experience: candidateForm.experience || 0,
-      status: candidateForm.status.toLowerCase(),
-      skills: candidateForm.skills || [],
-      notes: candidateForm.notes || '',
-      resume_url: candidateForm.resume_url || null,
-      salary_expectation: candidateForm.salary_expectation || null,
-      // Include score fields
-      background_score: candidateForm.background_score || 0,
-      project_score: candidateForm.project_score || 0,
-      skill_score: candidateForm.skill_score || 0,
-      certificate_score: candidateForm.certificate_score || 0,
-      total_score: candidateForm.total_score || 0
-    }
-
-    if (candidateDialog.isEdit && candidateForm.id) {
-      // Update existing candidate
-      await candidatesService.updateCandidate(candidateForm.id, candidateData)
-      message.success('Candidate updated successfully')
-    } else {
-      // Create new candidate
-      await candidatesService.createCandidate(candidateData)
-      message.success('Candidate added successfully')
-    }
-
-    // Close dialog and refresh list
-    candidateDialog.visible = false
-    fetchCandidates()
-  } catch (error) {
-    console.error('Error saving candidate:', error)
-    message.error('Failed to save candidate')
-  }
 }
 
 const scoreDialog = reactive({
