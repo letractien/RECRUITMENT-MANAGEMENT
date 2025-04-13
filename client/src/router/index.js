@@ -51,6 +51,12 @@ const routes = [
     }
   },
   {
+    path: '/jobs/:jobId/applications',
+    name: 'JobApplications',
+    component: () => import('../features/jobs/components/JobApplications.vue'),
+    props: true
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../core/pages/NotFound.vue'),

@@ -6,7 +6,6 @@ from ..models.job import (
     Job, 
     JobCreate, 
     JobInDB, 
-    JobSearchParams, 
     JobUpdate,
     JobStatus
 )
@@ -233,3 +232,25 @@ async def get_jobs_by_department(
     jobs = await cursor.to_list(length=100)
     
     return jobs 
+
+@router.get("/{job_id}/applications", response_model=List[Candidate])
+async def get_job_applications(
+    job_id: str,
+):
+    """
+    Get all applications for a specific job
+    """
+    # Check if job exists
+    job = jobs_collection.find_one({"id": job_id})
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job with ID {job_id} not found",
+        )
+    
+    # Get applications for the job
+    cursor = candidates_collection.find({"job_id": job_id})
+    applications = await cursor.to_list(length=100)
+
+    return applications
+

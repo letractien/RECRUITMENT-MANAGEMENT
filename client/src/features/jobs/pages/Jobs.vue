@@ -52,7 +52,7 @@
           size="middle"
           :scroll="{ y: 405 }"
         >
-          <template #bodyCell="{ column, text, record }">
+          <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'title'">
               <div class="job-title">
                 <a-button type="link" @click="viewJobDetails(record)">
@@ -200,6 +200,21 @@
         </div>
       </div>
     </a-modal>
+
+    <!-- Applications Dialog -->
+    <a-modal
+      v-model:visible="applicationsDialog.visible"
+      :title="'Applications for ' + (applicationsDialog.job?.title || '')"
+      width="1200px"
+      :footer="null"
+      @cancel="applicationsDialog.visible = false"
+    >
+      <JobApplications
+        v-if="applicationsDialog.visible"
+        :job-id="applicationsDialog.job?.id"
+        :job-title="applicationsDialog.job?.title"
+      />
+    </a-modal>
   </div>
 </template>
 
@@ -223,8 +238,19 @@ import { message, Modal } from 'ant-design-vue'
 import JobCreationForm from '../components/JobCreationForm.vue'
 import { formatDate } from '../../../shared/utils/dateHelpers.js'
 import { formatCurrency } from '../../../shared/utils/formatHelpers.js'
+import JobApplications from '../components/JobApplications.vue'
 
 const store = useStore()
+const search = ref('')
+const departmentFilter = ref('')
+const statusFilter = ref('')
+const currentPage = ref(1)
+const pageSize = ref(10)
+const jobFormRef = ref(null)
+
+// Computed
+const jobs = computed(() => store.getters['jobs/allJobs'])
+const isLoading = computed(() => store.getters['jobs/isLoading'])
 
 // Constants
 const departments = [
@@ -243,30 +269,35 @@ const columns = [
     title: 'Job Title',
     dataIndex: 'title',
     key: 'title',
-    width: 250
+    width: 250,
+    sorter: (a, b) => a.title.localeCompare(b.title),
   },
   {
     title: 'Department',
     dataIndex: 'department',
     key: 'department',
-    width: 150
+    width: 150,
+    sorter: (a, b) => a.department.localeCompare(b.department),
   },
   {
     title: 'Location',
     dataIndex: 'location',
     key: 'location',
-    width: 150
+    width: 150,
+    sorter: (a, b) => a.location.localeCompare(b.location),
   },
   {
     title: 'Applications',
     key: 'applications',
-    width: 150
+    width: 150,
+    sorter: (a, b) => a.applications - b.applications
   },
   {
     title: 'Posted Date',
     key: 'postedDate',
     dataIndex: 'postedDate',
-    width: 150
+    width: 150,
+    sorter: (a, b) => new Date(a.postedDate) - new Date(b.postedDate),
   },
   {
     title: 'Actions',
@@ -276,63 +307,26 @@ const columns = [
   }
 ]
 
-// State
-const search = ref('')
-const departmentFilter = ref('')
-const statusFilter = ref('')
-const currentPage = ref(1)
-const pageSize = ref(10)
-const jobFormRef = ref(null)
-
-// Load jobs from API on component mount
-onMounted(async () => {
-  try {
-    await store.dispatch('jobs/fetchJobs')
-  } catch (error) {
-    console.error('Error loading jobs:', error)
-    message.error('Failed to load jobs. Please try again later.')
-  }
-})
-
-// Computed
-const jobs = computed(() => store.getters['jobs/allJobs'])
-const isLoading = computed(() => store.getters['jobs/isLoading'])
-
-const filteredJobs = computed(() => {
-  return jobs.value.filter(job => {
-    const matchesSearch = search.value === '' || 
-      (job.title && job.title.toLowerCase().includes(search.value.toLowerCase())) ||
-      (job.department && job.department.toLowerCase().includes(search.value.toLowerCase())) ||
-      (job.location && job.location.toLowerCase().includes(search.value.toLowerCase()))
-    
-    const matchesDepartment = departmentFilter.value === '' || 
-      job.department === departmentFilter.value
-    
-    const matchesStatus = statusFilter.value === '' || 
-      job.status === statusFilter.value
-
-    return matchesSearch && matchesDepartment && matchesStatus
-  })
-})
-
-const totalJobs = computed(() => filteredJobs.value.length)
-
-const paginatedJobs = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filteredJobs.value.slice(start, end)
-})
-
-// Dialogs
-const jobDialog = reactive({
-  visible: false,
-  isEdit: false
-})
-
-const jobDetailsDialog = reactive({
-  visible: false,
-  job: null
-})
+// Form rules
+const jobRules = {
+  title: [
+    { required: true, message: 'Please input job title', trigger: 'blur' },
+    { min: 3, message: 'Length should be at least 3 characters', trigger: 'blur' }
+  ],
+  department: [
+    { required: true, message: 'Please select department', trigger: 'change' }
+  ],
+  location: [
+    { required: true, message: 'Please input location', trigger: 'blur' }
+  ],
+  description: [
+    { required: true, message: 'Please input job description', trigger: 'blur' },
+    { min: 50, message: 'Description should be at least 50 characters', trigger: 'blur' }
+  ],
+  requirements: [
+    { required: true, message: 'Please input job requirements', trigger: 'blur' }
+  ]
+}
 
 const jobForm = reactive({
   title: '',
@@ -365,33 +359,62 @@ const jobForm = reactive({
   }
 })
 
-// Form rules
-const jobRules = {
-  title: [
-    { required: true, message: 'Please input job title', trigger: 'blur' },
-    { min: 3, message: 'Length should be at least 3 characters', trigger: 'blur' }
-  ],
-  department: [
-    { required: true, message: 'Please select department', trigger: 'change' }
-  ],
-  location: [
-    { required: true, message: 'Please input location', trigger: 'blur' }
-  ],
-  description: [
-    { required: true, message: 'Please input job description', trigger: 'blur' },
-    { min: 50, message: 'Description should be at least 50 characters', trigger: 'blur' }
-  ],
-  requirements: [
-    { required: true, message: 'Please input job requirements', trigger: 'blur' }
-  ]
-}
+// Load jobs from API on component mount
+onMounted(async () => {
+  try {
+    await store.dispatch('jobs/fetchJobs')
+  } catch (error) {
+    console.error('Error loading jobs:', error)
+    message.error('Failed to load jobs. Please try again later.')
+  }
+})
 
-// Add this at an appropriate location in the script setup, before the jobs definition:
+const filteredJobs = computed(() => {
+  return jobs.value.filter(job => {
+    const matchesSearch = search.value === '' || 
+      (job.title && job.title.toLowerCase().includes(search.value.toLowerCase())) ||
+      (job.department && job.department.toLowerCase().includes(search.value.toLowerCase())) ||
+      (job.location && job.location.toLowerCase().includes(search.value.toLowerCase()))
+    
+    const matchesDepartment = departmentFilter.value === '' || 
+      job.department === departmentFilter.value
+    
+    const matchesStatus = statusFilter.value === '' || 
+      job.status === statusFilter.value
+
+    return matchesSearch && matchesDepartment && matchesStatus
+  })
+})
+
+const paginatedJobs = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredJobs.value.slice(start, end)
+})
+
+const jobDialog = reactive({
+  visible: false,
+  isEdit: false
+})
+
+const jobDetailsDialog = reactive({
+  visible: false,
+  job: null
+})
+
 const isJobActive = computed({
   get: () => jobForm.status === 'Active',
   set: (value) => {
     jobForm.status = value ? 'Active' : 'Inactive'
   }
+})
+
+const totalJobs = computed(() => filteredJobs.value.length)
+
+// Add new dialog state
+const applicationsDialog = reactive({
+  visible: false,
+  job: null
 })
 
 // Methods
@@ -492,10 +515,10 @@ const viewJobDetails = async (job) => {
   }
 }
 
+// Update viewApplications function
 const viewApplications = (job) => {
-  // Navigate to applications page with job filter
-  // This would be implemented in a real app
-  message.info('Viewing applications for job: ' + job.title)
+  applicationsDialog.job = job;
+  applicationsDialog.visible = true;
 }
 
 const toggleJobStatus = (job) => {
