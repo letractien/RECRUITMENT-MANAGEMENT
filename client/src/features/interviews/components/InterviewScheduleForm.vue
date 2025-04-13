@@ -59,14 +59,18 @@
               </a-select>
             </div>
             <div class="form-group">
-              <label class="form-label">Interviewer</label>
-              <a-input v-model:value="form.interviewer" />
+              <label class="form-label">Location/Meeting Link</label>
+              <a-input
+                v-model:value="form.location"
+                placeholder="Enter location or meeting link"
+              />
             </div>
             <div class="form-group">
               <label class="form-label">Date</label>
               <a-date-picker
                 v-model:value="form.date"
                 placeholder="Select date"
+                :disabledDate="disabledDate"
               />
             </div>
             <div class="form-group">
@@ -78,15 +82,40 @@
               />
             </div>
           </div>
-          <div class="mt-6">
-            <div class="form-group">
-              <label class="form-label">Notes</label>
-              <a-textarea
-                v-model:value="form.notes"
-                :rows="4"
-                placeholder="Additional notes about the interview"
-              />
-            </div>
+        </div>
+
+        <!-- Interviewers Section -->
+        <div class="form-section">
+          <div class="section-header">
+            <h3 class="text-lg font-semibold">Interviewers</h3>
+            <p class="text-sm text-gray-500">Select interviewers for this session</p>
+          </div>
+          <div class="form-group">
+            <a-select
+              v-model:value="form.interviewers"
+              mode="multiple"
+              placeholder="Select interviewers"
+              style="width: 100%"
+            >
+              <a-select-option v-for="interviewer in interviewers" :key="interviewer.id" :value="interviewer.id">
+                {{ interviewer.name }}
+              </a-select-option>
+            </a-select>
+          </div>
+        </div>
+
+        <!-- Notes Section -->
+        <div class="form-section">
+          <div class="section-header">
+            <h3 class="text-lg font-semibold">Additional Information</h3>
+            <p class="text-sm text-gray-500">Add any notes or special instructions</p>
+          </div>
+          <div class="form-group">
+            <a-textarea
+              v-model:value="form.notes"
+              :rows="4"
+              placeholder="Additional notes about the interview"
+            />
           </div>
         </div>
       </form>
@@ -98,6 +127,7 @@
 import { ref, defineProps, defineEmits } from 'vue'
 import { message } from 'ant-design-vue'
 import { useStore } from 'vuex'
+import dayjs from 'dayjs'
 
 const props = defineProps({
   visible: {
@@ -118,22 +148,35 @@ const emit = defineEmits(['update:visible', 'saved'])
 
 const store = useStore()
 
+// Mock interviewers data - in real app this would come from an API
+const interviewers = ref([
+  { id: 1, name: 'John Doe' },
+  { id: 2, name: 'Jane Smith' },
+  { id: 3, name: 'Mike Johnson' }
+])
+
 const form = ref({
   candidate: '',
   position: '',
   interviewType: '',
   date: null,
   time: null,
-  interviewer: '',
+  interviewers: [],
+  location: '',
   notes: ''
 })
+
+const disabledDate = (current) => {
+  return current && current < dayjs().startOf('day')
+}
 
 const handleOk = async () => {
   try {
     // Check if form is valid
     if (!form.value.candidate || !form.value.position || 
         !form.value.interviewType || !form.value.date || 
-        !form.value.time) {
+        !form.value.time || !form.value.location || 
+        form.value.interviewers.length === 0) {
       message.warning('Please fill out all required fields');
       return;
     }
@@ -166,7 +209,8 @@ const handleOk = async () => {
       scheduledAt,
       duration: 60, // Default duration in minutes
       notes: form.value.notes,
-      interviewer: form.value.interviewer,
+      interviewers: form.value.interviewers,
+      location: form.value.location,
       status: 'scheduled'
     };
     
@@ -193,7 +237,8 @@ const resetForm = () => {
     interviewType: '',
     date: null,
     time: null,
-    interviewer: '',
+    interviewers: [],
+    location: '',
     notes: ''
   }
 }
