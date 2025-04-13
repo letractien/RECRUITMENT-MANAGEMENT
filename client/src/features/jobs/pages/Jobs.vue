@@ -25,7 +25,7 @@
         >
           <a-select-option value="">All</a-select-option>
           <a-select-option
-            v-for="dept in departments"
+            v-for="dept in uniqueDepartments"
             :key="dept"
             :value="dept"
           >
@@ -39,8 +39,13 @@
           allowClear
         >
           <a-select-option value="">All</a-select-option>
-          <a-select-option value="Active">Active</a-select-option>
-          <a-select-option value="Inactive">Inactive</a-select-option>
+          <a-select-option
+            v-for="status in uniqueStatuses"
+            :key="status"
+            :value="status"
+          >
+            {{ formatStatus(status) }}
+          </a-select-option>
         </a-select>
       </div>
 
@@ -147,58 +152,7 @@
       width="700px"
       :footer="null"
     >
-      <div class="job-details" v-if="jobDetailsDialog.job">
-        <div class="job-details-header">
-          <a-tag :color="getStatusColor(jobDetailsDialog.job.status)">
-            {{ formatStatus(jobDetailsDialog.job.status) }}
-          </a-tag>
-          <div class="job-meta">
-            <span><environment-outlined /> {{ jobDetailsDialog.job.location }}</span>
-            <span><fund-outlined /> {{ jobDetailsDialog.job.department }}</span>
-            <span><calendar-outlined /> Posted {{ formatJobDate(jobDetailsDialog.job) }}</span>
-          </div>
-        </div>
-        
-        <div class="job-section">
-          <h4>Description</h4>
-          <p>{{ jobDetailsDialog.job.description }}</p>
-        </div>
-        
-        <div class="job-section">
-          <h4>Requirements</h4>
-          <div v-if="Array.isArray(jobDetailsDialog.job.requirements)">
-            <ul>
-              <li v-for="(req, index) in jobDetailsDialog.job.requirements" :key="index">{{ req }}</li>
-            </ul>
-          </div>
-          <p v-else>{{ jobDetailsDialog.job.requirements }}</p>
-        </div>
-
-        <div class="job-section">
-          <h4>Responsibilities</h4>
-          <div v-if="Array.isArray(jobDetailsDialog.job.responsibilities)">
-            <ul>
-              <li v-for="(resp, index) in jobDetailsDialog.job.responsibilities" :key="index">{{ resp }}</li>
-            </ul>
-          </div>
-          <p v-else-if="jobDetailsDialog.job.responsibilities">{{ jobDetailsDialog.job.responsibilities }}</p>
-          <p v-else>Not specified</p>
-        </div>
-
-        <div class="job-section">
-          <h4>Salary Range</h4>
-          <p v-if="jobDetailsDialog.job.min_salary || jobDetailsDialog.job.salaryMin">
-            {{ formatSalary(jobDetailsDialog.job.min_salary || jobDetailsDialog.job.salaryMin) }} - 
-            {{ formatSalary(jobDetailsDialog.job.max_salary || jobDetailsDialog.job.salaryMax) }} VND
-          </p>
-          <p v-else>Competitive</p>
-        </div>
-
-        <div class="job-section">
-          <h4>Applications</h4>
-          <p>{{ jobDetailsDialog.job.applicants || jobDetailsDialog.job.applications || 0 }} candidates have applied</p>
-        </div>
-      </div>
+      <JobViewDetail v-if="jobDetailsDialog.job" :job="jobDetailsDialog.job" />
     </a-modal>
 
     <!-- Applications Dialog -->
@@ -239,6 +193,7 @@ import JobCreationForm from '../components/JobCreationForm.vue'
 import { formatDate } from '../../../shared/utils/dateHelpers.js'
 import { formatCurrency } from '../../../shared/utils/formatHelpers.js'
 import JobApplications from '../components/JobApplications.vue'
+import JobViewDetail from '../components/JobViewDetail.vue'
 
 const store = useStore()
 const search = ref('')
@@ -252,16 +207,11 @@ const jobFormRef = ref(null)
 const jobs = computed(() => store.getters['jobs/allJobs'])
 const isLoading = computed(() => store.getters['jobs/isLoading'])
 
-// Constants
-const departments = [
-  'Engineering',
-  'Design',
-  'Marketing',
-  'Sales',
-  'Human Resources',
-  'Finance',
-  'Operations'
-]
+// Add computed property for unique departments
+const uniqueDepartments = computed(() => {
+  const deptSet = new Set(jobs.value.map(job => job.department))
+  return Array.from(deptSet).filter(dept => dept) // Filter out any null/undefined values
+})
 
 // Table columns
 const columns = [
@@ -415,6 +365,12 @@ const totalJobs = computed(() => filteredJobs.value.length)
 const applicationsDialog = reactive({
   visible: false,
   job: null
+})
+
+// Add computed property for unique statuses
+const uniqueStatuses = computed(() => {
+  const statusSet = new Set(jobs.value.map(job => job.status))
+  return Array.from(statusSet).filter(status => status) // Filter out any null/undefined values
 })
 
 // Methods
