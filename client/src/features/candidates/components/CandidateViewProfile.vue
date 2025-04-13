@@ -1,0 +1,491 @@
+<template>
+  <div class="candidate-profile-form">
+    <a-modal
+      :visible="visible"
+      :title="candidate ? `${candidate.name}'s Profile` : 'Candidate Profile'"
+      width="800px"
+      :footer="null"
+      @update:visible="$emit('update:visible', $event)"
+    >
+      <a-spin :spinning="loading">
+        <div class="candidate-profile" v-if="candidate">
+          <!-- Basic Information Section -->
+          <div class="form-section">
+            <div class="section-header">
+              <h3 class="text-lg font-semibold">Basic Information</h3>
+              <p class="text-sm text-gray-500">Candidate's personal and contact details</p>
+            </div>
+            <div class="profile-header">
+              <a-avatar :size="64" class="profile-avatar">
+                {{ candidate.name ? candidate.name.charAt(0).toUpperCase() : 'U' }}
+              </a-avatar>
+              <div class="profile-info">
+                <h2 class="candidate-name">{{ candidate.name }}</h2>
+                <div class="candidate-email">{{ candidate.email }}</div>
+                <div class="candidate-status">
+                  <a-tag :color="getStatusColor(candidate.status)">
+                    {{ candidate.status }}
+                  </a-tag>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact Details Section -->
+          <div class="form-section">
+            <div class="section-header">
+              <h3 class="text-lg font-semibold">Contact Details</h3>
+              <p class="text-sm text-gray-500">Candidate's contact information</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="form-group">
+                <label class="form-label">Phone</label>
+                <div class="form-value">{{ candidate.phone || 'N/A' }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Position</label>
+                <div class="form-value">{{ candidate.position || 'N/A' }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Department</label>
+                <div class="form-value">{{ candidate.department || 'N/A' }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Experience</label>
+                <div class="form-value">{{ candidate.experience || 0 }} years</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Applied Date</label>
+                <div class="form-value">{{ formatDate(candidate.applied_date) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Skills Section -->
+          <div class="form-section" v-if="candidate.skills && candidate.skills.length">
+            <div class="section-header">
+              <h3 class="text-lg font-semibold">Skills</h3>
+              <p class="text-sm text-gray-500">Candidate's technical and professional skills</p>
+            </div>
+            <div class="skills-list">
+              <a-tag v-for="skill in candidate.skills" :key="skill">
+                {{ skill }}
+              </a-tag>
+            </div>
+          </div>
+
+          <!-- Evaluation Scores Section -->
+          <div class="form-section">
+            <div class="section-header">
+              <h3 class="text-lg font-semibold">Evaluation Scores</h3>
+              <p class="text-sm text-gray-500">Candidate's performance evaluation</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="form-group">
+                <label class="form-label">Background Score</label>
+                <div class="score-display">
+                  <span class="score-value">{{ candidate.background_score || 0 }}</span>
+                  <span class="score-max">/100</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Project Score</label>
+                <div class="score-display">
+                  <span class="score-value">{{ candidate.project_score || 0 }}</span>
+                  <span class="score-max">/100</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Skill Score</label>
+                <div class="score-display">
+                  <span class="score-value">{{ candidate.skill_score || 0 }}</span>
+                  <span class="score-max">/100</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Certificate Score</label>
+                <div class="score-display">
+                  <span class="score-value">{{ candidate.certificate_score || 0 }}</span>
+                  <span class="score-max">/100</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Total Score</label>
+                <div class="score-display total-score">
+                  <span class="score-value">{{ candidate.total_score || 0 }}</span>
+                  <span class="score-max">/100</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes Section -->
+          <div class="form-section" v-if="candidate.notes">
+            <div class="section-header">
+              <h3 class="text-lg font-semibold">Notes</h3>
+              <p class="text-sm text-gray-500">Additional information about the candidate</p>
+            </div>
+            <div class="notes-content">
+              {{ candidate.notes }}
+            </div>
+          </div>
+
+          <!-- Timeline Section -->
+          <div class="form-section">
+            <div class="section-header">
+              <h3 class="text-lg font-semibold">Application Timeline</h3>
+              <p class="text-sm text-gray-500">Candidate's application progress</p>
+            </div>
+            <a-timeline>
+              <a-timeline-item color="green">
+                <template #dot>
+                  <check-circle-outlined style="font-size: 16px" />
+                </template>
+                <div class="timeline-item">
+                  <div class="timeline-title">Application Submitted</div>
+                  <div class="timeline-date">{{ formatDate(candidate.applied_date) }}</div>
+                  <div class="timeline-description">Candidate applied for {{ candidate.position }} position</div>
+                </div>
+              </a-timeline-item>
+              
+              <a-timeline-item :color="candidate.status === 'screening' ? 'blue' : 'gray'">
+                <template #dot>
+                  <file-search-outlined style="font-size: 16px" />
+                </template>
+                <div class="timeline-item">
+                  <div class="timeline-title">Screening</div>
+                  <div class="timeline-description">Initial resume and application review</div>
+                </div>
+              </a-timeline-item>
+
+              <a-timeline-item :color="candidate.status === 'interview' ? 'blue' : 'gray'">
+                <template #dot>
+                  <team-outlined style="font-size: 16px" />
+                </template>
+                <div class="timeline-item">
+                  <div class="timeline-title">Interview</div>
+                  <div class="timeline-description">Technical and cultural fit assessment</div>
+                </div>
+              </a-timeline-item>
+
+              <a-timeline-item :color="candidate.status === 'offer' ? 'blue' : 'gray'">
+                <template #dot>
+                  <gift-outlined style="font-size: 16px" />
+                </template>
+                <div class="timeline-item">
+                  <div class="timeline-title">Offer</div>
+                  <div class="timeline-description">Job offer extended</div>
+                </div>
+              </a-timeline-item>
+
+              <a-timeline-item :color="candidate.status === 'hired' ? 'green' : 'gray'">
+                <template #dot>
+                  <user-add-outlined style="font-size: 16px" />
+                </template>
+                <div class="timeline-item">
+                  <div class="timeline-title">Hired</div>
+                  <div class="timeline-description">Candidate joined the team</div>
+                </div>
+              </a-timeline-item>
+
+              <a-timeline-item v-if="candidate.status === 'rejected'" color="red">
+                <template #dot>
+                  <close-circle-outlined style="font-size: 16px" />
+                </template>
+                <div class="timeline-item">
+                  <div class="timeline-title">Rejected</div>
+                  <div class="timeline-description">Application was not successful</div>
+                </div>
+              </a-timeline-item>
+            </a-timeline>
+          </div>
+        </div>
+        <div v-else class="empty-state">
+          <a-empty description="No candidate data available" />
+        </div>
+      </a-spin>
+    </a-modal>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { formatDate as formatDateUtil } from '../../../shared/utils/dateHelpers'
+import { 
+  CheckCircleOutlined, 
+  FileSearchOutlined, 
+  TeamOutlined, 
+  GiftOutlined, 
+  UserAddOutlined,
+  CloseCircleOutlined 
+} from '@ant-design/icons-vue'
+
+const props = defineProps({
+  visible: {
+    type: Boolean,
+    required: true
+  },
+  candidate: {
+    type: Object,
+    required: true
+  }
+})
+
+const emit = defineEmits(['update:visible'])
+
+const loading = ref(false)
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  return formatDateUtil(dateString, 'YYYY-MM-DD HH:mm')
+}
+
+const getStatusColor = (status) => {
+  const colors = {
+    'new': 'blue',
+    'screening': 'orange',
+    'interview': 'purple',
+    'offer': 'geekblue',
+    'hired': 'green',
+    'rejected': 'red'
+  }
+  return colors[status] || 'default'
+}
+</script>
+
+<style scoped>
+.candidate-profile-form {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Target Ant Design modal body */
+:global(.ant-modal-body) {
+  padding: 0 !important;
+}
+
+:global(.ant-modal-content) {
+  padding: 0 !important;
+}
+
+:global(.ant-modal-header .ant-modal-title) {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+}
+
+.form-section {
+  background: var(--card-bg, white);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px var(--shadow-color, rgba(0, 0, 0, 0.1));
+  border: 1px solid var(--border-color, #f0f0f0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: 20px;
+}
+
+.form-section:hover {
+  box-shadow: 0 8px 16px var(--shadow-color, rgba(0, 0, 0, 0.1));
+}
+
+.section-header {
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  padding-bottom: 12px;
+}
+
+.section-header h3 {
+  color: var(--text-color, rgba(0, 0, 0, 0.85));
+  margin-bottom: 4px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.section-header p {
+  color: var(--text-color, rgba(0, 0, 0, 0.45));
+  font-size: 14px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.profile-info {
+  flex: 1;
+}
+
+.candidate-name {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.candidate-email {
+  color: var(--text-color);
+  opacity: 0.65;
+  margin: 4px 0;
+}
+
+.candidate-status {
+  margin-top: 8px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color, rgba(0, 0, 0, 0.85));
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+
+.form-value {
+  color: var(--text-color);
+  font-weight: 500;
+  padding: 8px 12px;
+  background-color: var(--hover-color);
+  border-radius: 6px;
+}
+
+/* Grid layout */
+.grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.md\:grid-cols-2 {
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.gap-6 {
+  gap: 1.5rem;
+}
+
+/* Text utilities */
+.text-lg {
+  font-size: 1.125rem;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-gray-500 {
+  color: var(--text-color, rgba(0, 0, 0, 0.45));
+}
+
+.skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.score-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background-color: var(--hover-color);
+  border-radius: 6px;
+}
+
+.score-value {
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.score-max {
+  color: var(--text-color);
+  opacity: 0.45;
+  font-size: 0.9em;
+}
+
+.total-score {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+}
+
+.notes-content {
+  padding: 12px;
+  background-color: var(--hover-color);
+  border-radius: 6px;
+  color: var(--text-color);
+  white-space: pre-wrap;
+}
+
+.timeline-section {
+  margin-top: 24px;
+}
+
+.timeline-item {
+  padding: 4px 0;
+}
+
+.timeline-title {
+  font-weight: 500;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.timeline-date {
+  font-size: 12px;
+  color: var(--text-color);
+  opacity: 0.65;
+  margin-bottom: 4px;
+}
+
+.timeline-description {
+  font-size: 14px;
+  color: var(--text-color);
+  opacity: 0.8;
+}
+
+:deep(.ant-timeline-item-tail) {
+  border-left: 2px solid var(--border-color);
+}
+
+:deep(.ant-timeline-item-head) {
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-color: rgba(255, 255, 255, 0.85);
+    --border-color: #303030;
+    --card-bg: #1f1f1f;
+    --input-bg: #141414;
+    --hover-bg: #303030;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Light mode variables */
+:root {
+  --text-color: rgba(0, 0, 0, 0.85);
+  --border-color: #f0f0f0;
+  --card-bg: white;
+  --input-bg: white;
+  --hover-bg: #f5f5f5;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+}
+</style> 
