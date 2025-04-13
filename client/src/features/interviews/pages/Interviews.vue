@@ -161,7 +161,7 @@
     </a-row>
 
     <!-- Schedule Interview Dialog -->
-    <ScheduleInterviewForm
+    <InterviewScheduleForm
       v-model:visible="showScheduleDialog"
       :candidates="candidates"
       :jobs="jobs"
@@ -182,7 +182,7 @@ import {
   UserOutlined,
   EyeOutlined
 } from '@ant-design/icons-vue'
-import ScheduleInterviewForm from '../components/ScheduleInterviewForm.vue'
+import InterviewScheduleForm from '../components/InterviewScheduleForm.vue'
 
 const store = useStore()
 const viewMode = ref('month')
