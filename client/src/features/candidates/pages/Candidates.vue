@@ -41,6 +41,7 @@
           :columns="columns"
           :pagination="false"
           size="middle"
+          :scroll="{ y: 405 }"
           :rowKey="record => record.id"
           @change="handleTableChange"
         >
@@ -132,69 +133,32 @@
       @saved="fetchCandidates"
     />
 
+    <!-- View Profile Dialog -->
+    <CandidateViewProfile
+      v-model:visible="viewProfileDialog.visible"
+      :candidate="viewProfileDialog.candidate"
+    />
+
     <!-- Add Score Dialog -->
-    <a-modal
+    <UpdateScoresCandidate
       v-model:visible="scoreDialog.visible"
-      title="Update Candidate Scores"
-      width="600px"
-      @ok="saveScores"
-    >
-      <a-form
-        :model="scoreForm"
-        :label-col="{ span: 8 }"
-        :wrapper-col="{ span: 16 }"
-      >
-        <a-form-item label="Background Score">
-          <a-input-number 
-            v-model:value="scoreForm.background_score" 
-            :min="0" 
-            :max="100" 
-            style="width: 100%"
-          />
-          <div class="score-hint">Evaluate candidate's work history and education</div>
-        </a-form-item>
-        
-        <a-form-item label="Project Score">
-          <a-input-number 
-            v-model:value="scoreForm.project_score" 
-            :min="0" 
-            :max="100" 
-            style="width: 100%"
-          />
-          <div class="score-hint">Evaluate candidate's past projects and accomplishments</div>
-        </a-form-item>
-        
-        <a-form-item label="Skill Score">
-          <a-input-number 
-            v-model:value="scoreForm.skill_score" 
-            :min="0" 
-            :max="100" 
-            style="width: 100%"
-          />
-          <div class="score-hint">Evaluate candidate's technical and soft skills</div>
-        </a-form-item>
-        
-        <a-form-item label="Certificate Score">
-          <a-input-number 
-            v-model:value="scoreForm.certificate_score" 
-            :min="0" 
-            :max="100" 
-            style="width: 100%"
-          />
-          <div class="score-hint">Evaluate candidate's certifications and qualifications</div>
-        </a-form-item>
-        
-        <a-form-item label="Total Score">
-          <a-input-number 
-            v-model:value="scoreForm.total_score" 
-            :min="0" 
-            :max="100" 
-            style="width: 100%"
-          />
-          <a-button type="link" @click="calculateTotalScore">Calculate Average</a-button>
-        </a-form-item>
-      </a-form>
-    </a-modal>
+      :candidate="scoreDialog.candidate"
+      @saved="fetchCandidates"
+    />
+
+    <!-- Schedule Interview Dialog -->
+    <CandidateMakeScheduleInterview
+      v-model:visible="scheduleInterviewDialog.visible"
+      :candidate="scheduleInterviewDialog.candidate"
+      @saved="fetchCandidates"
+    />
+
+    <!-- Update Status Dialog -->
+    <CandidateUpdateStatus
+      v-model:visible="updateStatusDialog.visible"
+      :candidate="updateStatusDialog.candidate"
+      @saved="fetchCandidates"
+    />
   </div>
 </template>
 
@@ -214,7 +178,11 @@ import {
 import { message, Modal } from 'ant-design-vue'
 import candidatesService from '../api/candidates.service'
 import { formatDate as formatDateUtil } from '../../../shared/utils/dateHelpers'
-import CreateCandidateForm from '../components/CreateCandidateForm.vue'
+import CreateCandidateForm from '../components/CandidateCreateForm.vue'
+import CandidateViewProfile from '../components/CandidateViewProfile.vue'
+import UpdateScoresCandidate from '../components/CandidateUpdateScores.vue'
+import CandidateMakeScheduleInterview from '../components/CandidateMakeScheduleInterview.vue'
+import CandidateUpdateStatus from '../components/CandidateUpdateStatus.vue'
 
 const store = useStore()
 
@@ -239,19 +207,23 @@ const paginatedCandidates = computed(() => {
 const columns = [
   {
     title: 'Candidate',
+    dataIndex: 'candidate',
     key: 'candidate',
-    width: 250
+    width: 250,
+    sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
   },
   {
     title: 'Applied For',
-    dataIndex: 'position',
-    key: 'position',
-    width: 150
+    dataIndex: 'department',
+    key: 'department',
+    width: 150,
+    sorter: (a, b) => a.department.localeCompare(b.department),
   },
   {
     title: 'Experience',
     key: 'experience',
-    width: 100
+    width: 100,
+    sorter: (a, b) => (a.experience || 0) - (b.experience || 0),
   },
   {
     title: 'Total Score',
@@ -262,12 +234,14 @@ const columns = [
   {
     title: 'Status',
     key: 'status',
-    width: 120
+    width: 120,
+    sorter: (a, b) => a.status.localeCompare(b.status),
   },
   {
     title: 'Applied Date',
     key: 'applied_date',
-    width: 120
+    width: 120,
+    sorter: (a, b) => new Date(a.applied_date) - new Date(b.applied_date),
   },
   {
     title: 'Actions',
@@ -417,50 +391,34 @@ const editCandidate = (candidate) => {
   })
 }
 
+const viewProfileDialog = reactive({
+  visible: false,
+  candidate: null
+})
+
 const viewCandidate = (candidate) => {
-  // Navigate to candidate detail page or show a detailed modal
-  // For now, we'll just show a message
-  message.info(`Viewing ${candidate.name}'s profile`)
+  viewProfileDialog.candidate = candidate
+  viewProfileDialog.visible = true
 }
+
+const scheduleInterviewDialog = reactive({
+  visible: false,
+  candidate: null
+})
 
 const scheduleInterview = (candidate) => {
-  // For now, just show a message
-  message.info(`Scheduling interview for ${candidate.name}`)
+  scheduleInterviewDialog.candidate = candidate
+  scheduleInterviewDialog.visible = true
 }
+
+const updateStatusDialog = reactive({
+  visible: false,
+  candidate: null
+})
 
 const updateStatus = (candidate) => {
-  Modal.confirm({
-    title: `Update status for ${candidate.name}`,
-    content: h('div', {}, [
-      h('p', 'Select new status:'),
-      h('a-select', {
-        style: { width: '100%' },
-        value: candidate.status,
-        onChange: (value) => {
-          updateCandidateStatus(candidate.id, value)
-          Modal.destroyAll()
-        }
-      }, [
-        h('a-select-option', { value: 'new' }, 'New'),
-        h('a-select-option', { value: 'screening' }, 'Screening'),
-        h('a-select-option', { value: 'interview' }, 'Interview'),
-        h('a-select-option', { value: 'offer' }, 'Offer'),
-        h('a-select-option', { value: 'hired' }, 'Hired'),
-        h('a-select-option', { value: 'rejected' }, 'Rejected')
-      ])
-    ])
-  })
-}
-
-const updateCandidateStatus = async (id, status) => {
-  try {
-    await candidatesService.updateCandidateStatus(id, status)
-    message.success(`Status updated to ${status}`)
-    fetchCandidates()
-  } catch (error) {
-    console.error('Error updating status:', error)
-    message.error('Failed to update status')
-  }
+  updateStatusDialog.candidate = candidate
+  updateStatusDialog.visible = true
 }
 
 const deleteCandidate = (candidate) => {
@@ -485,60 +443,12 @@ const deleteCandidate = (candidate) => {
 
 const scoreDialog = reactive({
   visible: false,
-  candidateId: null
-})
-
-const scoreForm = reactive({
-  background_score: 0,
-  project_score: 0,
-  skill_score: 0,
-  certificate_score: 0,
-  total_score: 0
+  candidate: null
 })
 
 const updateScores = (candidate) => {
   scoreDialog.visible = true
-  scoreDialog.candidateId = candidate.id
-  
-  // Initialize form with existing scores
-  scoreForm.background_score = candidate.background_score || 0
-  scoreForm.project_score = candidate.project_score || 0
-  scoreForm.skill_score = candidate.skill_score || 0
-  scoreForm.certificate_score = candidate.certificate_score || 0
-  scoreForm.total_score = candidate.total_score || 0
-}
-
-const calculateTotalScore = () => {
-  // Calculate average of all scores
-  const scores = [
-    scoreForm.background_score,
-    scoreForm.project_score,
-    scoreForm.skill_score,
-    scoreForm.certificate_score
-  ]
-  const sum = scores.reduce((acc, score) => acc + (score || 0), 0)
-  scoreForm.total_score = Math.round(sum / scores.length)
-}
-
-const saveScores = async () => {
-  try {
-    if (!scoreDialog.candidateId) return
-    
-    await candidatesService.updateCandidate(scoreDialog.candidateId, {
-      background_score: scoreForm.background_score,
-      project_score: scoreForm.project_score,
-      skill_score: scoreForm.skill_score, 
-      certificate_score: scoreForm.certificate_score,
-      total_score: scoreForm.total_score
-    })
-    
-    message.success('Candidate scores updated successfully')
-    scoreDialog.visible = false
-    fetchCandidates()
-  } catch (error) {
-    console.error('Error updating scores:', error)
-    message.error('Failed to update scores')
-  }
+  scoreDialog.candidate = candidate
 }
 </script>
 

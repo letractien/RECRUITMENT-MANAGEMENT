@@ -92,9 +92,9 @@
                       <template #icon><file-outlined /></template>
                       View Applications ({{ record.applications }})
                     </a-menu-item>
-                    <a-menu-item key="toggle" @click="toggleJobStatus(record)">
+                    <a-menu-item key="applications" @click="showChangeStatusDialog(record)">
                       <template #icon><swap-outlined /></template>
-                      {{ record.status === 'Active' ? 'Deactivate' : 'Activate' }}
+                      Change Status
                     </a-menu-item>
                     <a-menu-divider />
                     <a-menu-item key="delete" danger @click="deleteJob(record)">
@@ -169,6 +169,13 @@
         :job-title="applicationsDialog.job?.title"
       />
     </a-modal>
+
+    <!-- Job Change Status Dialog -->
+    <JobChangeStatus
+      v-model:visible="changeStatusDialog.visible"
+      :job="changeStatusDialog.job"
+      @statusChanged="handleStatusChanged"
+    />
   </div>
 </template>
 
@@ -180,13 +187,10 @@ import {
   EditOutlined, 
   DeleteOutlined, 
   EyeOutlined, 
-  EnvironmentOutlined, 
-  CalendarOutlined, 
   SearchOutlined,
   DownOutlined,
   FileOutlined,
   SwapOutlined,
-  FundOutlined
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import JobCreationForm from '../components/JobCreationForm.vue'
@@ -194,6 +198,7 @@ import { formatDate } from '../../../shared/utils/dateHelpers.js'
 import { formatCurrency } from '../../../shared/utils/formatHelpers.js'
 import JobApplications from '../components/JobApplications.vue'
 import JobViewDetail from '../components/JobViewDetail.vue'
+import JobChangeStatus from '../components/JobChangeStatus.vue'
 
 const store = useStore()
 const search = ref('')
@@ -240,7 +245,7 @@ const columns = [
     title: 'Applications',
     key: 'applications',
     width: 150,
-    sorter: (a, b) => a.applications - b.applications
+    sorter: (a, b) => (a.applications || 0) - (b.applications || 0)
   },
   {
     title: 'Posted Date',
@@ -256,27 +261,6 @@ const columns = [
     fixed: 'right'
   }
 ]
-
-// Form rules
-const jobRules = {
-  title: [
-    { required: true, message: 'Please input job title', trigger: 'blur' },
-    { min: 3, message: 'Length should be at least 3 characters', trigger: 'blur' }
-  ],
-  department: [
-    { required: true, message: 'Please select department', trigger: 'change' }
-  ],
-  location: [
-    { required: true, message: 'Please input location', trigger: 'blur' }
-  ],
-  description: [
-    { required: true, message: 'Please input job description', trigger: 'blur' },
-    { min: 50, message: 'Description should be at least 50 characters', trigger: 'blur' }
-  ],
-  requirements: [
-    { required: true, message: 'Please input job requirements', trigger: 'blur' }
-  ]
-}
 
 const jobForm = reactive({
   title: '',
@@ -352,12 +336,6 @@ const jobDetailsDialog = reactive({
   job: null
 })
 
-const isJobActive = computed({
-  get: () => jobForm.status === 'Active',
-  set: (value) => {
-    jobForm.status = value ? 'Active' : 'Inactive'
-  }
-})
 
 const totalJobs = computed(() => filteredJobs.value.length)
 
@@ -371,6 +349,12 @@ const applicationsDialog = reactive({
 const uniqueStatuses = computed(() => {
   const statusSet = new Set(jobs.value.map(job => job.status))
   return Array.from(statusSet).filter(status => status) // Filter out any null/undefined values
+})
+
+// Add new dialog state
+const changeStatusDialog = reactive({
+  visible: false,
+  job: null
 })
 
 // Methods
@@ -477,24 +461,15 @@ const viewApplications = (job) => {
   applicationsDialog.visible = true;
 }
 
-const toggleJobStatus = (job) => {
-  const newStatus = job.status === 'Active' ? 'Inactive' : 'Active'
-  
-  Modal.confirm({
-    title: `Are you sure you want to ${newStatus.toLowerCase()} this job?`,
-    content: `This will ${newStatus.toLowerCase()} the job posting "${job.title}"`,
-    okText: 'Yes',
-    cancelText: 'No',
-    onOk: async () => {
-      try {
-        await store.dispatch('jobs/updateJobStatus', { id: job.id, status: newStatus })
-        message.success(`Job ${newStatus.toLowerCase()} successfully`)
-      } catch (error) {
-        console.error('Error updating job status:', error)
-        message.error('Failed to update job status. Please try again later.')
-      }
-    }
-  })
+// Replace toggleJobStatus with showChangeStatusDialog
+const showChangeStatusDialog = (job) => {
+  changeStatusDialog.job = job
+  changeStatusDialog.visible = true
+}
+
+const handleStatusChanged = () => {
+  // Refresh jobs list or handle status change
+  store.dispatch('jobs/fetchJobs')
 }
 
 const deleteJob = (job) => {
@@ -652,7 +627,7 @@ const formatJobDate = (job) => {
 }
 
 .job-details {
-  padding: 0 12px;
+  padding: 24px;
 }
 
 .job-details-header {
