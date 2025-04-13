@@ -25,7 +25,7 @@
         >
           <a-select-option value="">All</a-select-option>
           <a-select-option
-            v-for="dept in departments"
+            v-for="dept in uniqueDepartments"
             :key="dept"
             :value="dept"
           >
@@ -39,8 +39,13 @@
           allowClear
         >
           <a-select-option value="">All</a-select-option>
-          <a-select-option value="Active">Active</a-select-option>
-          <a-select-option value="Inactive">Inactive</a-select-option>
+          <a-select-option
+            v-for="status in uniqueStatuses"
+            :key="status"
+            :value="status"
+          >
+            {{ formatStatus(status) }}
+          </a-select-option>
         </a-select>
       </div>
 
@@ -52,7 +57,7 @@
           size="middle"
           :scroll="{ y: 405 }"
         >
-          <template #bodyCell="{ column, text, record }">
+          <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'title'">
               <div class="job-title">
                 <a-button type="link" @click="viewJobDetails(record)">
@@ -147,58 +152,22 @@
       width="700px"
       :footer="null"
     >
-      <div class="job-details" v-if="jobDetailsDialog.job">
-        <div class="job-details-header">
-          <a-tag :color="getStatusColor(jobDetailsDialog.job.status)">
-            {{ formatStatus(jobDetailsDialog.job.status) }}
-          </a-tag>
-          <div class="job-meta">
-            <span><environment-outlined /> {{ jobDetailsDialog.job.location }}</span>
-            <span><fund-outlined /> {{ jobDetailsDialog.job.department }}</span>
-            <span><calendar-outlined /> Posted {{ formatJobDate(jobDetailsDialog.job) }}</span>
-          </div>
-        </div>
-        
-        <div class="job-section">
-          <h4>Description</h4>
-          <p>{{ jobDetailsDialog.job.description }}</p>
-        </div>
-        
-        <div class="job-section">
-          <h4>Requirements</h4>
-          <div v-if="Array.isArray(jobDetailsDialog.job.requirements)">
-            <ul>
-              <li v-for="(req, index) in jobDetailsDialog.job.requirements" :key="index">{{ req }}</li>
-            </ul>
-          </div>
-          <p v-else>{{ jobDetailsDialog.job.requirements }}</p>
-        </div>
+      <JobViewDetail v-if="jobDetailsDialog.job" :job="jobDetailsDialog.job" />
+    </a-modal>
 
-        <div class="job-section">
-          <h4>Responsibilities</h4>
-          <div v-if="Array.isArray(jobDetailsDialog.job.responsibilities)">
-            <ul>
-              <li v-for="(resp, index) in jobDetailsDialog.job.responsibilities" :key="index">{{ resp }}</li>
-            </ul>
-          </div>
-          <p v-else-if="jobDetailsDialog.job.responsibilities">{{ jobDetailsDialog.job.responsibilities }}</p>
-          <p v-else>Not specified</p>
-        </div>
-
-        <div class="job-section">
-          <h4>Salary Range</h4>
-          <p v-if="jobDetailsDialog.job.min_salary || jobDetailsDialog.job.salaryMin">
-            {{ formatSalary(jobDetailsDialog.job.min_salary || jobDetailsDialog.job.salaryMin) }} - 
-            {{ formatSalary(jobDetailsDialog.job.max_salary || jobDetailsDialog.job.salaryMax) }} VND
-          </p>
-          <p v-else>Competitive</p>
-        </div>
-
-        <div class="job-section">
-          <h4>Applications</h4>
-          <p>{{ jobDetailsDialog.job.applicants || jobDetailsDialog.job.applications || 0 }} candidates have applied</p>
-        </div>
-      </div>
+    <!-- Applications Dialog -->
+    <a-modal
+      v-model:visible="applicationsDialog.visible"
+      :title="'Applications for ' + (applicationsDialog.job?.title || '')"
+      width="1200px"
+      :footer="null"
+      @cancel="applicationsDialog.visible = false"
+    >
+      <JobApplications
+        v-if="applicationsDialog.visible"
+        :job-id="applicationsDialog.job?.id"
+        :job-title="applicationsDialog.job?.title"
+      />
     </a-modal>
   </div>
 </template>
@@ -223,19 +192,26 @@ import { message, Modal } from 'ant-design-vue'
 import JobCreationForm from '../components/JobCreationForm.vue'
 import { formatDate } from '../../../shared/utils/dateHelpers.js'
 import { formatCurrency } from '../../../shared/utils/formatHelpers.js'
+import JobApplications from '../components/JobApplications.vue'
+import JobViewDetail from '../components/JobViewDetail.vue'
 
 const store = useStore()
+const search = ref('')
+const departmentFilter = ref('')
+const statusFilter = ref('')
+const currentPage = ref(1)
+const pageSize = ref(10)
+const jobFormRef = ref(null)
 
-// Constants
-const departments = [
-  'Engineering',
-  'Design',
-  'Marketing',
-  'Sales',
-  'Human Resources',
-  'Finance',
-  'Operations'
-]
+// Computed
+const jobs = computed(() => store.getters['jobs/allJobs'])
+const isLoading = computed(() => store.getters['jobs/isLoading'])
+
+// Add computed property for unique departments
+const uniqueDepartments = computed(() => {
+  const deptSet = new Set(jobs.value.map(job => job.department))
+  return Array.from(deptSet).filter(dept => dept) // Filter out any null/undefined values
+})
 
 // Table columns
 const columns = [
@@ -243,30 +219,35 @@ const columns = [
     title: 'Job Title',
     dataIndex: 'title',
     key: 'title',
-    width: 250
+    width: 250,
+    sorter: (a, b) => a.title.localeCompare(b.title),
   },
   {
     title: 'Department',
     dataIndex: 'department',
     key: 'department',
-    width: 150
+    width: 150,
+    sorter: (a, b) => a.department.localeCompare(b.department),
   },
   {
     title: 'Location',
     dataIndex: 'location',
     key: 'location',
-    width: 150
+    width: 150,
+    sorter: (a, b) => a.location.localeCompare(b.location),
   },
   {
     title: 'Applications',
     key: 'applications',
-    width: 150
+    width: 150,
+    sorter: (a, b) => a.applications - b.applications
   },
   {
     title: 'Posted Date',
     key: 'postedDate',
     dataIndex: 'postedDate',
-    width: 150
+    width: 150,
+    sorter: (a, b) => new Date(a.postedDate) - new Date(b.postedDate),
   },
   {
     title: 'Actions',
@@ -275,75 +256,6 @@ const columns = [
     fixed: 'right'
   }
 ]
-
-// State
-const search = ref('')
-const departmentFilter = ref('')
-const statusFilter = ref('')
-const currentPage = ref(1)
-const pageSize = ref(10)
-const jobFormRef = ref(null)
-
-// Load jobs from API on component mount
-onMounted(async () => {
-  try {
-    await store.dispatch('jobs/fetchJobs')
-  } catch (error) {
-    console.error('Error loading jobs:', error)
-    message.error('Failed to load jobs. Please try again later.')
-  }
-})
-
-// Computed
-const jobs = computed(() => store.getters['jobs/allJobs'])
-const isLoading = computed(() => store.getters['jobs/isLoading'])
-
-const filteredJobs = computed(() => {
-  return jobs.value.filter(job => {
-    const matchesSearch = search.value === '' || 
-      (job.title && job.title.toLowerCase().includes(search.value.toLowerCase())) ||
-      (job.department && job.department.toLowerCase().includes(search.value.toLowerCase())) ||
-      (job.location && job.location.toLowerCase().includes(search.value.toLowerCase()))
-    
-    const matchesDepartment = departmentFilter.value === '' || 
-      job.department === departmentFilter.value
-    
-    const matchesStatus = statusFilter.value === '' || 
-      job.status === statusFilter.value
-
-    return matchesSearch && matchesDepartment && matchesStatus
-  })
-})
-
-const totalJobs = computed(() => filteredJobs.value.length)
-
-const paginatedJobs = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filteredJobs.value.slice(start, end)
-})
-
-// Dialogs
-const jobDialog = reactive({
-  visible: false,
-  isEdit: false
-})
-
-const jobDetailsDialog = reactive({
-  visible: false,
-  job: null
-})
-
-const jobForm = reactive({
-  title: '',
-  department: '',
-  location: '',
-  description: '',
-  requirements: '',
-  salaryMin: 0,
-  salaryMax: 0,
-  status: 'Active'
-})
 
 // Form rules
 const jobRules = {
@@ -366,12 +278,99 @@ const jobRules = {
   ]
 }
 
-// Add this at an appropriate location in the script setup, before the jobs definition:
+const jobForm = reactive({
+  title: '',
+  department: '',
+  location: '',
+  description: '',
+  requirements: '',
+  salaryMin: 0,
+  salaryMax: 0,
+  status: 'Active',
+  backgroundCriteria: {
+    importanceRatio: 25,
+    required: '',
+    criteria: []
+  },
+  projectCriteria: {
+    importanceRatio: 25,
+    required: '',
+    criteria: []
+  },
+  skillCriteria: {
+    importanceRatio: 25,
+    required: '',
+    criteria: []
+  },
+  certificationCriteria: {
+    importanceRatio: 25,
+    required: '',
+    criteria: []
+  }
+})
+
+// Load jobs from API on component mount
+onMounted(async () => {
+  try {
+    await store.dispatch('jobs/fetchJobs')
+  } catch (error) {
+    console.error('Error loading jobs:', error)
+    message.error('Failed to load jobs. Please try again later.')
+  }
+})
+
+const filteredJobs = computed(() => {
+  return jobs.value.filter(job => {
+    const matchesSearch = search.value === '' || 
+      (job.title && job.title.toLowerCase().includes(search.value.toLowerCase())) ||
+      (job.department && job.department.toLowerCase().includes(search.value.toLowerCase())) ||
+      (job.location && job.location.toLowerCase().includes(search.value.toLowerCase()))
+    
+    const matchesDepartment = departmentFilter.value === '' || 
+      job.department === departmentFilter.value
+    
+    const matchesStatus = statusFilter.value === '' || 
+      job.status === statusFilter.value
+
+    return matchesSearch && matchesDepartment && matchesStatus
+  })
+})
+
+const paginatedJobs = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredJobs.value.slice(start, end)
+})
+
+const jobDialog = reactive({
+  visible: false,
+  isEdit: false
+})
+
+const jobDetailsDialog = reactive({
+  visible: false,
+  job: null
+})
+
 const isJobActive = computed({
   get: () => jobForm.status === 'Active',
   set: (value) => {
     jobForm.status = value ? 'Active' : 'Inactive'
   }
+})
+
+const totalJobs = computed(() => filteredJobs.value.length)
+
+// Add new dialog state
+const applicationsDialog = reactive({
+  visible: false,
+  job: null
+})
+
+// Add computed property for unique statuses
+const uniqueStatuses = computed(() => {
+  const statusSet = new Set(jobs.value.map(job => job.status))
+  return Array.from(statusSet).filter(status => status) // Filter out any null/undefined values
 })
 
 // Methods
@@ -383,7 +382,7 @@ const showCreateJobDialog = () => {
   jobDialog.isEdit = false
   jobDialog.visible = true
   
-  // Reset form
+  // Reset form with all required nested properties
   Object.assign(jobForm, {
     title: '',
     department: '',
@@ -392,7 +391,27 @@ const showCreateJobDialog = () => {
     requirements: '',
     salaryMin: 0,
     salaryMax: 0,
-    status: 'Active'
+    status: 'Active',
+    backgroundCriteria: {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    },
+    projectCriteria: {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    },
+    skillCriteria: {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    },
+    certificationCriteria: {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    }
   })
 }
 
@@ -400,7 +419,7 @@ const editJob = (job) => {
   jobDialog.isEdit = true
   jobDialog.visible = true
   
-  // Set form data
+  // Set form data with all required nested properties
   Object.assign(jobForm, {
     title: job.title,
     department: job.department,
@@ -409,7 +428,27 @@ const editJob = (job) => {
     requirements: job.requirements,
     salaryMin: job.salaryMin,
     salaryMax: job.salaryMax,
-    status: job.status
+    status: job.status,
+    backgroundCriteria: job.backgroundCriteria || {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    },
+    projectCriteria: job.projectCriteria || {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    },
+    skillCriteria: job.skillCriteria || {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    },
+    certificationCriteria: job.certificationCriteria || {
+      importanceRatio: 25,
+      required: '',
+      criteria: []
+    }
   })
   
   // Store job for reference
@@ -432,10 +471,10 @@ const viewJobDetails = async (job) => {
   }
 }
 
+// Update viewApplications function
 const viewApplications = (job) => {
-  // Navigate to applications page with job filter
-  // This would be implemented in a real app
-  message.info('Viewing applications for job: ' + job.title)
+  applicationsDialog.job = job;
+  applicationsDialog.visible = true;
 }
 
 const toggleJobStatus = (job) => {

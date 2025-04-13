@@ -36,90 +36,97 @@
           </template>
           
           <div class="calendar-grid" :class="[`view-${viewMode}`]">
-            <!-- Calendar Days Header - Hide for day view -->
-            <div v-if="viewMode !== 'day'" class="calendar-days">
-              <div v-for="day in days" :key="day" class="calendar-day-header">
-                {{ day }}
-              </div>
-            </div>
-            
-            <!-- Day view header -->
-            <div v-else class="day-view-header">
-              <div class="day-date">
-                <calendar-outlined />
-                <span>{{ formatFullDate(currentDate) }}</span>
-              </div>
-              <div class="day-info">
-                <span class="interviews-count">{{ getDayInterviewsCount() }} interviews</span>
-              </div>
-            </div>
-            
-            <div class="calendar-cells" :style="getCalendarGridStyle()">
-              <div
-                v-for="date in calendarDates"
-                :key="date"
-                class="calendar-cell"
-                :class="{ 
-                  'other-month': !isCurrentMonth(date), 
-                  'today': isToday(date),
-                  'full-width': viewMode === 'day'
-                }"
-              >
-                <div v-if="viewMode !== 'day'" class="date-number">
-                  <span>{{ getDateNumber(date) }}</span>
+            <!-- Add loading spinner when interviews are loading -->
+            <a-spin v-if="loading" class="full-calendar-spinner" />
+            <template v-else>
+              <!-- Calendar Days Header - Hide for day view -->
+              <div v-if="viewMode !== 'day'" class="calendar-days">
+                <div v-for="day in days" :key="day" class="calendar-day-header">
+                  {{ day }}
                 </div>
-                
-                <div class="interview-events" :class="{ 'day-view-events': viewMode === 'day' }">
-                  <div v-if="viewMode === 'day'" class="time-slots">
-                    <div class="time-label">Morning</div>
-                    <div class="time-range">9:00 AM - 12:00 PM</div>
+              </div>
+              
+              <!-- Day view header -->
+              <div v-else class="day-view-header">
+                <div class="day-date">
+                  <calendar-outlined />
+                  <span>{{ formatFullDate(currentDate) }}</span>
+                </div>
+                <div class="day-info">
+                  <span class="interviews-count">{{ getDayInterviewsCount() }} interviews</span>
+                </div>
+              </div>
+              
+              <div class="calendar-cells" :style="getCalendarGridStyle()">
+                <div
+                  v-for="date in calendarDates"
+                  :key="date"
+                  class="calendar-cell"
+                  :class="{ 
+                    'other-month': !isCurrentMonth(date), 
+                    'today': isToday(date),
+                    'full-width': viewMode === 'day'
+                  }"
+                >
+                  <div v-if="viewMode !== 'day'" class="date-number">
+                    <span>{{ getDateNumber(date) }}</span>
                   </div>
                   
-                  <div v-if="getInterviewsForDate(date).length === 0" class="no-interviews">
-                    No interviews
-                  </div>
-                  
-                  <div
-                    v-for="interview in getInterviewsForDate(date)"
-                    :key="interview.id"
-                    class="interview-event"
-                    :class="[getInterviewClass(interview.interviewType), {'day-view-event': viewMode === 'day'}]"
-                    @click="viewInterview(interview)"
-                  >
-                    <div class="interview-time">{{ interview.time }}</div>
-                    <div class="interview-title">{{ interview.candidate }}</div>
-                    <div v-if="viewMode === 'day'" class="interview-details">
-                      <div class="interview-position">{{ interview.position }}</div>
-                      <div class="interview-interviewer">
-                        <user-outlined />
-                        <span>{{ interview.interviewer }}</span>
+                  <div class="interview-events" :class="{ 'day-view-events': viewMode === 'day' }">
+                    <div v-if="viewMode === 'day'" class="time-slots">
+                      <div class="time-label">Morning</div>
+                      <div class="time-range">9:00 AM - 12:00 PM</div>
+                    </div>
+                    
+                    <div v-if="isDateLoading(date)" class="loading-spinner">
+                      <a-spin />
+                    </div>
+                    <div v-else-if="getInterviewsForDate(date).length === 0" class="no-interviews">
+                      No interviews
+                    </div>
+                    
+                    <div
+                      v-for="interview in getInterviewsForDate(date)"
+                      :key="interview.id"
+                      class="interview-event"
+                      :class="[getInterviewClass(interview.interviewType), {'day-view-event': viewMode === 'day'}]"
+                      @click="viewInterview(interview)"
+                    >
+                      <div class="interview-time">{{ interview.time }}</div>
+                      <div class="interview-title">{{ interview.candidate }}</div>
+                      <div v-if="viewMode === 'day'" class="interview-details">
+                        <div class="interview-position">{{ interview.position }}</div>
+                        <div class="interview-interviewer">
+                          <user-outlined />
+                          <span>{{ interview.interviewer }}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div v-if="shouldShowViewMoreButton(date)" class="interviews-view-more">
-                    <div class="interviews-count-info">
-                      Hiển thị {{ getInterviewsForDate(date).length }} / {{ getTotalInterviewsForDate(date) }}
+                    
+                    <div v-if="shouldShowViewMoreButton(date)" class="interviews-view-more">
+                      <div class="interviews-count-info">
+                        Hiển thị {{ getInterviewsForDate(date).length }} / {{ getTotalInterviewsForDate(date) }}
+                      </div>
+                      <div class="view-buttons">
+                        <a @click="showMoreInterviews(date)" class="view-more-link">
+                          <plus-outlined />
+                          <span>5</span>
+                        </a>
+                        <a @click="showAllInterviews(date)" class="view-all-link">
+                          <eye-outlined />
+                          <span>Full</span>
+                        </a>
+                      </div>
                     </div>
-                    <div class="view-buttons">
-                      <a @click="showMoreInterviews(date)" class="view-more-link">
-                        <plus-outlined />
-                        <span>5</span>
-                      </a>
-                      <a @click="showAllInterviews(date)" class="view-all-link">
-                        <eye-outlined />
-                        <span>Full</span>
-                      </a>
+                    
+                    <div v-if="viewMode === 'day'" class="time-slots">
+                      <div class="time-label">Afternoon</div>
+                      <div class="time-range">1:00 PM - 5:00 PM</div>
                     </div>
-                  </div>
-                  
-                  <div v-if="viewMode === 'day'" class="time-slots">
-                    <div class="time-label">Afternoon</div>
-                    <div class="time-range">1:00 PM - 5:00 PM</div>
                   </div>
                 </div>
               </div>
-            </div>
+            </template>
           </div>
           
           <div class="interviews-stats">
@@ -127,7 +134,8 @@
               <bar-chart-outlined />
               <span>Thống kê phỏng vấn</span>
             </div>
-            <div class="stats-container">
+            <a-spin v-if="loading" class="stats-spinner" />
+            <div v-else class="stats-container">
               <div 
                 class="stat-card" 
                 :class="{ active: activeFilter === 'all' }"
@@ -193,7 +201,7 @@
               <span>Upcoming Interviews</span>
             </div>
           </template>
-          <a-spin v-if="loading" />
+          <a-spin v-if="loading" class="centered-spinner" />
           <a-empty v-else-if="upcomingInterviews.length === 0" description="No upcoming interviews" />
           <a-timeline v-else>
             <a-timeline-item
@@ -217,88 +225,17 @@
     </a-row>
 
     <!-- Schedule Interview Dialog -->
-    <a-modal
+    <ScheduleInterviewForm
       v-model:visible="showScheduleDialog"
-      title="Schedule Interview"
-      width="550px"
-      @ok="saveInterview"
-    >
-      <a-form :model="interviewForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-        <a-form-item label="Candidate">
-          <a-select
-            v-model:value="interviewForm.candidate"
-            placeholder="Select candidate"
-            style="width: 100%"
-          >
-            <a-select-option
-              v-for="candidate in candidates"
-              :key="candidate.id"
-              :value="candidate.name"
-            >
-              {{ candidate.name }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="Position">
-          <a-select
-            v-model:value="interviewForm.position"
-            placeholder="Select position"
-            style="width: 100%"
-          >
-            <a-select-option
-              v-for="job in jobs"
-              :key="job.id"
-              :value="job.title"
-            >
-              {{ job.title }}
-            </a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="Interview Type">
-          <a-select
-            v-model:value="interviewForm.interviewType"
-            placeholder="Select type"
-            style="width: 100%"
-          >
-            <a-select-option value="Phone Screen">Phone Screen</a-select-option>
-            <a-select-option value="Video">Video</a-select-option>
-            <a-select-option value="Onsite">Onsite</a-select-option>
-            <a-select-option value="Technical">Technical</a-select-option>
-            <a-select-option value="HR">HR</a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="Date">
-          <a-date-picker
-            v-model:value="interviewForm.date"
-            style="width: 100%"
-            placeholder="Select date"
-          />
-        </a-form-item>
-        <a-form-item label="Time">
-          <a-time-picker
-            v-model:value="interviewForm.time"
-            format="HH:mm"
-            placeholder="Select time"
-            style="width: 100%"
-          />
-        </a-form-item>
-        <a-form-item label="Interviewer">
-          <a-input v-model:value="interviewForm.interviewer" />
-        </a-form-item>
-        <a-form-item label="Notes">
-          <a-textarea
-            v-model:value="interviewForm.notes"
-            :rows="4"
-            placeholder="Additional notes about the interview"
-          />
-        </a-form-item>
-      </a-form>
-    </a-modal>
+      :candidates="candidates"
+      :jobs="jobs"
+      @saved="fetchUpcomingInterviews"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useStore } from 'vuex'
 import { message } from 'ant-design-vue'
 import { 
@@ -312,7 +249,7 @@ import {
   ClockCircleOutlined,
   EyeOutlined
 } from '@ant-design/icons-vue'
-import { formatDate } from '../../../shared/utils/dateHelpers.js'
+import ScheduleInterviewForm from '../components/ScheduleInterviewForm.vue'
 
 const store = useStore()
 const viewMode = ref('month')
@@ -321,38 +258,55 @@ const showScheduleDialog = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const activeFilter = ref('all')
-
-// Sample data for testing
-const candidates = [
-  { id: 'candidate-1', name: 'John Doe' },
-  { id: 'candidate-2', name: 'Jane Smith' },
-  { id: 'candidate-3', name: 'Michael Johnson' },
-  { id: 'candidate-4', name: 'Sarah Williams' }
-]
-
-const jobs = [
-  { id: 'job-1', title: 'Frontend Developer' },
-  { id: 'job-2', title: 'Backend Developer' },
-  { id: 'job-3', title: 'UX Designer' },
-  { id: 'job-4', title: 'Product Manager' }
-]
-
 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+// Candidates and jobs lists for the interview form
+const candidates = ref([])
+const jobs = ref([])
+
+// Load candidates and jobs data
+const loadFormData = async () => {
+  try {
+    // Load candidates
+    const candidatesResponse = await store.dispatch('candidates/fetchCandidates')
+    if (candidatesResponse) {
+      candidates.value = candidatesResponse
+    }
+    
+    // Load jobs
+    const jobsResponse = await store.dispatch('jobs/fetchJobs')
+    if (jobsResponse) {
+      jobs.value = jobsResponse
+    }
+
+    console.log('Loaded candidates:', candidates.value.length)
+    console.log('Loaded jobs:', jobs.value.length)
+  } catch (error) {
+    console.error('Error loading form data:', error)
+    message.error('Failed to load candidates or jobs data')
+  }
+}
 
 // Fetch interviews on component mount
 onMounted(async () => {
   console.log("Fetching interviews...")
   try {
+    // Fetch global interviews for filtering (this will be used as a backup)
     await store.dispatch('interviews/fetchInterviews')
-    console.log("Raw interviews data:", store.state.interviews.interviews)
-    console.log("Computed interviews:", interviews.value)
-    if (interviews.value.length > 0) {
-      console.log("Sample interview data structure:", JSON.stringify(interviews.value[0], null, 2))
-      console.log("Sample scheduledAt:", interviews.value[0].scheduledAt)
-      console.log("Sample scheduledAt type:", typeof interviews.value[0].scheduledAt)
-    }
+    
+    // Fetch current month's interviews for the calendar
+    await fetchInterviewsForCurrentView()
+    
+    // Fetch upcoming interviews for the sidebar (not mocked, from API)
+    await fetchUpcomingInterviews()
+    
+    // Load candidates and jobs data for the form
+    await loadFormData()
+    
+    console.log("Interview data loaded successfully")
   } catch (error) {
     console.error("Error fetching interviews:", error)
+    message.error("Failed to load interview data")
   }
 })
 
@@ -389,51 +343,68 @@ const filteredInterviews = computed(() => {
 
 // Get interviews for a specific date
 const getInterviewsForDate = (date) => {
-  const startOfDay = new Date(date)
-  startOfDay.setHours(0, 0, 0, 0)
-  const endOfDay = new Date(date)
-  endOfDay.setHours(23, 59, 59, 999)
+  // Format date as YYYY-MM-DD for store lookup
+  const formattedDate = formatDate(date, 'YYYY-MM-DD')
   
-  // Filter interviews for this date
-  const dateInterviews = filteredInterviews.value.filter(interview => {
-    if (!interview.scheduledAt) {
-      return false
-    }
-    
-    let interviewDate
-    try {
-      // Handle different date formats (ISO string or Date object)
-      if (typeof interview.scheduledAt === 'object') {
-        interviewDate = new Date(interview.scheduledAt.toISOString())
-      } else {
-        interviewDate = new Date(interview.scheduledAt)
-      }
-      
-      if (isNaN(interviewDate.getTime())) {
-        console.warn("Invalid date value:", interview.scheduledAt)
-        return false
-      }
-      
-      const isInRange = interviewDate >= startOfDay && interviewDate <= endOfDay
-      return isInRange
-    } catch (error) {
-      console.error("Error processing date:", error)
-      return false
-    }
-  })
+  // Get interviews from store using the calendarInterviews getter
+  const dateInterviews = store.getters['interviews/calendarInterviews'](formattedDate)
   
   // Format interviews for display
-  const formattedInterviews = dateInterviews.map(interview => {
+  return formatInterviewsForCalendar(dateInterviews || [])
+}
+
+// Helper to check if we've already fetched interviews for a date
+const hasInterviewsForDate = (date) => {
+  const formattedDate = formatDate(date, 'YYYY-MM-DD')
+  return store.state.interviews.calendarInterviews[formattedDate] !== undefined
+}
+
+// Add refs for tracking loading state for calendar cells
+const loadingDates = ref({});
+
+// Update the fetchInterviewsForDate method to track loading state
+const fetchInterviewsForDate = async (date) => {
+  try {
+    const formattedDate = formatDate(date, 'YYYY-MM-DD')
+    
+    // Only fetch if we haven't already fetched this date
+    if (!hasInterviewsForDate(date)) {
+      // Set loading state for this date
+      loadingDates.value[formattedDate] = true
+      
+      await store.dispatch('interviews/fetchCalendarInterviews', formattedDate)
+    }
+  } catch (error) {
+    console.error(`Error fetching interviews for date ${date}:`, error)
+  } finally {
+    // Clear loading state for this date
+    const formattedDate = formatDate(date, 'YYYY-MM-DD')
+    loadingDates.value[formattedDate] = false
+  }
+}
+
+// Helper to check if a date is loading
+const isDateLoading = (date) => {
+  const formattedDate = formatDate(date, 'YYYY-MM-DD')
+  return loadingDates.value[formattedDate] === true
+}
+
+// Format interviews for calendar display
+const formatInterviewsForCalendar = (interviews) => {
+  return interviews.map(interview => {
+    let interviewTime = ''
     let interviewDate
+    
     try {
-      if (typeof interview.scheduledAt === 'object') {
-        interviewDate = new Date(interview.scheduledAt.toISOString())
-      } else {
+      if (interview.scheduledAt) {
         interviewDate = new Date(interview.scheduledAt)
+        // Change from toLocaleTimeString to a custom format with only hours and minutes
+        const hours = String(interviewDate.getHours()).padStart(2, '0')
+        const minutes = String(interviewDate.getMinutes()).padStart(2, '0')
+        interviewTime = `${hours}:${minutes}`
       }
     } catch (error) {
-      console.error("Error formatting interview date:", error)
-      interviewDate = new Date()
+      console.error("Error formatting interview time:", error)
     }
     
     return {
@@ -441,14 +412,12 @@ const getInterviewsForDate = (date) => {
       candidate: interview.candidateName,
       position: interview.jobTitle,
       interviewer: interview.interviewer,
-      interviewType: interview.interviewType,
-      time: interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: interviewDate.toLocaleDateString(),
+      interviewType: interview.interviewType || interview.type,
+      time: interviewTime,
+      date: interviewDate ? interviewDate.toLocaleDateString() : '',
       status: interview.status
     }
   })
-  
-  return formattedInterviews
 }
 
 // Get total interviews count
@@ -481,24 +450,46 @@ const interviewTypeStats = computed(() => {
 
 // Get upcoming interviews
 const upcomingInterviews = computed(() => {
-  const now = new Date();
-  return interviews.value
-    .filter(interview => new Date(interview.scheduledAt) > now && interview.status !== 'cancelled')
-    .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))
-    .slice(0, 5)
-    .map(interview => {
-      const interviewDate = new Date(interview.scheduledAt);
-      return {
-        id: interview.id,
-        candidate: interview.candidateName,
-        position: interview.jobTitle,
-        interviewer: interview.interviewer,
-        interviewType: interview.interviewType,
-        date: interviewDate.toLocaleDateString(),
-        time: interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-    });
+  // Get all interviews from the store
+  const allInterviews = store.getters['interviews/upcomingInterviews'];
+  
+  // Create date range: today and the next 6 days
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Start of today
+  
+  const endDate = new Date(today);
+  endDate.setDate(today.getDate() + 6); // End of 6 days from today
+  endDate.setHours(23, 59, 59, 999); // End of the day
+  
+  // Filter interviews to include only those within the date range
+  const filteredInterviews = allInterviews.filter(interview => {
+    const interviewDate = new Date(interview.scheduledAt);
+    return interviewDate >= today && interviewDate <= endDate;
+  });
+  
+  // Map and return the filtered interviews
+  return filteredInterviews.map(interview => {
+    const interviewDate = new Date(interview.scheduledAt);
+    return {
+      id: interview.id,
+      candidate: interview.candidateName,
+      position: interview.jobTitle,
+      interviewType: interview.type,
+      date: interviewDate,
+      time: interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+  });
 })
+
+// Fetch upcoming interviews using the store action
+const fetchUpcomingInterviews = async () => {
+  try {
+    await store.dispatch('interviews/fetchUpcomingInterviews');
+  } catch (error) {
+    console.error('Error fetching upcoming interviews:', error);
+    message.error('Failed to load upcoming interviews');
+  }
+}
 
 // Interview form data
 const interviewForm = ref({
@@ -568,6 +559,14 @@ const showAllInterviews = (date) => {
 
 const saveInterview = async () => {
   try {
+    // Check if form is valid
+    if (!interviewForm.value.candidate || !interviewForm.value.position || 
+        !interviewForm.value.interviewType || !interviewForm.value.date || 
+        !interviewForm.value.time) {
+      message.warning('Please fill out all required fields');
+      return;
+    }
+    
     // Format datetime from separate date and time inputs
     const scheduledAt = new Date(
       interviewForm.value.date.getFullYear(),
@@ -577,26 +576,42 @@ const saveInterview = async () => {
       interviewForm.value.time.getMinutes()
     ).toISOString();
     
-    // Get IDs from selected objects
-    const selectedCandidate = candidates.find(c => c.name === interviewForm.value.candidate);
-    const selectedJob = jobs.find(j => j.title === interviewForm.value.position);
+    // Find selected candidate and job from selectors
+    const selectedCandidate = candidates.value.find(c => c.name === interviewForm.value.candidate || c.fullName === interviewForm.value.candidate);
+    const selectedJob = jobs.value.find(j => j.title === interviewForm.value.position);
+    
+    if (!selectedCandidate || !selectedJob) {
+      message.warning('Invalid candidate or job selection');
+      return;
+    }
     
     // Create interview data object
     const interviewData = {
-      candidateId: selectedCandidate?.id,
-      jobId: selectedJob?.id,
-      interviewerId: "interviewer-123", // This would typically come from a selector
+      candidateId: selectedCandidate.id,
+      candidateName: selectedCandidate.name || selectedCandidate.fullName,
+      jobId: selectedJob.id,
+      jobTitle: selectedJob.title,
       interviewType: interviewForm.value.interviewType,
       scheduledAt,
-      duration: 60, // Default duration
+      duration: 60, // Default duration in minutes
       notes: interviewForm.value.notes,
-      interviewer: interviewForm.value.interviewer
+      interviewer: interviewForm.value.interviewer,
+      status: 'scheduled'
     };
     
-    await store.dispatch('interviews/createInterview', interviewData);
-    message.success('Interview scheduled successfully');
-    showScheduleDialog.value = false;
-    resetForm();
+    console.log('Creating interview with data:', interviewData)
+    const result = await store.dispatch('interviews/createInterview', interviewData);
+    
+    if (result) {
+      message.success('Interview scheduled successfully');
+      showScheduleDialog.value = false;
+      resetForm();
+      
+      // Refresh upcoming interviews list
+      fetchUpcomingInterviews();
+    } else {
+      message.error('Failed to schedule interview');
+    }
   } catch (error) {
     message.error('Failed to schedule interview: ' + (error.message || 'Unknown error'));
     console.error('Error scheduling interview:', error);
@@ -706,6 +721,7 @@ const navigatePrevious = () => {
     newDate.setDate(newDate.getDate() - 1)
     currentDate.value = newDate
   }
+  // Interviews will be fetched by the watcher
 }
 
 const navigateNext = () => {
@@ -724,10 +740,12 @@ const navigateNext = () => {
     newDate.setDate(newDate.getDate() + 1)
     currentDate.value = newDate
   }
+  // Interviews will be fetched by the watcher
 }
 
 const goToday = () => {
   currentDate.value = new Date()
+  // Interviews will be fetched by the watcher
 }
 
 const isCurrentMonth = (date) => {
@@ -801,32 +819,161 @@ const formatFullDate = (date) => {
 const getDayInterviewsCount = () => {
   if (!currentDate.value) return 0
   
-  return interviews.value.filter(interview => {
-    const interviewDate = new Date(interview.date)
-    return (
-      interviewDate.getDate() === currentDate.value.getDate() &&
-      interviewDate.getMonth() === currentDate.value.getMonth() &&
-      interviewDate.getFullYear() === currentDate.value.getFullYear()
-    )
-  }).length
+  const formattedDate = formatDate(currentDate.value, 'YYYY-MM-DD')
+  const interviews = store.getters['interviews/calendarInterviews'](formattedDate)
+  
+  return interviews ? interviews.length : 0
 }
 
 // Format interview date using the shared date helper
-const formatInterviewDate = (dateString) => {
-  if (!dateString) return '';
+const formatInterviewDate = (dateInput) => {
+  if (!dateInput) return '';
   
   try {
-    // Convert ISO string or datetime object to proper format
-    if (typeof dateString === 'object') {
-      dateString = dateString.toISOString();
+    let dateString;
+    
+    // Convert Date object to ISO string
+    if (dateInput instanceof Date) {
+      dateString = dateInput.toISOString();
+    } else {
+      // Assume it's already a string
+      dateString = dateInput;
     }
     
-    return formatDate(dateString, 'YYYY-MM-DD HH:mm');
+    // Format date as YYYY-MM-DD HH:mm
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
   } catch (error) {
-    console.error('Error formatting date:', error, dateString);
-    return String(dateString);
+    console.error('Error formatting date:', error, dateInput);
+    // Fallback format
+    return typeof dateInput === 'object' ? 
+      dateInput.toLocaleString() : 
+      String(dateInput);
   }
 }
+
+// Format date in YYYY-MM-DD format for API
+const formatDateForApi = (date) => {
+  if (!date) return '';
+  
+  try {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+  } catch (error) {
+    console.error('Error formatting date for API:', error);
+    return '';
+  }
+}
+
+// Helper to replace formatDate calls for calendar endpoints
+const formatDate = (date, format) => {
+  if (!date) return '';
+  
+  if (format === 'YYYY-MM-DD') {
+    return formatDateForApi(date);
+  }
+  
+  // For other formats, use existing helper if available
+  if (typeof window.formatDate === 'function') {
+    return window.formatDate(date, format);
+  }
+  
+  // Fallback formatting
+  const d = new Date(date);
+  return d.toLocaleDateString();
+}
+
+// Add a new function to fetch interviews for the current view (month, week, or day)
+const fetchInterviewsForCurrentView = async () => {
+  let startDate, endDate;
+  
+  if (viewMode.value === 'month') {
+    // For month view, get the first and last dates displayed in the calendar
+    const dates = getMonthViewDateRange();
+    startDate = dates.startDate;
+    endDate = dates.endDate;
+  } else if (viewMode.value === 'week') {
+    // For week view, get the first and last dates of the current week
+    const dates = getWeekViewDateRange();
+    startDate = dates.startDate;
+    endDate = dates.endDate;
+  } else {
+    // For day view, use the current date
+    startDate = formatDate(currentDate.value, 'YYYY-MM-DD');
+    endDate = startDate;
+  }
+  
+  try {
+    // Fetch interviews for the date range
+    await store.dispatch('interviews/fetchCalendarInterviews', { 
+      startDate: startDate, 
+      endDate: endDate 
+    });
+    
+    console.log(`Fetched interviews for date range: ${startDate} to ${endDate}`);
+  } catch (error) {
+    console.error(`Error fetching interviews for date range:`, error);
+    message.error('Failed to load interviews for the calendar');
+  }
+}
+
+// Get the date range for the month view
+const getMonthViewDateRange = () => {
+  // This should return the first and last dates displayed in the calendar for month view
+  const year = currentDate.value.getFullYear();
+  const month = currentDate.value.getMonth();
+  
+  // Get the first date displayed (may be from previous month)
+  const firstDay = new Date(year, month, 1);
+  const startingDayOfWeek = firstDay.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  
+  // Calculate the actual first date shown in the calendar (can be from previous month)
+  const firstDateShown = new Date(year, month, 1 - startingDayOfWeek);
+  
+  // Calculate the last date shown (can be from next month)
+  // Month view typically shows 6 weeks (42 days)
+  const lastDateShown = new Date(firstDateShown);
+  lastDateShown.setDate(firstDateShown.getDate() + 41); // 42 days - 1
+  
+  return {
+    startDate: formatDate(firstDateShown, 'YYYY-MM-DD'),
+    endDate: formatDate(lastDateShown, 'YYYY-MM-DD')
+  };
+}
+
+// Get the date range for the week view
+const getWeekViewDateRange = () => {
+  const current = new Date(currentDate.value);
+  const day = current.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  
+  // Calculate the first day of the week (Sunday)
+  const firstDayOfWeek = new Date(current);
+  firstDayOfWeek.setDate(current.getDate() - day);
+  
+  // Calculate the last day of the week (Saturday)
+  const lastDayOfWeek = new Date(firstDayOfWeek);
+  lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+  
+  return {
+    startDate: formatDate(firstDayOfWeek, 'YYYY-MM-DD'),
+    endDate: formatDate(lastDayOfWeek, 'YYYY-MM-DD')
+  };
+}
+
+// Update the functions to refresh the calendar when view or date changes
+watch([viewMode, currentDate], () => {
+  fetchInterviewsForCurrentView();
+});
 </script>
 
 <style scoped>
@@ -1070,8 +1217,15 @@ const formatInterviewDate = (dateString) => {
 .upcoming-interviews :deep(.ant-card-body) {
   background-color: var(--card-bg);
   padding: 16px 24px;
-  max-height: 500px;
-  overflow-y: auto;
+  max-height: unset;
+  overflow-y: initial;
+}
+
+.centered-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
 }
 
 .card-header {
@@ -1118,7 +1272,7 @@ const formatInterviewDate = (dateString) => {
   border-radius: 50%;
 }
 
-.custom-dot.info, .custom-dot.primary, .custom-dot.phone-screen {
+.custom-dot.info, .custom-dot.primary, .custom-dot.phone-screen, .custom-dot.phone {
   background-color: #1890ff;
 }
 
@@ -1563,4 +1717,24 @@ const formatInterviewDate = (dateString) => {
   padding: 8px 0;
   font-style: italic;
 }
-</style> 
+
+.full-calendar-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  width: 100%;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  padding: 15px 0;
+}
+
+.stats-spinner {
+  display: flex;
+  justify-content: center;
+  padding: 15px 0;
+}
+</style>

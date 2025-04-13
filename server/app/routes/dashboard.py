@@ -7,6 +7,13 @@ from ..db.database import jobs_collection, candidates_collection, interviews_col
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
+@router.get("", tags=["dashboard"])
+async def get_dashboard():
+    """
+    Get dashboard overview (no trailing slash)
+    """
+    return {"message": "Dashboard API is working"}
+
 @router.get("/stats")
 async def get_stats(
     time_range: str = Query("month", description="Time range for the stats (week, month, quarter, year)")

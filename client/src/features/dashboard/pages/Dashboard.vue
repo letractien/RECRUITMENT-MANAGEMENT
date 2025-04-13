@@ -197,7 +197,7 @@
           </div>
         </template>
         
-        <a-spin v-if="isLoading" />
+        <a-spin v-if="isLoading" class="centered-spinner" />
         <a-empty v-else-if="upcomingInterviews.length === 0" description="No upcoming interviews" />
         <a-timeline v-else>
           <a-timeline-item
@@ -563,6 +563,13 @@ const handleSizeChange = (current, size) => {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.centered-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
 }
 
 .chart-placeholder {

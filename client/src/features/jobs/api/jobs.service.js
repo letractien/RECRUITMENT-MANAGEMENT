@@ -110,5 +110,14 @@ export default {
    */
   getJobNotes(id) {
     return apiClient.get(`${RESOURCE}/${id}/notes`);
+  },
+
+  /**
+   * Get job applications
+   * @param {string|number} id - The job ID
+   * @returns {Promise} - Promise with response data
+   */ 
+  getJobApplications(id) {
+    return apiClient.get(`${RESOURCE}/${id}/applications`);
   }
 }; 

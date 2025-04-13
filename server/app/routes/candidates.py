@@ -13,6 +13,20 @@ from ..models.interview import Interview
 
 router = APIRouter(prefix="/candidates", tags=["candidates"])
 
+# Thêm route xử lý gốc để tránh redirect
+@router.get("", response_model=List[Candidate])
+async def get_candidates_no_slash(
+    status: Optional[str] = None,
+    department: Optional[str] = None,
+    search: Optional[str] = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+):
+    """
+    Get all candidates with optional filtering (no trailing slash)
+    """
+    return await get_candidates(status, department, search, skip, limit)
+
 
 @router.get("/", response_model=List[Candidate])
 async def get_candidates(
@@ -204,5 +218,12 @@ async def get_candidate_interviews(
     # Get interviews
     cursor = interviews_collection.find({"candidate_id": candidate_id})
     interviews = await cursor.to_list(length=100)
+    
+    # Process interviews to ensure result field is properly structured
+    for interview in interviews:
+        if "result" in interview:
+            # If result is a string like 'passed', 'failed', 'pending', set it to None
+            if isinstance(interview["result"], str) or not isinstance(interview["result"], dict):
+                interview["result"] = None
     
     return interviews 

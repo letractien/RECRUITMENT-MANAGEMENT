@@ -14,6 +14,12 @@ const state = {
     currentPage: 1,
     pageSize: 10,
     total: 0
+  },
+  applications: [],
+  currentApplication: null,
+  applicationFilters: {
+    status: '',
+    search: ''
   }
 };
 
@@ -64,6 +70,27 @@ const getters = {
   departmentsList: state => {
     const departments = new Set(state.jobs.map(job => job.department));
     return Array.from(departments).sort();
+  },
+  jobApplications: state => state.applications,
+  currentApplication: state => state.currentApplication,
+  filteredApplications: state => {
+    let result = [...state.applications];
+    
+    // Apply status filter
+    if (state.applicationFilters.status) {
+      result = result.filter(app => app.status === state.applicationFilters.status);
+    }
+    
+    // Apply search filter
+    if (state.applicationFilters.search) {
+      const searchTerm = state.applicationFilters.search.toLowerCase();
+      result = result.filter(app => 
+        app.candidateName.toLowerCase().includes(searchTerm) ||
+        app.email.toLowerCase().includes(searchTerm)
+      );
+    }
+    
+    return result;
   }
 };
 
@@ -74,6 +101,7 @@ const actions = {
       
       // Use API service to fetch jobs
       const response = await jobsService.getAllJobs();
+      console.log("xxx", response)
       
       if (response.data) {
         // Map any necessary fields or transformations here if needed
@@ -244,6 +272,57 @@ const actions = {
   
   setPagination({ commit }, pagination) {
     commit('SET_PAGINATION', pagination);
+  },
+  
+  async fetchJobApplications({ commit }, jobId) {
+    try {
+      commit('SET_LOADING', true);
+      const response = await jobsService.getJobApplications(jobId);
+      
+      if (response.data) {
+        const applications = response.data.map(app => ({
+          id: app.id,
+          candidateName: app.name,
+          email: app.email,
+          phone: app.phone,
+          status: app.status.charAt(0).toUpperCase() + app.status.slice(1),
+          appliedDate: app.applied_date || app.applied_date,
+          department: app.department,
+          experience: app.experience,
+          resumeUrl: app.resume_url,
+          skills: app.skills,
+          notes: app.notes,
+          totalScore: app.total_score,
+          sourceOfApplication: app.source
+        }));
+        commit('SET_APPLICATIONS', applications);
+      }
+      else {
+        commit('SET_APPLICATIONS', []);        
+      }
+    } catch (error) {
+      commit('SET_ERROR', error.message);
+      throw error;
+    } finally {
+      commit('SET_LOADING', false);
+    }
+  },
+  
+  async updateApplicationStatus({ commit }, { jobId, applicationId, status }) {
+    try {
+      commit('SET_LOADING', true);
+      await jobsService.updateApplicationStatus(jobId, applicationId, status);
+      commit('UPDATE_APPLICATION_STATUS', { applicationId, status });
+    } catch (error) {
+      commit('SET_ERROR', error.message);
+      throw error;
+    } finally {
+      commit('SET_LOADING', false);
+    }
+  },
+  
+  setApplicationFilters({ commit }, filters) {
+    commit('SET_APPLICATION_FILTERS', filters);
   }
 };
 
@@ -276,6 +355,25 @@ const mutations = {
   
   SET_PAGINATION(state, pagination) {
     state.pagination = { ...state.pagination, ...pagination };
+  },
+  
+  SET_APPLICATIONS(state, applications) {
+    state.applications = applications;
+  },
+  
+  SET_CURRENT_APPLICATION(state, application) {
+    state.currentApplication = application;
+  },
+  
+  SET_APPLICATION_FILTERS(state, filters) {
+    state.applicationFilters = { ...state.applicationFilters, ...filters };
+  },
+  
+  UPDATE_APPLICATION_STATUS(state, { applicationId, status }) {
+    const application = state.applications.find(app => app.id === applicationId);
+    if (application) {
+      application.status = status;
+    }
   }
 };
 

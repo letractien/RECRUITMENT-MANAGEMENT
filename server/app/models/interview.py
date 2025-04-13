@@ -21,9 +21,9 @@ class InterviewType(str, Enum):
 
 
 class InterviewBase(BaseModel):
-    candidate_id: str
-    job_id: str
-    interviewer_id: str
+    candidate_id: str  # Foreign key to Candidate model
+    job_id: str  # Foreign key to Job model
+    interviewer_id: str  # Foreign key to User model
     scheduled_date: datetime
     duration_minutes: int
     status: InterviewStatus = InterviewStatus.SCHEDULED

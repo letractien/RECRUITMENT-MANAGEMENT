@@ -10,13 +10,17 @@ const state = {
     candidateId: null,
     jobId: null,
     date: null,
+    startDate: null,
+    endDate: null,
     search: ''
   },
   pagination: {
     currentPage: 1,
     pageSize: 10,
     total: 0
-  }
+  },
+  upcomingInterviews: [],
+  calendarInterviews: {}
 };
 
 const getters = {
@@ -55,6 +59,18 @@ const getters = {
         const interviewDate = new Date(interview.scheduledAt);
         return interviewDate >= filterDate && interviewDate < nextDay;
       });
+    } else if (state.filters.startDate && state.filters.endDate) {
+      // Apply date range filter
+      const startDate = new Date(state.filters.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      
+      const endDate = new Date(state.filters.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      
+      result = result.filter(interview => {
+        const interviewDate = new Date(interview.scheduledAt);
+        return interviewDate >= startDate && interviewDate <= endDate;
+      });
     }
     
     // Apply search filter (case insensitive)
@@ -80,6 +96,12 @@ const getters = {
     return state.interviews.filter(interview => interview.status === status);
   },
   upcomingInterviews: state => {
+    // First try to use our stored upcoming interviews from the dashboard endpoint
+    if (state.upcomingInterviews && state.upcomingInterviews.length > 0) {
+      return state.upcomingInterviews;
+    }
+    
+    // Fallback to filtering from all interviews if we don't have upcoming data
     const now = new Date();
     return state.interviews
       .filter(interview => new Date(interview.scheduledAt) > now && interview.status !== 'cancelled')
@@ -98,6 +120,25 @@ const getters = {
         return interviewDate >= today && interviewDate < tomorrow && interview.status !== 'cancelled';
       })
       .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt));
+  },
+  calendarInterviews: state => dateStr => {
+    // Try to get interviews from calendar cache first
+    if (state.calendarInterviews[dateStr]) {
+      return state.calendarInterviews[dateStr];
+    }
+    
+    // Fallback to filtering from all interviews
+    const date = new Date(dateStr);
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    return state.interviews.filter(interview => {
+      const interviewDate = new Date(interview.scheduledAt);
+      return interviewDate >= startOfDay && interviewDate <= endOfDay;
+    });
   }
 };
 
@@ -173,27 +214,19 @@ const actions = {
     }
   },
   
-  async updateInterview({ commit, dispatch }, { id, data }) {
+  async updateInterview({ commit, state }, { id, data }) {
     try {
       commit('SET_LOADING', true);
       
-      // Find current interview
-      const interview = state.interviews.find(i => i.id === Number(id));
-      
-      if (!interview) {
-        throw new Error(`Interview with ID ${id} not found`);
-      }
-      
-      const updatedInterview = { ...interview, ...data };
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 600));
+      // Use API service to update interview
+      const response = await interviewsService.updateInterview(id, data);
+      const updatedInterview = response.data;
       
       // Update in state
       commit('UPDATE_INTERVIEW', updatedInterview);
       
       // If the current interview is being updated, update it in the state
-      if (state.currentInterview && state.currentInterview.id === id) {
+      if (state.currentInterview && state.currentInterview.id === Number(id)) {
         commit('SET_CURRENT_INTERVIEW', updatedInterview);
       }
       
@@ -210,12 +243,12 @@ const actions = {
     }
   },
   
-  async deleteInterview({ commit }, id) {
+  async deleteInterview({ commit, state }, id) {
     try {
       commit('SET_LOADING', true);
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Use API service to delete interview
+      await interviewsService.deleteInterview(id);
       
       // Remove from state
       commit('REMOVE_INTERVIEW', id);
@@ -238,21 +271,13 @@ const actions = {
     }
   },
   
-  async updateInterviewStatus({ commit }, { id, status }) {
+  async updateInterviewStatus({ commit, state }, { id, status }) {
     try {
       commit('SET_LOADING', true);
       
-      // Find current interview
-      const interview = state.interviews.find(i => i.id === Number(id));
-      
-      if (!interview) {
-        throw new Error(`Interview with ID ${id} not found`);
-      }
-      
-      const updatedInterview = { ...interview, status };
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 400));
+      // Use API service to update interview status
+      const response = await interviewsService.updateInterviewStatus(id, status);
+      const updatedInterview = response.data;
       
       // Update in state
       commit('UPDATE_INTERVIEW', updatedInterview);
@@ -275,13 +300,175 @@ const actions = {
     }
   },
   
-  setFilters({ commit }, filters) {
+  async fetchUpcomingInterviews({ commit }) {
+    try {
+      commit('SET_LOADING', true);
+      
+      // Use API service to fetch upcoming interviews from the dashboard endpoint
+      const response = await interviewsService.getUpcomingInterviews();
+      
+      // Store the upcoming interviews for the getter to access
+      const upcomingData = response.data || [];
+      commit('SET_UPCOMING_INTERVIEWS', upcomingData);
+      commit('SET_ERROR', null);
+      
+      console.log('Successfully fetched upcoming interviews:', upcomingData.length);
+      return upcomingData;
+    } catch (error) {
+      commit('SET_ERROR', error.message || 'Failed to fetch upcoming interviews');
+      console.error('Error fetching upcoming interviews:', error);
+      return [];
+    } finally {
+      commit('SET_LOADING', false);
+    }
+  },
+  
+  async fetchInterviewsByDate({ commit }, date) {
+    try {
+      commit('SET_LOADING', true);
+      
+      // Use API service to fetch interviews by date
+      const response = await interviewsService.getInterviewsByDate(date);
+      
+      commit('SET_ERROR', null);
+      
+      console.log('Successfully fetched interviews for date:', date);
+      return response.data;
+    } catch (error) {
+      commit('SET_ERROR', error.message || `Failed to fetch interviews for date ${date}`);
+      console.error(`Error fetching interviews for date ${date}:`, error);
+      return [];
+    } finally {
+      commit('SET_LOADING', false);
+    }
+  },
+  
+  async fetchTodayInterviews({ commit }) {
+    try {
+      commit('SET_LOADING', true);
+      
+      // Use API service to fetch today's interviews
+      const response = await interviewsService.getTodayInterviews();
+      
+      commit('SET_ERROR', null);
+      
+      console.log('Successfully fetched today\'s interviews:', response.data.length);
+      return response.data;
+    } catch (error) {
+      commit('SET_ERROR', error.message || 'Failed to fetch today\'s interviews');
+      console.error('Error fetching today\'s interviews:', error);
+      return [];
+    } finally {
+      commit('SET_LOADING', false);
+    }
+  },
+  
+  async addInterviewNote({ commit, state }, { id, noteData }) {
+    try {
+      commit('SET_LOADING', true);
+      
+      // Use API service to add note to interview
+      const response = await interviewsService.addInterviewNote(id, noteData);
+      const updatedInterview = response.data;
+      
+      // Update in state
+      commit('UPDATE_INTERVIEW', updatedInterview);
+      
+      // If the current interview is being updated, update it in the state
+      if (state.currentInterview && state.currentInterview.id === Number(id)) {
+        commit('SET_CURRENT_INTERVIEW', updatedInterview);
+      }
+      
+      commit('SET_ERROR', null);
+      
+      console.log('Successfully added note to interview:', id);
+      return updatedInterview;
+    } catch (error) {
+      commit('SET_ERROR', error.message || `Failed to add note to interview with ID ${id}`);
+      console.error(`Error adding note to interview ${id}:`, error);
+      return null;
+    } finally {
+      commit('SET_LOADING', false);
+    }
+  },
+  
+  async rescheduleInterview({ commit, state }, { id, scheduleData }) {
+    try {
+      commit('SET_LOADING', true);
+      
+      // Use API service to reschedule interview
+      const response = await interviewsService.rescheduleInterview(id, scheduleData);
+      const updatedInterview = response.data;
+      
+      // Update in state
+      commit('UPDATE_INTERVIEW', updatedInterview);
+      
+      // If the current interview is being updated, update it in the state
+      if (state.currentInterview && state.currentInterview.id === Number(id)) {
+        commit('SET_CURRENT_INTERVIEW', updatedInterview);
+      }
+      
+      commit('SET_ERROR', null);
+      
+      console.log('Successfully rescheduled interview:', id);
+      return updatedInterview;
+    } catch (error) {
+      commit('SET_ERROR', error.message || `Failed to reschedule interview with ID ${id}`);
+      console.error(`Error rescheduling interview ${id}:`, error);
+      return null;
+    } finally {
+      commit('SET_LOADING', false);
+    }
+  },
+  
+  setFilters({ commit, state }, filters) {
     commit('SET_FILTERS', filters);
     commit('SET_PAGINATION', { ...state.pagination, currentPage: 1 }); // Reset to first page when filters change
   },
   
   setPagination({ commit }, pagination) {
     commit('SET_PAGINATION', pagination);
+  },
+  
+  async fetchCalendarInterviews({ commit }, { startDate, endDate }) {
+    try {
+      commit('SET_LOADING', true);
+      
+      // Format dates as YYYY-MM-DD for API
+      const formattedStartDate = typeof startDate === 'string' ? startDate : 
+        startDate.toISOString().split('T')[0];
+      const formattedEndDate = typeof endDate === 'string' ? endDate : 
+        endDate.toISOString().split('T')[0];
+      
+      // Use the API service to fetch interviews for this date range
+      const response = await interviewsService.getInterviewsByDate(formattedStartDate, formattedEndDate);
+      const interviews = response.data || [];
+      
+      // Store interviews in calendar cache
+      interviews.forEach(interview => {
+        const interviewDate = new Date(interview.scheduledAt).toISOString().split('T')[0];
+        if (!state.calendarInterviews[interviewDate]) {
+          state.calendarInterviews[interviewDate] = [];
+        }
+        
+        // Check if interview is already in the cache
+        const existingIndex = state.calendarInterviews[interviewDate].findIndex(i => i.id === interview.id);
+        if (existingIndex === -1) {
+          commit('ADD_CALENDAR_INTERVIEW', { date: interviewDate, interview });
+        }
+      });
+      
+      commit('SET_ERROR', null);
+      
+      console.log(`Successfully fetched interviews for calendar date range: ${formattedStartDate} to ${formattedEndDate}`, interviews.length);
+      return interviews;
+    } catch (error) {
+      commit('SET_ERROR', error.message || `Failed to fetch calendar interviews for date range`);
+      console.error(`Error fetching calendar interviews:`, error);
+      return [];
+    } finally {
+      commit('SET_LOADING', false);
+    }
   }
 };
 
@@ -326,6 +513,24 @@ const mutations = {
   
   SET_PAGINATION(state, pagination) {
     state.pagination = { ...state.pagination, ...pagination };
+  },
+  
+  SET_UPCOMING_INTERVIEWS(state, interviews) {
+    state.upcomingInterviews = interviews;
+  },
+  
+  SET_CALENDAR_INTERVIEWS(state, { date, interviews }) {
+    state.calendarInterviews = { 
+      ...state.calendarInterviews, 
+      [date]: interviews 
+    };
+  },
+  
+  ADD_CALENDAR_INTERVIEW(state, { date, interview }) {
+    if (!state.calendarInterviews[date]) {
+      state.calendarInterviews[date] = [];
+    }
+    state.calendarInterviews[date].push(interview);
   }
 };
 

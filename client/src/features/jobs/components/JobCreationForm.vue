@@ -4,9 +4,9 @@
       <!-- Basic Job Information -->
       <div class="form-section">
         <div class="section-header">
-            <h3 class="text-lg font-semibold">Job Information</h3>
-            <p class="text-sm text-gray-500">Please fill in the following information to create a new job</p>
-          </div>
+          <h3 class="text-lg font-semibold">Job Information</h3>
+          <p class="text-sm text-gray-500">Please fill in the following information to create a new job</p>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="form-group">
             <label class="form-label">Job Title</label>
@@ -92,7 +92,7 @@
             <h3 class="text-lg font-semibold">Background Evaluation Criteria</h3>
             <p class="text-sm text-gray-500">Evaluate candidates based on their educational background and personal information</p>
           </div>
-          <div class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="form-group">
               <label class="form-label">Importance Ratio (%)</label>
               <div class="flex items-center gap-2">
@@ -123,15 +123,17 @@
                 required
               ></textarea>
             </div>
+          </div>
+          <div class="mt-6">
             <div class="form-group">
               <label class="form-label">Evaluation Criteria</label>
               <div class="space-y-3">
                 <div v-for="(criterion, index) in form.backgroundCriteria.criteria" :key="index" class="criterion-row">
                   <div class="criterion-inputs">
                     <input
-                      v-model="criterion.name"
+                      v-model="criterion.description"
                       type="text"
-                      placeholder="Criterion name"
+                      placeholder="Criterion description"
                       class="form-input"
                     />
                     <input
@@ -146,7 +148,7 @@
                       class="btn-remove"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd" d="M4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" clip-rule="evenodd" />
                       </svg>
                     </button>
                   </div>
@@ -158,7 +160,7 @@
                 >
                   <div class="btn-add-content">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                      <path fill-rule="evenodd" d="M4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" clip-rule="evenodd" />
                     </svg>
                     <span>Add Criterion</span>
                   </div>
@@ -174,7 +176,7 @@
             <h3 class="text-lg font-semibold">Project Evaluation Criteria</h3>
             <p class="text-sm text-gray-500">Evaluate candidates based on their project experience</p>
           </div>
-          <div class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="form-group">
               <label class="form-label">Importance Ratio (%)</label>
               <div class="flex items-center gap-2">
@@ -205,15 +207,17 @@
                 required
               ></textarea>
             </div>
+          </div>
+          <div class="mt-6">
             <div class="form-group">
               <label class="form-label">Evaluation Criteria</label>
               <div class="space-y-3">
                 <div v-for="(criterion, index) in form.projectCriteria.criteria" :key="index" class="criterion-row">
                   <div class="criterion-inputs">
                     <input
-                      v-model="criterion.name"
+                      v-model="criterion.description"
                       type="text"
-                      placeholder="Criterion name"
+                      placeholder="Criterion description"
                       class="form-input"
                     />
                     <input
@@ -227,9 +231,9 @@
                       @click="removeCriterion('project', index)"
                       class="btn-remove"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                      </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" clip-rule="evenodd" />
+                    </svg>
                     </button>
                   </div>
                 </div>
@@ -240,7 +244,7 @@
                 >
                   <div class="btn-add-content">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                      <path fill-rule="evenodd" d="M4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" clip-rule="evenodd" />
                     </svg>
                     <span>Add Criterion</span>
                   </div>
@@ -293,9 +297,9 @@
                 <div v-for="(criterion, index) in form.skillCriteria.criteria" :key="index" class="criterion-row">
                   <div class="criterion-inputs">
                     <input
-                      v-model="criterion.name"
+                      v-model="criterion.description"
                       type="text"
-                      placeholder="Criterion name"
+                      placeholder="Criterion description"
                       class="form-input"
                     />
                     <input
@@ -309,9 +313,9 @@
                       @click="removeCriterion('skill', index)"
                       class="btn-remove"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                      </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" clip-rule="evenodd" />
+                    </svg>
                     </button>
                   </div>
                 </div>
@@ -375,9 +379,9 @@
                 <div v-for="(criterion, index) in form.certificationCriteria.criteria" :key="index" class="criterion-row">
                   <div class="criterion-inputs">
                     <input
-                      v-model="criterion.name"
+                      v-model="criterion.description"
                       type="text"
-                      placeholder="Criterion name"
+                      placeholder="Criterion description"
                       class="form-input"
                     />
                     <input
@@ -391,9 +395,9 @@
                       @click="removeCriterion('certification', index)"
                       class="btn-remove"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                      </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" clip-rule="evenodd" />
+                    </svg>
                     </button>
                   </div>
                 </div>
@@ -528,7 +532,7 @@ export default {
           return
         }
         for (const criterion of criteria) {
-          if (!criterion.name || !criterion.maxScore) {
+          if (!criterion.description || !criterion.maxScore) {
             this.$message.error(`Please fill in all criterion fields for ${type} evaluation`)
             return
           }
@@ -659,7 +663,7 @@ textarea.form-input {
 }
 
 .criterion-inputs .form-input:nth-child(2) {
-  width: 40px;
+  width: 80px;
   height: 100%;
   padding: 0;
   text-align: center;
@@ -710,11 +714,9 @@ textarea.form-input {
   width: 40px;
   height: 40px;
   padding: 0;
-  background-color: rgba(245, 34, 45, 0.1);
+  background-color: var(--card-bg, #f3f4f6);;
   border: none;
   border-radius: 6px;
-  color: #f5222d;
-  cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

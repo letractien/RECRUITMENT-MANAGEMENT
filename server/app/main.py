@@ -10,6 +10,7 @@ app = FastAPI(
     title="Recruitment Management API",
     description="API for managing recruitment processes",
     version="1.0.0",
+    redirect_slashes=False
 )
 
 # Configure CORS
@@ -55,4 +56,4 @@ async def root():
         "message": "Welcome to the Recruitment Management API",
         "docs": "/docs",
         "redoc": "/redoc"
-    } 
+    }
