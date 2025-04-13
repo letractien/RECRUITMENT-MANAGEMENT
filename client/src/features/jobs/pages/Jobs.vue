@@ -187,13 +187,10 @@ import {
   EditOutlined, 
   DeleteOutlined, 
   EyeOutlined, 
-  EnvironmentOutlined, 
-  CalendarOutlined, 
   SearchOutlined,
   DownOutlined,
   FileOutlined,
   SwapOutlined,
-  FundOutlined
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import JobCreationForm from '../components/JobCreationForm.vue'
@@ -248,7 +245,7 @@ const columns = [
     title: 'Applications',
     key: 'applications',
     width: 150,
-    sorter: (a, b) => a.applications - b.applications
+    sorter: (a, b) => (a.applications || 0) - (b.applications || 0)
   },
   {
     title: 'Posted Date',
@@ -264,27 +261,6 @@ const columns = [
     fixed: 'right'
   }
 ]
-
-// Form rules
-const jobRules = {
-  title: [
-    { required: true, message: 'Please input job title', trigger: 'blur' },
-    { min: 3, message: 'Length should be at least 3 characters', trigger: 'blur' }
-  ],
-  department: [
-    { required: true, message: 'Please select department', trigger: 'change' }
-  ],
-  location: [
-    { required: true, message: 'Please input location', trigger: 'blur' }
-  ],
-  description: [
-    { required: true, message: 'Please input job description', trigger: 'blur' },
-    { min: 50, message: 'Description should be at least 50 characters', trigger: 'blur' }
-  ],
-  requirements: [
-    { required: true, message: 'Please input job requirements', trigger: 'blur' }
-  ]
-}
 
 const jobForm = reactive({
   title: '',
@@ -360,12 +336,6 @@ const jobDetailsDialog = reactive({
   job: null
 })
 
-const isJobActive = computed({
-  get: () => jobForm.status === 'Active',
-  set: (value) => {
-    jobForm.status = value ? 'Active' : 'Inactive'
-  }
-})
 
 const totalJobs = computed(() => filteredJobs.value.length)
 

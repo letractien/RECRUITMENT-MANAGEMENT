@@ -128,70 +128,6 @@
               </div>
             </template>
           </div>
-          
-          <div class="interviews-stats">
-            <div class="stats-title">
-              <bar-chart-outlined />
-              <span>Thống kê phỏng vấn</span>
-            </div>
-            <a-spin v-if="loading" class="stats-spinner" />
-            <div v-else class="stats-container">
-              <div 
-                class="stat-card" 
-                :class="{ active: activeFilter === 'all' }"
-                @click="setInterviewFilter('all')"
-              >
-                <div class="stat-icon all">
-                  <team-outlined />
-                </div>
-                <div class="stat-info">
-                  <div class="stat-value">{{ totalInterviews }}</div>
-                  <div class="stat-label">Tổng số</div>
-                </div>
-              </div>
-              
-              <div 
-                class="stat-card stat-info-only" 
-              >
-                <div class="stat-icon current">
-                  <calendar-outlined />
-                </div>
-                <div class="stat-info">
-                  <div class="stat-value">{{ currentDisplayedInterviews }}</div>
-                  <div class="stat-label">{{ getViewModeLabel() }}</div>
-                </div>
-              </div>
-              
-              <div 
-                v-if="viewMode !== 'day'" 
-                class="stat-card stat-info-only"
-              >
-                <div class="stat-icon today">
-                  <clock-circle-outlined />
-                </div>
-                <div class="stat-info">
-                  <div class="stat-value">{{ getTodayInterviewsCount() }}</div>
-                  <div class="stat-label">Hôm nay</div>
-                </div>
-              </div>
-              
-              <div class="stat-card type-stats">
-                <div class="stat-breakdown">
-                  <div 
-                    v-for="(count, type) in interviewTypeStats" 
-                    :key="type"
-                    class="stat-type-item"
-                    :class="{ active: activeFilter === type }"
-                    @click="setInterviewFilter(type)"
-                  >
-                    <div class="type-color" :class="getInterviewClass(type)"></div>
-                    <div class="type-name">{{ type }}</div>
-                    <div class="type-count">{{ count }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </a-card>
       </a-col>
       <a-col :span="24" :lg="8">
@@ -244,9 +180,6 @@ import {
   RightOutlined,
   CalendarOutlined,
   UserOutlined,
-  BarChartOutlined,
-  TeamOutlined,
-  ClockCircleOutlined,
   EyeOutlined
 } from '@ant-design/icons-vue'
 import ScheduleInterviewForm from '../components/ScheduleInterviewForm.vue'
@@ -255,9 +188,6 @@ const store = useStore()
 const viewMode = ref('month')
 const currentDate = ref(new Date())
 const showScheduleDialog = ref(false)
-const currentPage = ref(1)
-const pageSize = ref(10)
-const activeFilter = ref('all')
 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // Candidates and jobs lists for the interview form
@@ -314,32 +244,6 @@ onMounted(async () => {
 const interviews = computed(() => store.getters['interviews/allInterviews'])
 const loading = computed(() => store.getters['interviews/isLoading'])
 const error = computed(() => store.getters['interviews/errorMessage'])
-
-// Filter interviews based on active filter
-const filteredInterviews = computed(() => {
-  if (activeFilter.value === 'all') return interviews.value
-  if (activeFilter.value === 'current') {
-    const startDate = new Date(currentDate.value)
-    startDate.setHours(0, 0, 0, 0)
-    const endDate = new Date(currentDate.value)
-    endDate.setHours(23, 59, 59, 999)
-    return interviews.value.filter(interview => {
-      const interviewDate = new Date(interview.scheduledAt)
-      return interviewDate >= startDate && interviewDate <= endDate
-    })
-  }
-  if (activeFilter.value === 'today') {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    return interviews.value.filter(interview => {
-      const interviewDate = new Date(interview.scheduledAt)
-      return interviewDate >= today && interviewDate < tomorrow
-    })
-  }
-  return interviews.value.filter(interview => interview.interviewType === activeFilter.value)
-})
 
 // Get interviews for a specific date
 const getInterviewsForDate = (date) => {
@@ -420,34 +324,6 @@ const formatInterviewsForCalendar = (interviews) => {
   })
 }
 
-// Get total interviews count
-const totalInterviews = computed(() => interviews.value.length)
-
-// Get current displayed interviews count
-const currentDisplayedInterviews = computed(() => filteredInterviews.value.length)
-
-// Get today's interviews count
-const getTodayInterviewsCount = () => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  
-  return interviews.value.filter(interview => {
-    const interviewDate = new Date(interview.scheduledAt)
-    return interviewDate >= today && interviewDate < tomorrow
-  }).length
-}
-
-// Get interview type statistics
-const interviewTypeStats = computed(() => {
-  const stats = {}
-  interviews.value.forEach(interview => {
-    stats[interview.interviewType] = (stats[interview.interviewType] || 0) + 1
-  })
-  return stats
-})
-
 // Get upcoming interviews
 const upcomingInterviews = computed(() => {
   // Get all interviews from the store
@@ -503,10 +379,6 @@ const interviewForm = ref({
 })
 
 // Methods
-const setInterviewFilter = (filter) => {
-  activeFilter.value = filter
-}
-
 const getViewModeLabel = () => {
   const labels = {
     month: {
@@ -1444,231 +1316,11 @@ watch([viewMode, currentDate], () => {
   opacity: 0.8;
 }
 
-/* View day specific styles */
+/* Day view specific styles */
 .view-day .calendar-cell {
   min-height: 500px;
   padding: 16px;
   overflow-y: auto;
-}
-
-.interviews-stats {
-  margin-top: 16px;
-  padding: 0;
-  border-top: 1px solid var(--border-color);
-}
-
-.stats-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-color);
-  padding: 12px 16px;
-  border-bottom: 1px dashed var(--border-color);
-}
-
-.stats-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  padding: 16px;
-}
-
-.stat-card {
-  display: flex;
-  padding: 12px;
-  background-color: var(--card-bg);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  transition: all 0.3s ease;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #40a9ff;
-}
-
-.stat-card.active {
-  border-color: #1890ff;
-  background-color: rgba(24, 144, 255, 0.05);
-}
-
-.stat-card.stat-info-only {
-  cursor: default;
-}
-
-.stat-card.stat-info-only:hover {
-  transform: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-color: var(--border-color);
-}
-
-.stat-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  margin-right: 12px;
-  color: white;
-  font-size: 20px;
-}
-
-.stat-icon.all {
-  background-color: #1890ff;
-}
-
-.stat-icon.current {
-  background-color: #52c41a;
-}
-
-.stat-icon.today {
-  background-color: #fa8c16;
-}
-
-.stat-info {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.stat-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-color);
-}
-
-.stat-label {
-  font-size: 13px;
-  color: var(--text-color);
-  opacity: 0.7;
-}
-
-.type-stats {
-  grid-column: 1 / -1;
-  flex-direction: column;
-}
-
-.stat-breakdown {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 8px;
-  width: 100%;
-}
-
-.stat-type-item {
-  display: flex;
-  align-items: center;
-  padding: 6px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.stat-type-item:hover {
-  background-color: var(--hover-color);
-}
-
-.stat-type-item.active {
-  background-color: rgba(24, 144, 255, 0.1);
-}
-
-.type-color {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 8px;
-}
-
-.type-name {
-  flex: 1;
-  font-size: 13px;
-}
-
-.type-count {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--text-color);
-}
-
-@media (max-width: 768px) {
-  .stats-container {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .stat-type-item {
-    padding: 8px 4px;
-  }
-  
-  .type-name {
-    font-size: 12px;
-  }
-}
-
-.interviews-view-more {
-  margin-top: 8px;
-  padding: 8px;
-  border-top: 1px dashed var(--border-color);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-}
-
-.interviews-count-info {
-  color: var(--text-color);
-  opacity: 0.7;
-  font-size: 11px;
-}
-
-.view-buttons {
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-}
-
-.view-more-link, .view-all-link {
-  color: #1890ff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  padding: 4px 0;
-}
-
-.view-more-link:hover, .view-all-link:hover {
-  color: #40a9ff;
-  text-decoration: underline;
-}
-
-/* Day view specific styles for view more */
-.view-day .interviews-view-more {
-  background-color: rgba(0, 0, 0, 0.02);
-  border-radius: 4px;
-  padding: 12px;
-  margin: 16px 0;
-}
-
-.view-day .view-buttons {
-  margin-top: 8px;
-}
-
-.view-day .view-more-link, .view-day .view-all-link {
-  font-size: 14px;
-}
-
-@media (max-width: 768px) {
-  .view-buttons {
-    flex-direction: column;
-    gap: 8px;
-  }
 }
 
 :deep(.ant-card-head) {

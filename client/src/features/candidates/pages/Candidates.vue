@@ -41,6 +41,7 @@
           :columns="columns"
           :pagination="false"
           size="middle"
+          :scroll="{ y: 405 }"
           :rowKey="record => record.id"
           @change="handleTableChange"
         >
@@ -239,19 +240,23 @@ const paginatedCandidates = computed(() => {
 const columns = [
   {
     title: 'Candidate',
+    dataIndex: 'candidate',
     key: 'candidate',
-    width: 250
+    width: 250,
+    sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
   },
   {
     title: 'Applied For',
-    dataIndex: 'position',
-    key: 'position',
-    width: 150
+    dataIndex: 'department',
+    key: 'department',
+    width: 150,
+    sorter: (a, b) => a.department.localeCompare(b.department),
   },
   {
     title: 'Experience',
     key: 'experience',
-    width: 100
+    width: 100,
+    sorter: (a, b) => (a.experience || 0) - (b.experience || 0),
   },
   {
     title: 'Total Score',
@@ -262,12 +267,14 @@ const columns = [
   {
     title: 'Status',
     key: 'status',
-    width: 120
+    width: 120,
+    sorter: (a, b) => a.status.localeCompare(b.status),
   },
   {
     title: 'Applied Date',
     key: 'applied_date',
-    width: 120
+    width: 120,
+    sorter: (a, b) => new Date(a.applied_date) - new Date(b.applied_date),
   },
   {
     title: 'Actions',
