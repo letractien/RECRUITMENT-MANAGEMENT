@@ -47,7 +47,7 @@
         >
           <template #bodyCell="{ column, text, record }">
             <template v-if="column.key === 'candidate'">
-              <div class="candidate-info">
+              <div class="candidate-info" @click="viewCandidate(record)" style="cursor: pointer">
                 <a-avatar :size="32">
                   {{ record.name ? record.name.charAt(0).toUpperCase() : 'U' }}
                 </a-avatar>
@@ -510,7 +510,12 @@ const updateScores = (candidate) => {
 .candidate-name {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-color);
+  color: #1890ff;
+  transition: color 0.3s;
+}
+
+.candidate-name:hover {
+  color: #40a9ff;
 }
 
 .candidate-email {

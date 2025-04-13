@@ -69,7 +69,7 @@
               </div>
             </template>
             <template v-else-if="column.key === 'applications'">
-              <a-button type="link">
+              <a-button type="link" @click="viewApplications(record)">
                 {{ record.applicants || record.applications || 0 }} candidates
               </a-button>
             </template>
