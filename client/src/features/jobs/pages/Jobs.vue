@@ -627,7 +627,7 @@ const formatJobDate = (job) => {
 }
 
 .job-details {
-  padding: 0 12px;
+  padding: 24px;
 }
 
 .job-details-header {
