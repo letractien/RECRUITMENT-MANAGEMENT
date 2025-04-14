@@ -309,6 +309,7 @@ const actions = {
       
       // Store the upcoming interviews for the getter to access
       const upcomingData = response.data || [];
+
       commit('SET_UPCOMING_INTERVIEWS', upcomingData);
       commit('SET_ERROR', null);
       

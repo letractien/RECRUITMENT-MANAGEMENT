@@ -76,7 +76,7 @@ export default {
    * @returns {Promise} - Promise with response data
    */
   getUpcomingInterviews(days = 7, limit = 5) {
-    return apiClient.get(`/dashboard/upcoming-interviews`, {
+    return apiClient.get(`${RESOURCE}/upcoming`, {
       params: { days, limit }
     });
   },
