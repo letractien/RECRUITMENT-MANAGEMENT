@@ -132,6 +132,52 @@ async def create_interview(
     return created_interview
 
 
+@router.get("/upcoming", response_model=List[dict])
+async def get_upcoming_interviews(
+    days: int = Query(7, description="Number of days to look ahead"),
+    limit: int = Query(5, description="Maximum number of interviews to return")
+):
+    """
+    Get upcoming interviews
+    """
+    # Calculate date range
+    now = datetime.now()
+    end_date = now + timedelta(days=days)
+    
+    # Find upcoming interviews
+    cursor = interviews_collection.find({
+        "scheduled_date": {"$gte": now, "$lte": end_date},
+        "status": {"$nin": ["cancelled", "completed"]}
+    }).sort("scheduled_date", 1).limit(limit)
+    
+    interviews = await cursor.to_list(length=limit)
+    
+    # Format and augment interview data
+    upcoming = []
+    for interview in interviews:
+        # Get candidate info
+        candidate = await candidates_collection.find_one({"id": interview.get("candidate_id")})
+        candidate_name = "Unknown"
+        if candidate:
+            candidate_name = f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}"
+            if not candidate_name.strip():  # If name is empty
+                candidate_name = candidate.get("name", "Unknown")
+        
+        # Get job info
+        job = await jobs_collection.find_one({"id": interview.get("job_id")})
+        job_title = job.get("title", "Unknown Position") if job else "Unknown Position"
+        
+        upcoming.append({
+            "id": interview.get("id"),
+            "candidateName": candidate_name,
+            "jobTitle": job_title,
+            "scheduledAt": interview.get("scheduled_date").isoformat() if interview.get("scheduled_date") else "",
+            "type": interview.get("type", "Interview").title()
+        })
+    
+    return upcoming
+
+
 @router.get("/{interview_id}", response_model=Interview)
 async def get_interview(
     interview_id: str,
@@ -341,40 +387,6 @@ async def get_job_interviews(
                 interview["result"] = None
     
     return interviews
-
-
-@router.get("/upcoming", response_model=List[dict])
-async def get_upcoming_interviews(
-    days: int = Query(7, description="Number of days to look ahead"),
-    limit: int = Query(5, description="Maximum number of interviews to return")
-):
-    """
-    Get upcoming interviews
-    """
-    # Calculate date range
-    now = datetime.now()
-    end_date = now + timedelta(days=days)
-    
-    # Find upcoming interviews
-    cursor = interviews_collection.find({
-        "scheduled_date": {"$gte": now, "$lte": end_date},
-        "status": {"$nin": ["cancelled", "completed"]}
-    }).sort("scheduled_date", 1).limit(limit)
-    
-    interviews = await cursor.to_list(length=limit)
-    
-    # Format and augment interview data
-    upcoming = []
-    for interview in interviews:
-        upcoming.append({
-            "id": interview.get("id"),
-            "candidateName": interview.get("candidate_name", "Unknown"),
-            "jobTitle": interview.get("job_title", "Unknown"),
-            "scheduledAt": interview.get("scheduled_date").isoformat() if interview.get("scheduled_date") else "",
-            "type": interview.get("type", "Interview").title()
-        })
-    
-    return upcoming
 
 
 @router.get("/today", response_model=List[dict])

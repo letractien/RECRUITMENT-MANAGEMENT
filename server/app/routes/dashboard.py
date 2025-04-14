@@ -215,10 +215,22 @@ async def get_upcoming_interviews(
     # Format and augment interview data
     upcoming = []
     for interview in interviews:
+        # Get candidate info
+        candidate = await candidates_collection.find_one({"id": interview.get("candidate_id")})
+        candidate_name = "Unknown"
+        if candidate:
+            candidate_name = f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}"
+            if not candidate_name.strip():  # If name is empty
+                candidate_name = candidate.get("name", "Unknown")
+        
+        # Get job info
+        job = await jobs_collection.find_one({"id": interview.get("job_id")})
+        job_title = job.get("title", "Unknown Position") if job else "Unknown Position"
+        
         upcoming.append({
             "id": interview.get("id"),
-            "candidateName": interview.get("candidate_name", "Unknown"),
-            "jobTitle": interview.get("job_title", "Unknown"),
+            "candidateName": candidate_name,
+            "jobTitle": job_title,
             "scheduledAt": interview.get("scheduled_date").isoformat() if interview.get("scheduled_date") else "",
             "type": interview.get("type", "Interview").title()
         })

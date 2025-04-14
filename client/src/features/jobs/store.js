@@ -101,7 +101,6 @@ const actions = {
       
       // Use API service to fetch jobs
       const response = await jobsService.getAllJobs();
-      console.log("xxx", response)
       
       if (response.data) {
         // Map any necessary fields or transformations here if needed
