@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Query
-from typing import Dict, List, Optional
 from datetime import datetime, timedelta
-import random
 
 from ..db.database import jobs_collection, candidates_collection, interviews_collection
 
@@ -13,6 +11,7 @@ async def get_dashboard():
     Get dashboard overview (no trailing slash)
     """
     return {"message": "Dashboard API is working"}
+
 
 @router.get("/stats")
 async def get_stats(
@@ -236,80 +235,6 @@ async def get_upcoming_interviews(
         })
     
     return upcoming
-
-
-@router.get("/recent-activity")
-async def get_recent_activity(
-    limit: int = Query(10, description="Number of activities to return")
-):
-    """
-    Get recent activity from database
-    """
-    activities = []
-    
-    # Get recent candidates (new applications)
-    candidate_cursor = candidates_collection.find().sort("created_at", -1).limit(limit)
-    recent_candidates = await candidate_cursor.to_list(length=limit)
-    
-    for candidate in recent_candidates:
-        job = None
-        if candidate.get("job_id"):
-            job = await jobs_collection.find_one({"id": candidate.get("job_id")})
-            
-        job_title = job.get("title", "Unknown") if job else "Unknown Position"
-        
-        activities.append({
-            "id": f"candidate_{candidate.get('id')}",
-            "type": "application",
-            "actor": candidate.get("name", "Unknown Candidate"),
-            "action": "applied for",
-            "target": job_title,
-            "timestamp": candidate.get("created_at").isoformat() if candidate.get("created_at") else datetime.now().isoformat()
-        })
-    
-    # Get recent interviews
-    interview_cursor = interviews_collection.find().sort("created_at", -1).limit(limit)
-    recent_interviews = await interview_cursor.to_list(length=limit)
-    
-    for interview in recent_interviews:
-        candidate = await candidates_collection.find_one({"id": interview.get("candidate_id")})
-        job = await jobs_collection.find_one({"id": interview.get("job_id")})
-        
-        candidate_name = candidate.get("name", "Unknown") if candidate else "Unknown Candidate"
-        job_title = job.get("title", "Unknown") if job else "Unknown Position"
-        
-        activities.append({
-            "id": f"interview_{interview.get('id')}",
-            "type": "interview",
-            "actor": candidate_name,
-            "action": "scheduled for",
-            "target": job_title,
-            "timestamp": interview.get("created_at").isoformat() if interview.get("created_at") else datetime.now().isoformat()
-        })
-    
-    # Get recent job postings
-    job_cursor = jobs_collection.find().sort("created_at", -1).limit(limit)
-    recent_jobs = await job_cursor.to_list(length=limit)
-    
-    for job in recent_jobs:
-        activities.append({
-            "id": f"job_{job.get('id')}",
-            "type": "job_posting",
-            "actor": job.get("title", "Unknown Position"),
-            "action": "was posted",
-            "target": job.get("department", ""),
-            "timestamp": job.get("created_at").isoformat() if job.get("created_at") else datetime.now().isoformat()
-        })
-    
-    # Sort all activities by timestamp (newest first)
-    sorted_activities = sorted(
-        activities, 
-        key=lambda x: x["timestamp"], 
-        reverse=True
-    )
-    
-    # Return only the most recent activities up to the limit
-    return sorted_activities[:limit]
 
 
 @router.get("/application-trend")
