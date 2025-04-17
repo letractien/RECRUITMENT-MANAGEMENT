@@ -15,9 +15,9 @@ class EvaluationSection(BaseModel):
 
 
 class JobStatus(str, Enum):
+    DRAFT = "draft"
     OPEN = "open"
     CLOSED = "closed"
-    DRAFT = "draft"
     PAUSED = "paused"
 
 
