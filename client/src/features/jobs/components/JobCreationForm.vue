@@ -426,6 +426,7 @@
 
 <script>
 import { message } from 'ant-design-vue'
+import { useStore } from 'vuex'
 
 export default {
   name: 'JobCreationForm',
@@ -433,7 +434,15 @@ export default {
     initialData: {
       type: Object,
       required: true
+    },
+    isEdit: {
+      type: Boolean,
+      default: false
     }
+  },
+  setup() {
+    const store = useStore()
+    return { store }
   },
   data() {
     return {
@@ -607,12 +616,39 @@ export default {
       }
       return true
     },
+    async saveJob() {
+      try {
+        // Ensure default values for any required fields
+        if (!this.form.created_by) {
+          this.form.created_by = 'admin123' // Default user ID
+        }
+        
+        // Check if editing or creating
+        if (this.isEdit) {
+          // Get the job ID from initialData
+          const jobId = this.initialData.id
+          await this.store.dispatch('jobs/updateJob', { id: jobId, data: this.form })
+          message.success('Job updated successfully')
+        } else {
+          await this.store.dispatch('jobs/createJob', this.form)
+          message.success('Job created successfully')
+        }
+        
+        // Emit success event to parent for UI updates
+        this.$emit('success')
+        return true
+      } catch (error) {
+        console.error('Error saving job:', error)
+        message.error('Failed to save job: ' + (error.message || 'Please try again later.'))
+        return false
+      }
+    },
     handleSubmit() {
-      // Use the validation method we just created
+      // Validate and save the form
       if (!this.validateForm()) return false;
-      // Emit the form data to parent component
-      this.$emit('submit', this.form)
-      return true;
+      
+      // Save job directly from the form
+      return this.saveJob();
     }
   }
 }

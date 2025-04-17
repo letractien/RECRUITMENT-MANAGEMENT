@@ -141,7 +141,8 @@
       <JobCreationForm
         ref="jobFormRef"
         :initial-data="jobForm"
-        @submit="handleJobFormSubmit"
+        :is-edit="jobDialog.isEdit"
+        @success="handleFormSuccess"
       />
     </a-modal>
 
@@ -195,7 +196,6 @@ import {
 import { message, Modal } from 'ant-design-vue'
 import JobCreationForm from '../components/JobCreationForm.vue'
 import { formatDate } from '../../../shared/utils/dateHelpers.js'
-import { formatCurrency } from '../../../shared/utils/formatHelpers.js'
 import JobApplications from '../components/JobApplications.vue'
 import JobViewDetail from '../components/JobViewDetail.vue'
 import JobChangeStatus from '../components/JobChangeStatus.vue'
@@ -354,31 +354,22 @@ const jobDetailsDialog = reactive({
   job: null
 })
 
-
-const totalJobs = computed(() => filteredJobs.value.length)
-
-// Add new dialog state
 const applicationsDialog = reactive({
   visible: false,
   job: null
 })
 
-// Add computed property for unique statuses
+const totalJobs = computed(() => filteredJobs.value.length)
+
 const uniqueStatuses = computed(() => {
   const statusSet = new Set(jobs.value.map(job => job.status))
   return Array.from(statusSet).filter(status => status) // Filter out any null/undefined values
 })
 
-// Add new dialog state
 const changeStatusDialog = reactive({
   visible: false,
   job: null
 })
-
-// Methods
-const formatSalary = (amount) => {
-  return formatCurrency(amount, 'VND');
-}
 
 const showCreateJobDialog = () => {
   jobDialog.isEdit = false
@@ -541,43 +532,22 @@ const deleteJob = (job) => {
   })
 }
 
-const saveJob = async () => {
-  try {
-    // Ensure created_by is set before submitting
-    if (!jobForm.created_by) {
-      jobForm.created_by = DEFAULT_USER_ID
-    }
-    
-    // No need to check validation here, it's already done in JobCreationForm
-    if (jobDialog.isEdit) {
-      await store.dispatch('jobs/updateJob', { id: jobDetailsDialog.job.id, data: jobForm })
-      message.success('Job updated successfully')
-      jobDialog.visible = false
-    } else {
-      await store.dispatch('jobs/createJob', jobForm)
-      message.success('Job created successfully')
-      jobDialog.visible = false
-    }
-  } catch (error) {
-    console.error('Error saving job:', error)
-    message.error('Failed to save job: ' + (error.message || 'Please try again later.'))
-  }
-}
-
 const handleSubmitClick = () => {
   // Trigger the form's submit method when the modal's OK button is clicked
   if (jobFormRef.value) {
-    // Call the form's handleSubmit method directly
     jobFormRef.value.handleSubmit();
   } else {
     message.error('Form reference not found. Please try again.')
   }
 }
 
-const handleJobFormSubmit = (formData) => {
-  console.log('Form submitted with data:', formData)
-  Object.assign(jobForm, formData)
-  saveJob()
+// Add a new function to handle form success
+const handleFormSuccess = () => {
+  // Close the dialog
+  jobDialog.visible = false
+  
+  // Refresh the job list
+  store.dispatch('jobs/fetchJobs')
 }
 
 const handleCurrentChange = (page) => {
