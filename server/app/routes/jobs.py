@@ -64,10 +64,11 @@ async def get_jobs(
     return jobs
 
 
-@router.post("/", response_model=Job, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=Job, status_code=status.HTTP_201_CREATED)
 async def create_job(
     job_data: JobCreate,
 ):
+    print(job_data)
     """
     Create a new job posting
     """

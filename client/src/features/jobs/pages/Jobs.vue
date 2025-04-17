@@ -207,6 +207,7 @@ const statusFilter = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const jobFormRef = ref(null)
+const DEFAULT_USER_ID = "admin123"
 
 // Computed
 const jobs = computed(() => store.getters['jobs/allJobs'])
@@ -262,34 +263,51 @@ const columns = [
   }
 ]
 
+// Initialize job form with default values including required fields
 const jobForm = reactive({
   title: '',
   department: '',
   location: '',
   description: '',
   requirements: '',
-  salaryMin: 0,
-  salaryMax: 0,
-  status: 'Active',
-  backgroundCriteria: {
-    importanceRatio: 25,
+  min_salary: null,
+  max_salary: null,
+  status: 'draft',
+  is_remote: false,
+  employment_type: 'full-time',
+  created_by: DEFAULT_USER_ID, // Set default user ID
+  hiring_manager: DEFAULT_USER_ID, // Set default hiring manager
+  background_criteria: {
+    importance_ratio: 25,
     required: '',
-    criteria: []
+    criteria: [{
+      description: '',
+      max_score: 10
+    }]
   },
-  projectCriteria: {
-    importanceRatio: 25,
+  project_criteria: {
+    importance_ratio: 25,
     required: '',
-    criteria: []
+    criteria: [{
+      description: '',
+      max_score: 10
+    }]
   },
-  skillCriteria: {
-    importanceRatio: 25,
+  skill_criteria: {
+    importance_ratio: 25,
     required: '',
-    criteria: []
+    criteria: [{
+      description: '',
+      max_score: 10
+    }]
   },
-  certificationCriteria: {
-    importanceRatio: 25,
+  certification_criteria: {
+    importance_ratio: 25,
     required: '',
-    criteria: []
+    criteria: [{
+      description: '',
+      max_score: 10
+    }]
   }
 })
 
@@ -373,28 +391,44 @@ const showCreateJobDialog = () => {
     location: '',
     description: '',
     requirements: '',
-    salaryMin: 0,
-    salaryMax: 0,
-    status: 'Active',
-    backgroundCriteria: {
-      importanceRatio: 25,
+    min_salary: null,
+    max_salary: null,
+    status: 'draft',
+    is_remote: false,
+    employment_type: 'full-time',
+    created_by: DEFAULT_USER_ID,
+    hiring_manager: DEFAULT_USER_ID,
+    background_criteria: {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     },
-    projectCriteria: {
-      importanceRatio: 25,
+    project_criteria: {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     },
-    skillCriteria: {
-      importanceRatio: 25,
+    skill_criteria: {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     },
-    certificationCriteria: {
-      importanceRatio: 25,
+    certification_criteria: {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     }
   })
 }
@@ -410,28 +444,44 @@ const editJob = (job) => {
     location: job.location,
     description: job.description,
     requirements: job.requirements,
-    salaryMin: job.salaryMin,
-    salaryMax: job.salaryMax,
+    min_salary: job.min_salary,
+    max_salary: job.max_salary,
     status: job.status,
-    backgroundCriteria: job.backgroundCriteria || {
-      importanceRatio: 25,
+    is_remote: job.is_remote,
+    employment_type: job.employment_type,
+    created_by: job.created_by,
+    hiring_manager: job.hiring_manager,
+    background_criteria: job.background_criteria || {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     },
-    projectCriteria: job.projectCriteria || {
-      importanceRatio: 25,
+    project_criteria: job.project_criteria || {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     },
-    skillCriteria: job.skillCriteria || {
-      importanceRatio: 25,
+    skill_criteria: job.skill_criteria || {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     },
-    certificationCriteria: job.certificationCriteria || {
-      importanceRatio: 25,
+    certification_criteria: job.certification_criteria || {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     }
   })
   
@@ -493,6 +543,17 @@ const deleteJob = (job) => {
 
 const saveJob = async () => {
   try {
+    // Ensure created_by is set before submitting
+    if (!jobForm.created_by) {
+      jobForm.created_by = DEFAULT_USER_ID
+    }
+    
+    // Use the form reference to trigger validation without emitting the submit event
+    if (jobFormRef.value) {
+      const isValid = await jobFormRef.value.validateForm();
+      if (!isValid) return;
+    }
+    
     if (jobDialog.isEdit) {
       await store.dispatch('jobs/updateJob', { id: jobDetailsDialog.job.id, data: jobForm })
       message.success('Job updated successfully')
@@ -509,8 +570,8 @@ const saveJob = async () => {
 }
 
 const handleJobFormSubmit = (formData) => {
+  // Copy form data without calling saveJob to avoid duplicate API calls
   Object.assign(jobForm, formData)
-  saveJob()
 }
 
 const handleCurrentChange = (page) => {

@@ -168,13 +168,7 @@ for i, dept in enumerate(departments):
             "description": f"We are looking for a {title} to join our {dept} team.",
             "department": dept,
             "location": random.choice(["New York", "San Francisco", "Remote", "Berlin", "London", "Singapore"]),
-            "requirements": random.sample(skills_by_department[dept], min(4, len(skills_by_department[dept]))),
-            "responsibilities": [
-                f"Work with the {dept} team on various projects",
-                "Collaborate with cross-functional teams",
-                "Contribute to the company's growth",
-                "Implement best practices"
-            ],
+            "requirements": random.choice(skills_by_department[dept]),
             "min_salary": random.randint(40, 80) * 1000,
             "max_salary": random.randint(90, 150) * 1000,
             "status": random.choice([s.value for s in JobStatus]),
