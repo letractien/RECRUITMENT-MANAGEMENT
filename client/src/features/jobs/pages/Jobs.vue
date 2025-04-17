@@ -136,7 +136,7 @@
       :cancelText="'Cancel'"
       :okButtonProps="{ type: 'primary', size: 'large' }"
       :cancelButtonProps="{ size: 'large' }"
-      @ok="saveJob"
+      @ok="handleSubmitClick"
     >
       <JobCreationForm
         ref="jobFormRef"
@@ -548,30 +548,36 @@ const saveJob = async () => {
       jobForm.created_by = DEFAULT_USER_ID
     }
     
-    // Use the form reference to trigger validation without emitting the submit event
-    if (jobFormRef.value) {
-      const isValid = await jobFormRef.value.validateForm();
-      if (!isValid) return;
-    }
-    
+    // No need to check validation here, it's already done in JobCreationForm
     if (jobDialog.isEdit) {
       await store.dispatch('jobs/updateJob', { id: jobDetailsDialog.job.id, data: jobForm })
       message.success('Job updated successfully')
+      jobDialog.visible = false
     } else {
       await store.dispatch('jobs/createJob', jobForm)
       message.success('Job created successfully')
+      jobDialog.visible = false
     }
-    
-    jobDialog.visible = false
   } catch (error) {
     console.error('Error saving job:', error)
-    message.error('Failed to save job. Please try again later.')
+    message.error('Failed to save job: ' + (error.message || 'Please try again later.'))
+  }
+}
+
+const handleSubmitClick = () => {
+  // Trigger the form's submit method when the modal's OK button is clicked
+  if (jobFormRef.value) {
+    // Call the form's handleSubmit method directly
+    jobFormRef.value.handleSubmit();
+  } else {
+    message.error('Form reference not found. Please try again.')
   }
 }
 
 const handleJobFormSubmit = (formData) => {
-  // Copy form data without calling saveJob to avoid duplicate API calls
+  console.log('Form submitted with data:', formData)
   Object.assign(jobForm, formData)
+  saveJob()
 }
 
 const handleCurrentChange = (page) => {
