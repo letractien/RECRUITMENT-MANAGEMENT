@@ -164,7 +164,7 @@ async def delete_job(
 @router.patch("/{job_id}/status", response_model=Job)
 async def update_job_status(
     job_id: str,
-    status: JobStatus,
+    status_data: dict,
 ):
     """
     Update a job's status
@@ -177,15 +177,33 @@ async def update_job_status(
             detail=f"Job with ID {job_id} not found",
         )
     
+    # Get status from request body
+    if 'status' not in status_data:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="status field is required in request body"
+        )
+    
+    job_status = status_data['status']
+    
+    # Validate status value
+    try:
+        job_status = JobStatus(job_status)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid status value: {job_status}"
+        )
+    
     # Update status based on the new status
-    update_data = {"status": status, "updated_at": datetime.now()}
+    update_data = {"status": job_status, "updated_at": datetime.now()}
     
     # If status is OPEN, set posted_date if not already set
-    if status == JobStatus.OPEN and not job.get("posted_date"):
+    if job_status == JobStatus.OPEN and not job.get("posted_date"):
         update_data["posted_date"] = datetime.now()
     
     # If status is CLOSED, set closed_date
-    if status == JobStatus.CLOSED:
+    if job_status == JobStatus.CLOSED:
         update_data["closed_date"] = datetime.now()
     
     # Update job

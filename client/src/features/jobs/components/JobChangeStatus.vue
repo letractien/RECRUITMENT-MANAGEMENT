@@ -30,22 +30,28 @@
             placeholder="Select new status"
             class="status-select"
           >
-            <a-select-option value="Open">
+            <a-select-option value="draft">
+              <span class="status-option">
+                <span class="status-dot draft"></span>
+                draft
+              </span>
+            </a-select-option>
+            <a-select-option value="open">
               <span class="status-option">
                 <span class="status-dot open"></span>
-                Open
+                open
               </span>
             </a-select-option>
-            <a-select-option value="Paused">
+            <a-select-option value="paused">
               <span class="status-option">
                 <span class="status-dot paused"></span>
-                Paused
+                paused
               </span>
             </a-select-option>
-            <a-select-option value="Closed">
+            <a-select-option value="closed">
               <span class="status-option">
                 <span class="status-dot closed"></span>
-                Closed
+                closed
               </span>
             </a-select-option>
           </a-select>
@@ -89,7 +95,7 @@ const handleOk = async () => {
   try {
     await store.dispatch('jobs/updateJobStatus', { 
       id: props.job.id, 
-      status: formState.status 
+      status: formState.status
     })
     message.success('Job status updated successfully')
     emit('statusChanged')
@@ -160,6 +166,10 @@ const formatStatus = (status) => {
   height: 8px;
   border-radius: 50%;
   display: inline-block;
+}
+
+.status-dot.draft {
+  background-color: #677362;
 }
 
 .status-dot.open {
