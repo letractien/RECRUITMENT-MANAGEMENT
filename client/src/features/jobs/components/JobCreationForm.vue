@@ -425,6 +425,8 @@
 </template>
 
 <script>
+import { message } from 'ant-design-vue'
+
 export default {
   name: 'JobCreationForm',
   props: {
@@ -450,22 +452,34 @@ export default {
         background_criteria: {
           importance_ratio: 25,
           required: '',
-          criteria: []
+          criteria: [{
+            description: '',
+            max_score: 10
+          }]
         },
         project_criteria: {
           importance_ratio: 25,
           required: '',
-          criteria: []
+          criteria: [{
+            description: '',
+            max_score: 10
+          }]
         },
         skill_criteria: {
           importance_ratio: 25,
           required: '',
-          criteria: []
+          criteria: [{
+            description: '',
+            max_score: 10
+          }]
         },
         certification_criteria: {
           importance_ratio: 25,
           required: '',
-          criteria: []
+          criteria: [{
+            description: '',
+            max_score: 10
+          }]
         }
       }
     }
@@ -497,23 +511,23 @@ export default {
   },
   watch: {
     'form.background_criteria.importance_ratio': function(val) {
-      if (val > 100) this.form.background_criteria.importance_ratio = 100
-      if (val < 0) this.form.background_criteria.importance_ratio = 0
+      if (val >= 100) this.form.background_criteria.importance_ratio = 100
+      if (val <= 0) this.form.background_criteria.importance_ratio = 0
       if (val % 1 !== 0) this.form.background_criteria.importance_ratio = Math.round(val)
     },
     'form.project_criteria.importance_ratio': function(val) {
-      if (val > 100) this.form.project_criteria.importance_ratio = 100
-      if (val < 0) this.form.project_criteria.importance_ratio = 0
+      if (val >= 100) this.form.project_criteria.importance_ratio = 100
+      if (val <= 0) this.form.project_criteria.importance_ratio = 0
       if (val % 1 !== 0) this.form.project_criteria.importance_ratio = Math.round(val)
     },
     'form.skill_criteria.importance_ratio': function(val) {
-      if (val > 100) this.form.skill_criteria.importance_ratio = 100
-      if (val < 0) this.form.skill_criteria.importance_ratio = 0
+      if (val >= 100) this.form.skill_criteria.importance_ratio = 100
+      if (val <= 0) this.form.skill_criteria.importance_ratio = 0
       if (val % 1 !== 0) this.form.skill_criteria.importance_ratio = Math.round(val)
     },
     'form.certification_criteria.importance_ratio': function(val) {
-      if (val > 100) this.form.certification_criteria.importance_ratio = 100
-      if (val < 0) this.form.certification_criteria.importance_ratio = 0
+      if (val >= 100) this.form.certification_criteria.importance_ratio = 100
+      if (val <= 0) this.form.certification_criteria.importance_ratio = 0
       if (val % 1 !== 0) this.form.certification_criteria.importance_ratio = Math.round(val)
     },
     'form.min_salary': function(val) {
@@ -523,7 +537,7 @@ export default {
       }
       
       // Ensure min is not greater than max
-      if (this.form.max_salary && Number(this.form.min_salary) > Number(this.form.max_salary)) {
+      if (this.form.max_salary && Number(this.form.min_salary) >= Number(this.form.max_salary)) {
         this.form.min_salary = this.form.max_salary
       }
     },
@@ -534,7 +548,7 @@ export default {
       }
       
       // Ensure min is not greater than max
-      if (this.form.min_salary && Number(this.form.max_salary) < Number(this.form.min_salary)) {
+      if (this.form.min_salary && Number(this.form.max_salary) <= Number(this.form.min_salary)) {
         this.form.max_salary = this.form.min_salary
       }
     }
@@ -558,21 +572,21 @@ export default {
         Number(this.form.certification_criteria.importance_ratio)
 
       if (totalRatio !== 100) {
-        this.$message.error('Total importance ratio must be 100%')
+        message.error('Total importance ratio must be 100%')
         return false
       }
 
       // Validate all required fields
       if (!this.form.title || !this.form.department || !this.form.location || 
           !this.form.description || !this.form.requirements || !this.form.min_salary || 
-          !this.form.max_salary || !this.form.employment_type || !this.form.created_by) {
-        this.$message.error('Please fill in all required fields')
+          !this.form.max_salary) {
+        message.error('Please fill in all required fields')
         return false
       }
 
       // Validate salary range
       if (Number(this.form.min_salary) > Number(this.form.max_salary)) {
-        this.$message.error('Minimum salary cannot be greater than maximum salary')
+        message.error('Minimum salary cannot be greater than maximum salary')
         return false
       }
 
@@ -581,25 +595,24 @@ export default {
       for (const type of criteriaTypes) {
         const criteria = this.form[`${type}_criteria`].criteria
         if (!criteria.length) {
-          this.$message.error(`Please add at least one criterion for ${type} evaluation`)
+          message.error(`Please add at least one criterion for ${type} evaluation`)
           return false
         }
         for (const criterion of criteria) {
           if (!criterion.description || !criterion.max_score) {
-            this.$message.error(`Please fill in all criterion fields for ${type} evaluation`)
+            message.error(`Please fill in all criterion fields for ${type} evaluation`)
             return false
           }
         }
       }
-
       return true
     },
     handleSubmit() {
       // Use the validation method we just created
-      if (!this.validateForm()) return;
-      
+      if (!this.validateForm()) return false;
       // Emit the form data to parent component
       this.$emit('submit', this.form)
+      return true;
     }
   }
 }
