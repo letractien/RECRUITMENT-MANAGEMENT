@@ -173,7 +173,7 @@ const actions = {
         posted_date: jobData.posted_date || new Date().toISOString(),
         postedDate: jobData.postedDate || new Date().toISOString()
       };
-      
+      console.log(jobWithDate); // Kiểm tra dữ liệu gửi đến backend
       // Use API service to create a job
       const response = await jobsService.createJob(jobWithDate);
       const newJob = response.data;

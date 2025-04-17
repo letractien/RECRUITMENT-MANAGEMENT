@@ -4,6 +4,16 @@ from datetime import datetime
 from enum import Enum
 
 
+class EvaluationCriterion(BaseModel):
+    description: str
+    max_score: int
+
+class EvaluationSection(BaseModel):
+    importance_ratio: float
+    required: str
+    criteria: List[EvaluationCriterion]
+
+
 class JobStatus(str, Enum):
     OPEN = "open"
     CLOSED = "closed"
@@ -23,8 +33,7 @@ class JobBase(BaseModel):
     description: str
     department: str
     location: str
-    requirements: List[str]
-    responsibilities: List[str]
+    requirements: str
     min_salary: Optional[float] = None
     max_salary: Optional[float] = None
     status: JobStatus = JobStatus.DRAFT
@@ -32,6 +41,13 @@ class JobBase(BaseModel):
     employment_type: EmploymentType
     created_by: str  # Foreign key to User model (HR/Admin who created the job)
     hiring_manager: Optional[str] = None  # Foreign key to User model
+
+
+    # New sections for evaluation
+    background_criteria: Optional[EvaluationSection] = None
+    project_criteria: Optional[EvaluationSection] = None
+    skill_criteria: Optional[EvaluationSection] = None
+    certification_criteria: Optional[EvaluationSection] = None
 
 
 class JobCreate(JobBase):
