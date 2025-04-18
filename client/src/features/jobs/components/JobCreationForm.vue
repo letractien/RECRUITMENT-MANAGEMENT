@@ -625,22 +625,30 @@ export default {
         
         // Check if editing or creating
         if (this.isEdit) {
-          // Get the job ID from initialData
-          const jobId = this.initialData.id
-          await this.store.dispatch('jobs/updateJob', { id: jobId, data: this.form })
-          message.success('Job updated successfully')
+
+          // Get the job ID from initialData and ensure it's included in the form data
+          const jobId = this.initialData.id;
+          
+          // Include the ID in the form data to ensure it's available for the update
+          const formWithId = {
+            ...this.form,
+            id: jobId
+          };
+          
+          await this.store.dispatch('jobs/updateJob', { id: jobId, data: formWithId });
+          message.success('Job updated successfully');
         } else {
-          await this.store.dispatch('jobs/createJob', this.form)
-          message.success('Job created successfully')
+          await this.store.dispatch('jobs/createJob', this.form);
+          message.success('Job created successfully');
         }
         
         // Emit success event to parent for UI updates
-        this.$emit('success')
-        return true
+        this.$emit('success');
+        return true;
       } catch (error) {
-        console.error('Error saving job:', error)
-        message.error('Failed to save job: ' + (error.message || 'Please try again later.'))
-        return false
+        console.error('Error saving job:', error);
+        message.error('Failed to save job: ' + (error.message || 'Please try again later.'));
+        return false;
       }
     },
     handleSubmit() {

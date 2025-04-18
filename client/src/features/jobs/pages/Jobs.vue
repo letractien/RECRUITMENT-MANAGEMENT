@@ -130,8 +130,8 @@
     <!-- Create/Edit Job Dialog -->
     <a-modal
       v-model:visible="jobDialog.visible"
-      :title="jobDialog.isEdit ? 'Edit Job' : 'Create New Job'"
       width="1000px"
+      :title="jobDialog.isEdit ? 'Edit Job' : 'Create New Job'"
       :okText="jobDialog.isEdit ? 'Update' : 'Create'"
       :cancelText="'Cancel'"
       :okButtonProps="{ type: 'primary', size: 'large' }"
@@ -140,6 +140,7 @@
     >
       <JobCreationForm
         ref="jobFormRef"
+        :key="jobDialog.isEdit ? jobForm.id : 'create'"
         :initial-data="jobForm"
         :is-edit="jobDialog.isEdit"
         @success="handleFormSuccess"
@@ -374,6 +375,10 @@ const changeStatusDialog = reactive({
 const showCreateJobDialog = () => {
   jobDialog.isEdit = false
   jobDialog.visible = true
+
+  if ('id' in jobForm) {
+    delete jobForm.id
+  }
   
   // Reset form with all required nested properties
   Object.assign(jobForm, {
@@ -430,6 +435,7 @@ const editJob = (job) => {
   
   // Set form data with all required nested properties
   Object.assign(jobForm, {
+    id: job.id,
     title: job.title,
     department: job.department,
     location: job.location,

@@ -106,7 +106,7 @@ async def get_job(
 @router.put("/{job_id}", response_model=Job)
 async def update_job(
     job_id: str,
-    job_data: JobUpdate,
+    job_data: dict,
 ):
     """
     Update a job posting
