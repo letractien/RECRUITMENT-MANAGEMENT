@@ -55,7 +55,7 @@ export default {
    * @returns {Promise} - Promise with response data
    */
   updateCandidateStatus(id, status) {
-    return apiClient.patch(`${RESOURCE}/${id}/status`, { status });
+    return apiClient.patch(`/candidates/${id}/status?status=${status}`);
   },
 
   /**
