@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db.database import init_db
-from .routes import candidates, jobs, interviews, dashboard
+from .routes import analysis, candidates, jobs, interviews, dashboard
 
 # Create FastAPI app
 app = FastAPI(
@@ -32,6 +32,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(analysis.router, prefix="/api/v1")
 app.include_router(candidates.router, prefix="/api/v1")
 app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(interviews.router, prefix="/api/v1")
