@@ -25,7 +25,7 @@ async def get_stats(
     
     # Get active jobs count
     active_jobs = await jobs_collection.count_documents({
-            "status": "OPEN"
+        "status": "open"
     })
     
     # Get new applications count
