@@ -26,6 +26,7 @@ export const getInterview = async (id) => {
 export const createInterview = async (interviewData) => {
   try {
     const response = await apiService.post('/interviews', interviewData);
+    console.log("response", response);
     return { data: response.data };
   } catch (error) {
     console.error('Create interview error:', error);

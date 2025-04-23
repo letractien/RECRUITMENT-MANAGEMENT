@@ -194,7 +194,7 @@ const actions = {
   async createInterview({ commit, dispatch }, interviewData) {
     try {
       commit('SET_LOADING', true);
-      
+      console.log("interviewData", interviewData); 
       // Use API service to create an interview
       const response = await interviewsService.createInterview(interviewData);
       const newInterview = response.data;

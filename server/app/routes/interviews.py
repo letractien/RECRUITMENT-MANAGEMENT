@@ -97,6 +97,7 @@ async def create_interview(
     """
     Schedule a new interview
     """
+    print("interview_data", interview_data)   
     # Check if candidate exists
     candidate = await candidates_collection.find_one({"id": interview_data.candidate_id})
     if not candidate:
