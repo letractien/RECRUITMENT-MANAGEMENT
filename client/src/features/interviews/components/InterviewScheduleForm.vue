@@ -181,13 +181,37 @@ const handleOk = async () => {
       return;
     }
     
+    // Ensure form.value.date is a Date object
+    const dateObj = form.value.date instanceof Date ? form.value.date : new Date(form.value.date);
+    
+    // Check if dateObj is valid
+    if (isNaN(dateObj.getTime())) {
+      message.warning('Invalid date selected');
+      return;
+    }
+    
+    // Ensure form.value.time is a valid Date object or moment
+    let timeObj;
+    if (form.value.time instanceof Date) {
+      timeObj = form.value.time;
+    } else if (form.value.time) {
+      // If form.value.time is a string, parse it as a time (using dayjs or native Date)
+      timeObj = dayjs(form.value.time, 'HH:mm').toDate();
+    }
+    
+    // Check if timeObj is valid
+    if (!timeObj || isNaN(timeObj.getTime())) {
+      message.warning('Invalid time selected');
+      return;
+    }
+    
     // Format datetime from separate date and time inputs
     const scheduledAt = new Date(
-      form.value.date.getFullYear(),
-      form.value.date.getMonth(),
-      form.value.date.getDate(),
-      form.value.time.getHours(),
-      form.value.time.getMinutes()
+      dateObj.getFullYear(),
+      dateObj.getMonth(),
+      dateObj.getDate(),
+      timeObj.getHours(),
+      timeObj.getMinutes()
     ).toISOString();
     
     // Find selected candidate and job from selectors
@@ -229,6 +253,8 @@ const handleOk = async () => {
     console.error('Error scheduling interview:', error);
   }
 }
+
+
 
 const resetForm = () => {
   form.value = {
