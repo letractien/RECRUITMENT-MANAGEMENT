@@ -8,7 +8,6 @@ from ..models.candidate import (
     CandidateInDB, 
     CandidateSearchParams, 
     CandidateUpdate,
-    CandidateUpdateStatus,
 )
 from ..models.interview import Interview, InterviewCreate, InterviewInDB
 
@@ -63,7 +62,7 @@ async def get_candidates(
     
     return candidates
 
-@router.post("/", response_model=Candidate, status_code=status.HTTP_201_CREATED)
+@router.post("/interviews", response_model=Interview, status_code=status.HTTP_201_CREATED)
 async def create_interview(
     interview_data: InterviewCreate,
 ):
@@ -104,6 +103,7 @@ async def create_interview(
     )
     
     return created_interview
+
 
 @router.post("/", response_model=Candidate, status_code=status.HTTP_201_CREATED)
 async def create_candidate(
