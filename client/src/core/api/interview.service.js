@@ -25,6 +25,7 @@ export const getInterview = async (id) => {
 // Create a new interview
 export const createInterview = async (interviewData) => {
   try {
+    console.log("interviewData", interviewData);
     const response = await apiService.post('/interviews', interviewData);
     console.log("response", response);
     return { data: response.data };

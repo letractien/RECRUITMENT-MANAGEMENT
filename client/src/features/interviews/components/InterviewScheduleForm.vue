@@ -169,7 +169,16 @@ const form = ref({
 const disabledDate = (current) => {
   return current && current < dayjs().startOf('day')
 }
-
+const mapInterviewType = (type) => {
+  const typeMap = {
+    'Phone Screen': 'phone',
+    'Video': 'video',
+    'Onsite': 'onsite',
+    'Technical': 'technical',
+    'HR': 'hr'
+  };
+  return typeMap[type] || 'phone';
+};
 const handleOk = async () => {
   try {
     // Check if form is valid
@@ -222,21 +231,29 @@ const handleOk = async () => {
       message.warning('Invalid candidate or job selection');
       return;
     }
-    
+    const scheduledDate = new Date(
+    dateObj.getFullYear(),
+    dateObj.getMonth(),
+    dateObj.getDate(),
+    timeObj.getHours(),
+    timeObj.getMinutes()
+    ).toISOString();
     // Create interview data object
+    const interviewerId = String(form.value.interviewers[0]);
+    
     const interviewData = {
-      candidateId: selectedCandidate.id,
-      candidateName: selectedCandidate.name || selectedCandidate.fullName,
-      jobId: selectedJob.id,
-      jobTitle: selectedJob.title,
-      interviewType: form.value.interviewType,
-      scheduledAt,
-      duration: 60, // Default duration in minutes
-      notes: form.value.notes,
-      interviewers: form.value.interviewers,
+      candidate_id: selectedCandidate.id,
+      job_id: selectedJob.id,
+      interviewer_id: interviewerId,
+      scheduled_date: scheduledDate,
+      duration_minutes: 60,
+      type: mapInterviewType(form.value.interviewType), // Sử dụng hàm ánh xạ
+      description: form.value.notes,
       location: form.value.location,
       status: 'scheduled'
     };
+    
+    console.log("Sending data:", interviewData); // Kiểm tra dữ liệu trước khi gửi
     
     const result = await store.dispatch('interviews/createInterview', interviewData);
     
