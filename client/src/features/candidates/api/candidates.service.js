@@ -87,7 +87,7 @@ export default {
    */
   scheduleInterview(interviewData) {
     console.log("interviewData", interviewData);
-    return apiClient.post(RESOURCE, interviewData);
+    return apiClient.post(`${RESOURCE}/interviews`, interviewData);
   },
   /**
    * Get candidate interviews
