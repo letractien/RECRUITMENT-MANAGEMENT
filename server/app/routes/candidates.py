@@ -1,15 +1,16 @@
 from fastapi import APIRouter, HTTPException, Query, status
 from typing import List, Optional
 
-from ..db.database import candidates_collection, interviews_collection
+from ..db.database import candidates_collection, interviews_collection, jobs_collection
 from ..models.candidate import (
     Candidate, 
     CandidateCreate, 
     CandidateInDB, 
     CandidateSearchParams, 
-    CandidateUpdate
+    CandidateUpdate,
+    CandidateUpdateStatus,
 )
-from ..models.interview import Interview
+from ..models.interview import Interview, InterviewCreate, InterviewInDB
 
 router = APIRouter(prefix="/candidates", tags=["candidates"])
 
@@ -62,6 +63,47 @@ async def get_candidates(
     
     return candidates
 
+@router.post("/", response_model=Candidate, status_code=status.HTTP_201_CREATED)
+async def create_interview(
+    interview_data: InterviewCreate,
+):
+    """
+    Schedule a new interview
+    """
+    print("interview_data", interview_data)   
+    # Check if candidate exists
+    candidate = await candidates_collection.find_one({"id": interview_data.candidate_id})
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Candidate with ID {interview_data.candidate_id} not found",
+        )
+    
+    # Check if job exists
+    job = await jobs_collection.find_one({"id": interview_data.job_id})
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job with ID {interview_data.job_id} not found",
+        )
+    
+    # Create new interview
+    interview_in_db = InterviewInDB(**interview_data.dict())
+    new_interview = interview_in_db.dict()
+    
+    # Insert into database
+    result = await interviews_collection.insert_one(new_interview)
+    
+    # Get created interview
+    created_interview = await interviews_collection.find_one({"_id": result.inserted_id})
+    
+    # Update job interviews count
+    await jobs_collection.update_one(
+        {"id": interview_data.job_id},
+        {"$inc": {"interviews": 1}}
+    )
+    
+    return created_interview
 
 @router.post("/", response_model=Candidate, status_code=status.HTTP_201_CREATED)
 async def create_candidate(

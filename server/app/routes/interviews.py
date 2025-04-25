@@ -90,7 +90,7 @@ async def get_interviews(
     return enhanced_interviews
 
 
-@router.post("/", response_model=Interview, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=Interview, status_code=status.HTTP_201_CREATED)
 async def create_interview(
     interview_data: InterviewCreate,
 ):
