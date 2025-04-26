@@ -90,13 +90,14 @@ async def get_interviews(
     return enhanced_interviews
 
 
-@router.post("/", response_model=Interview, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=Interview, status_code=status.HTTP_201_CREATED)
 async def create_interview(
     interview_data: InterviewCreate,
 ):
     """
     Schedule a new interview
     """
+    print("interview_data", interview_data)   
     # Check if candidate exists
     candidate = await candidates_collection.find_one({"id": interview_data.candidate_id})
     if not candidate:

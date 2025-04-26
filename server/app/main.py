@@ -18,6 +18,7 @@ origins = [
     "http://localhost:5173",  # Default Vite dev server
     "http://localhost:3000",
     "http://localhost:8080",
+    "http://localhost:8000",
 ]
 
 if os.getenv("FRONTEND_URL"):

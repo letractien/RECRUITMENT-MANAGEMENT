@@ -80,7 +80,15 @@ export default {
       }
     });
   },
-
+  /**
+   * Create a new interview
+   * @param {Object} interviewData - The interview data
+   * @returns {Promise} - Promise with response data
+   */
+  scheduleInterview(interviewData) {
+    console.log("interviewData", interviewData);
+    return apiClient.post(`${RESOURCE}/interviews`, interviewData);
+  },
   /**
    * Get candidate interviews
    * @param {string|number} id - The candidate ID

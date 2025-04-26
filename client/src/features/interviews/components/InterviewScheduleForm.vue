@@ -169,7 +169,16 @@ const form = ref({
 const disabledDate = (current) => {
   return current && current < dayjs().startOf('day')
 }
-
+const mapInterviewType = (type) => {
+  const typeMap = {
+    'Phone Screen': 'phone',
+    'Video': 'video',
+    'Onsite': 'onsite',
+    'Technical': 'technical',
+    'HR': 'hr'
+  };
+  return typeMap[type] || 'phone';
+};
 const handleOk = async () => {
   try {
     // Check if form is valid
@@ -181,13 +190,37 @@ const handleOk = async () => {
       return;
     }
     
+    // Ensure form.value.date is a Date object
+    const dateObj = form.value.date instanceof Date ? form.value.date : new Date(form.value.date);
+    
+    // Check if dateObj is valid
+    if (isNaN(dateObj.getTime())) {
+      message.warning('Invalid date selected');
+      return;
+    }
+    
+    // Ensure form.value.time is a valid Date object or moment
+    let timeObj;
+    if (form.value.time instanceof Date) {
+      timeObj = form.value.time;
+    } else if (form.value.time) {
+      // If form.value.time is a string, parse it as a time (using dayjs or native Date)
+      timeObj = dayjs(form.value.time, 'HH:mm').toDate();
+    }
+    
+    // Check if timeObj is valid
+    if (!timeObj || isNaN(timeObj.getTime())) {
+      message.warning('Invalid time selected');
+      return;
+    }
+    
     // Format datetime from separate date and time inputs
     const scheduledAt = new Date(
-      form.value.date.getFullYear(),
-      form.value.date.getMonth(),
-      form.value.date.getDate(),
-      form.value.time.getHours(),
-      form.value.time.getMinutes()
+      dateObj.getFullYear(),
+      dateObj.getMonth(),
+      dateObj.getDate(),
+      timeObj.getHours(),
+      timeObj.getMinutes()
     ).toISOString();
     
     // Find selected candidate and job from selectors
@@ -198,21 +231,29 @@ const handleOk = async () => {
       message.warning('Invalid candidate or job selection');
       return;
     }
-    
+    const scheduledDate = new Date(
+    dateObj.getFullYear(),
+    dateObj.getMonth(),
+    dateObj.getDate(),
+    timeObj.getHours(),
+    timeObj.getMinutes()
+    ).toISOString();
     // Create interview data object
+    const interviewerId = String(form.value.interviewers[0]);
+    
     const interviewData = {
-      candidateId: selectedCandidate.id,
-      candidateName: selectedCandidate.name || selectedCandidate.fullName,
-      jobId: selectedJob.id,
-      jobTitle: selectedJob.title,
-      interviewType: form.value.interviewType,
-      scheduledAt,
-      duration: 60, // Default duration in minutes
-      notes: form.value.notes,
-      interviewers: form.value.interviewers,
+      candidate_id: selectedCandidate.id,
+      job_id: selectedJob.id,
+      interviewer_id: interviewerId,
+      scheduled_date: scheduledDate,
+      duration_minutes: 60,
+      type: mapInterviewType(form.value.interviewType), // Sử dụng hàm ánh xạ
+      description: form.value.notes,
       location: form.value.location,
       status: 'scheduled'
     };
+    
+    console.log("Sending data:", interviewData); // Kiểm tra dữ liệu trước khi gửi
     
     const result = await store.dispatch('interviews/createInterview', interviewData);
     
@@ -229,6 +270,8 @@ const handleOk = async () => {
     console.error('Error scheduling interview:', error);
   }
 }
+
+
 
 const resetForm = () => {
   form.value = {
