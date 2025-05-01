@@ -220,12 +220,6 @@ const columns = [
     sorter: (a, b) => a.department.localeCompare(b.department),
   },
   {
-    title: 'Experience',
-    key: 'experience',
-    width: 100,
-    sorter: (a, b) => (a.experience || 0) - (b.experience || 0),
-  },
-  {
     title: 'Total Score',
     key: 'total_score',
     width: 120,
