@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query, status
 from typing import List, Optional
-
+from ..email.email import send_interview_email
 from ..db.database import interviews_collection, candidates_collection, jobs_collection
 from ..models.interview import (
     Interview, 
@@ -94,10 +94,10 @@ async def get_interviews(
 async def create_interview(
     interview_data: InterviewCreate,
 ):
+    send_interview_email(interview_data.dict())
     """
     Schedule a new interview
     """
-    print("interview_data", interview_data)   
     # Check if candidate exists
     candidate = await candidates_collection.find_one({"id": interview_data.candidate_id})
     if not candidate:

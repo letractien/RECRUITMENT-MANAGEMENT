@@ -152,12 +152,17 @@ const handleOk = async () => {
     loading.value = true;
 
     // Định dạng ngày giờ
-    const scheduledDate = new Date(
+    const localDateTime = new Date(
       formState.date.year(),
       formState.date.month(),
       formState.date.date(),
       formState.time.hour(),
       formState.time.minute()
+    );
+    
+    // Chuyển đổi sang múi giờ UTC+0
+    const scheduledDate = new Date(
+      localDateTime.getTime() - (localDateTime.getTimezoneOffset() * 60000)
     ).toISOString();
 
     // Đảm bảo có ít nhất một người phỏng vấn
@@ -176,11 +181,13 @@ const handleOk = async () => {
       type: formState.type, // Type đã được chọn từ dropdown phù hợp với backend
       description: formState.notes,
       location: formState.location,
-      status: 'scheduled'
+      status: 'scheduled',
+      candidate_email: props.candidate.email
     };
+    console.log("interviewData", interviewData);
 
-    console.log("Sending data:", interviewData);
-    
+    await candidatesService.updateCandidateStatus(props.candidate.id, 'interview');
+
     await candidatesService.scheduleInterview(interviewData);
     message.success('Interview scheduled successfully');
     emit('saved');
