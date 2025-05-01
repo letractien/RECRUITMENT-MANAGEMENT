@@ -250,7 +250,8 @@ const handleOk = async () => {
       type: mapInterviewType(form.value.interviewType), // Sử dụng hàm ánh xạ
       description: form.value.notes,
       location: form.value.location,
-      status: 'scheduled'
+      status: 'scheduled',
+      candidate_email: selectedCandidate.email
     };
     
     console.log("Sending data:", interviewData); // Kiểm tra dữ liệu trước khi gửi

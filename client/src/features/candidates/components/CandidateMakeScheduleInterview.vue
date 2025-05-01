@@ -176,10 +176,11 @@ const handleOk = async () => {
       type: formState.type, // Type đã được chọn từ dropdown phù hợp với backend
       description: formState.notes,
       location: formState.location,
-      status: 'scheduled'
+      status: 'scheduled',
+      candidate_email: props.candidate.email
     };
+    console.log("interviewData", interviewData);
 
-    console.log("Sending data:", interviewData);
     
     await candidatesService.scheduleInterview(interviewData);
     message.success('Interview scheduled successfully');

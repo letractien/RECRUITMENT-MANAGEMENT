@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, status
 from typing import List, Optional
-
+#from ..email.sendemail import GmailClient
+from ..email.email import send_interview_email
 from ..db.database import candidates_collection, interviews_collection, jobs_collection
 from ..models.candidate import (
     Candidate, 
@@ -66,6 +67,7 @@ async def get_candidates(
 async def create_interview(
     interview_data: InterviewCreate,
 ):
+    send_interview_email(interview_data.dict())
     """
     Schedule a new interview
     """
@@ -269,3 +271,12 @@ async def get_candidate_interviews(
                 interview["result"] = None
     
     return interviews 
+
+async def get_candidate_email_by_id(candidate_id: str):
+    """
+    Helper function to get a candidate's email by ID
+    """
+    candidate = await candidates_collection.find_one({"id": candidate_id}, {"email": 1})
+    if candidate:
+        return candidate.get("email")
+    return None
