@@ -248,10 +248,17 @@ const handleOk = async () => {
     }
     
     // Prepare scheduled date
-    const scheduledDate = dayjs(form.date)
-      .hour(form.time.hour())
-      .minute(form.time.minute())
-      .toISOString()
+    const localDateTime = new Date(
+      form.date.year(), 
+      form.date.month(), 
+      form.date.date(), 
+      form.time.hour(), 
+      form.time.minute()
+    );
+
+    const scheduledDate = new Date(
+      localDateTime.getTime() - (localDateTime.getTimezoneOffset() * 60000)
+    ).toISOString()
     
     // Prepare interview data
     const interviewData = {
