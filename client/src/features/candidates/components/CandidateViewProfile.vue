@@ -148,7 +148,7 @@
                 </div>
               </a-timeline-item>
               
-              <a-timeline-item :color="candidate.status === 'screening' ? 'blue' : 'gray'">
+              <a-timeline-item :color="getTimelineColor('screening', candidate.status)">
                 <template #dot>
                   <file-search-outlined style="font-size: 16px" />
                 </template>
@@ -158,7 +158,7 @@
                 </div>
               </a-timeline-item>
 
-              <a-timeline-item :color="candidate.status === 'interview' ? 'blue' : 'gray'">
+              <a-timeline-item :color="getTimelineColor('interview', candidate.status)">
                 <template #dot>
                   <team-outlined style="font-size: 16px" />
                 </template>
@@ -168,7 +168,7 @@
                 </div>
               </a-timeline-item>
 
-              <a-timeline-item :color="candidate.status === 'offer' ? 'blue' : 'gray'">
+              <a-timeline-item :color="getTimelineColor('offer', candidate.status)">
                 <template #dot>
                   <gift-outlined style="font-size: 16px" />
                 </template>
@@ -178,7 +178,7 @@
                 </div>
               </a-timeline-item>
 
-              <a-timeline-item :color="candidate.status === 'hired' ? 'green' : 'gray'">
+              <a-timeline-item :color="getTimelineColor('hired', candidate.status)">
                 <template #dot>
                   <user-add-outlined style="font-size: 16px" />
                 </template>
@@ -194,7 +194,8 @@
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-title">Rejected</div>
-                  <div class="timeline-description">Application was not successful</div>
+                  <div class="timeline-date" v-if="candidate.rejected_date">{{ formatDate(candidate.rejected_date) }}</div>
+                  <div class="timeline-description">{{ candidate.rejection_reason || 'Application was not successful' }}</div>
                 </div>
               </a-timeline-item>
             </a-timeline>
@@ -250,6 +251,71 @@ const getStatusColor = (status) => {
     'rejected': 'red'
   }
   return colors[status] || 'default'
+}
+
+// Hàm xác định màu sắc cho timeline đã được cải tiến
+const getTimelineColor = (step, currentStatus) => {
+  // Định nghĩa thứ tự các bước trong quy trình tuyển dụng
+  const stepsOrder = {
+    'new': 0,
+    'screening': 1,
+    'interview': 2,
+    'offer': 3,
+    'hired': 4
+  }
+  
+  // Trường hợp đặc biệt: nếu đang ở trạng thái rejected
+  if (currentStatus === 'rejected') {
+    // Xác định giai đoạn bị từ chối dựa trên thông tin trong dữ liệu ứng viên
+    // Mặc định là 'interview' nếu thông tin này không có
+    const rejectionStage = determineRejectionStage(step);
+    
+    // Các bước trước khi bị từ chối vẫn hiển thị màu xanh lá (hoàn thành)
+    if (rejectionStage[step] === 'completed') {
+      return 'green';
+    } 
+    // Bước bị từ chối hiển thị màu đỏ
+    else if (rejectionStage[step] === 'rejected') {
+      return 'red';
+    } 
+    // Các bước sau khi bị từ chối hiển thị màu xám
+    else {
+      return 'gray';
+    }
+  }
+  
+  // Nếu là bước hiện tại
+  if (step === currentStatus) {
+    return 'blue';
+  }
+  
+  // Nếu bước đã hoàn thành
+  if (stepsOrder[step] !== undefined && stepsOrder[currentStatus] !== undefined && 
+      stepsOrder[step] < stepsOrder[currentStatus]) {
+    return 'green';
+  }
+  
+  // Các bước còn lại (chưa đến) hiển thị màu xám
+  return 'gray';
+}
+
+// Hàm phụ trợ để xác định giai đoạn bị từ chối một cách an toàn
+const determineRejectionStage = (currentStep) => {
+  // Giả lập việc xác định các giai đoạn đã hoàn thành, đang bị từ chối, và chưa bắt đầu
+  // Trong thực tế, bạn có thể muốn lấy thông tin này từ dữ liệu ứng viên
+  
+  // Trường hợp mặc định: từ chối sau giai đoạn phỏng vấn
+  const defaultStages = {
+    'new': 'completed',
+    'screening': 'completed',
+    'interview': 'rejected',
+    'offer': 'pending',
+    'hired': 'pending'
+  };
+  
+  return {
+    [currentStep]: defaultStages[currentStep] || 'pending'
+  };
 }
 </script>
 
@@ -488,4 +554,4 @@ const getStatusColor = (status) => {
   --hover-bg: #f5f5f5;
   --shadow-color: rgba(0, 0, 0, 0.1);
 }
-</style> 
+</style>
