@@ -181,7 +181,8 @@ const handleOk = async () => {
     };
     console.log("interviewData", interviewData);
 
-    
+    await candidatesService.updateCandidateStatus(props.candidate.id, 'interview');
+
     await candidatesService.scheduleInterview(interviewData);
     message.success('Interview scheduled successfully');
     emit('saved');
