@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, status
 from typing import List, Optional
 #from ..email.sendemail import GmailClient
-from ..email.email import send_interview_email
+from ..email.email import send_interview_email, send_rejection_email, send_acceptance_email
 from ..db.database import candidates_collection, interviews_collection, jobs_collection
 from ..models.candidate import (
     Candidate, 
@@ -10,6 +10,8 @@ from ..models.candidate import (
     CandidateSearchParams, 
     CandidateUpdate,
 )
+import json
+
 from ..models.interview import Interview, InterviewCreate, InterviewInDB
 
 router = APIRouter(prefix="/candidates", tags=["candidates"])
@@ -213,8 +215,6 @@ async def delete_candidate(
     await interviews_collection.delete_many({"candidate_id": candidate_id})
     
     return None
-
-
 @router.patch("/{candidate_id}/status", response_model=Candidate)
 async def update_candidate_status(
     candidate_id: str,
@@ -240,9 +240,35 @@ async def update_candidate_status(
     
     # Get updated candidate
     updated_candidate = await candidates_collection.find_one({"id": candidate_id})
-    
-    return updated_candidate
 
+    # Get the candidate's email
+    candidate_email = updated_candidate.get("email", "Unknown")
+
+    # Get job information
+    job = await jobs_collection.find_one({"id": updated_candidate["job_id"]})
+    job_title = "Unknown"
+    
+    if job:
+        job_title = job.get("title", "Unknown")
+        
+    else:
+        print(f"Job with ID {updated_candidate['job_id']} not found")
+
+    # Print JSON output with job and candidate email
+    output = {
+        "job": {
+            "title": job_title
+        },
+        "candidate": {
+            "email": candidate_email
+        }
+    }
+    print(status)
+    if (status =='hired'):
+        send_acceptance_email(output)
+    if (status =='rejected'):
+        send_rejection_email(output)
+    return updated_candidate
 
 @router.get("/{candidate_id}/interviews", response_model=List[Interview])
 async def get_candidate_interviews(

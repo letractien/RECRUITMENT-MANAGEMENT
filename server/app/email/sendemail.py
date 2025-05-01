@@ -103,4 +103,115 @@ class GmailClient:
         except Exception as error:
             print(f"❌ Lỗi khi gửi email phỏng vấn: {error}")
             return False
+    def send_acceptance_email(self, output):
+        """
+        Gửi email thông báo kết quả phỏng vấn cho ứng viên đã đậu
+        
+        Args:
+            output (dict): Thông tin ứng viên và công việc dưới dạng dictionary
+        """
+        # Trích xuất dữ liệu từ input
+        candidate_email = output.get('candidate', {}).get('email')
+        position = output.get('job', {}).get('title', 'vị trí ứng tuyển')
+        
+        # Tạo tiêu đề email
+        subject = f"Thông báo kết quả phỏng vấn - Chúc mừng bạn đã được nhận vào vị trí {position}"
+        
+        # Tạo nội dung email
+        email_content = f"""
+        <html>
+        <body>
+            <p>Kính gửi ứng viên,</p>
+            
+            <p>Chúng tôi vui mừng thông báo rằng bạn đã <strong>trúng tuyển</strong> vào vị trí {position} tại công ty chúng tôi.</p>
+            
+            <p>Trong thời gian tới, chúng tôi sẽ liên hệ với bạn để thông báo chi tiết về:</p>
+            <ul>
+                <li>Ngày bắt đầu làm việc</li>
+                <li>Thông tin về lương và phúc lợi</li>
+                <li>Các thủ tục và giấy tờ cần chuẩn bị</li>
+            </ul>
+            
+            <p>Vui lòng xác nhận việc nhận công việc bằng cách trả lời email này trong vòng 3 ngày làm việc.</p>
+            
+            <p>Chúng tôi rất mong được làm việc cùng bạn!</p>
+            
+            <p>Trân trọng,<br>
+            Phòng Nhân sự</p>
+        </body>
+        </html>
+        """
+        
+        # Tạo đối tượng email
+        mime_message = EmailMessage()
+        mime_message["To"] = candidate_email
+        mime_message["From"] = "tinle210303@gmail.com"
+        mime_message["Subject"] = subject
+        mime_message.add_alternative(email_content, subtype="html")
+        
+        # Mã hóa và gửi email
+        encoded_message = base64.urlsafe_b64encode(mime_message.as_bytes()).decode()
+        body = {"raw": encoded_message}
+        
+        try:
+            self.service.users().messages().send(userId="me", body=body).execute()
+            print(f"✅ Email thông báo kết quả đậu phỏng vấn đã được gửi thành công đến {candidate_email}!")
+            return True
+        except Exception as error:
+            print(f"❌ Lỗi khi gửi email thông báo kết quả đậu phỏng vấn: {error}")
+            return False
+
+
+    def send_rejection_email(self, output):
+        """
+        Gửi email thông báo kết quả phỏng vấn cho ứng viên không được tuyển
+        
+        Args:
+            output (dict): Thông tin ứng viên và công việc dưới dạng dictionary
+        """
+        # Trích xuất dữ liệu từ input
+        candidate_email = output.get('candidate', {}).get('email')
+        position = output.get('job', {}).get('title', 'vị trí ứng tuyển')
+        
+        # Tạo tiêu đề email
+        subject = f"Thông báo kết quả phỏng vấn - Vị trí {position}"
+        
+        # Tạo nội dung email
+        email_content = f"""
+        <html>
+        <body>
+            <p>Kính gửi ứng viên,</p>
+            
+            <p>Cảm ơn bạn đã tham gia buổi phỏng vấn cho vị trí {position} tại công ty chúng tôi.</p>
+            
+            <p>Sau khi cân nhắc kỹ lưỡng, chúng tôi rất tiếc phải thông báo rằng chúng tôi đã quyết định tiếp tục với các ứng viên khác phù hợp hơn với yêu cầu hiện tại của vị trí này.</p>
+            
+            <p>Mặc dù vậy, chúng tôi đánh giá cao kinh nghiệm và kỹ năng của bạn. Chúng tôi khuyến khích bạn tiếp tục theo dõi các cơ hội tuyển dụng trong tương lai tại công ty chúng tôi có thể phù hợp hơn với hồ sơ của bạn.</p>
+            
+            <p>Chúng tôi đánh giá cao thời gian và nỗ lực của bạn trong quá trình ứng tuyển và chúc bạn thành công trong sự nghiệp của mình.</p>
+            
+            <p>Trân trọng,<br>
+            Phòng Nhân sự</p>
+        </body>
+        </html>
+        """
+        
+        # Tạo đối tượng email
+        mime_message = EmailMessage()
+        mime_message["To"] = candidate_email
+        mime_message["From"] = "tinle210303@gmail.com"
+        mime_message["Subject"] = subject
+        mime_message.add_alternative(email_content, subtype="html")
+        
+        # Mã hóa và gửi email
+        encoded_message = base64.urlsafe_b64encode(mime_message.as_bytes()).decode()
+        body = {"raw": encoded_message}
+        
+        try:
+            self.service.users().messages().send(userId="me", body=body).execute()
+            print(f"✅ Email thông báo kết quả không được tuyển đã được gửi thành công đến {candidate_email}!")
+            return True
+        except Exception as error:
+            print(f"❌ Lỗi khi gửi email thông báo kết quả không được tuyển: {error}")
+            return False
 

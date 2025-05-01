@@ -103,15 +103,12 @@ watch(() => props.candidate, (newVal) => {
 
 const handleOk = async () => {
   try {
-    console.log('Candidate ID:', props.candidate.id);
-    console.log('Status:', formState.status); 
+
     await candidatesService.updateCandidateStatus(props.candidate.id, formState.status)
-    console.log('Status updated to:', candidatesService.updateCandidateStatus(props.candidate.id, formState.status));
     message.success(`Status updated to ${formatStatus(formState.status)}`)
     emit('saved')
     handleCancel()
   } catch (error) {
-    console.error('Error updating status:', error)
     message.error('Failed to update status')
   }
 }
@@ -122,12 +119,12 @@ const handleCancel = () => {
 
 const getStatusColor = (status) => {
   const colors = {
-    'new': 'blue',
-    'screening': 'orange',
-    'interview': 'purple',
-    'offer': 'geekblue',
-    'hired': 'green',
-    'rejected': 'red'
+    'New': 'blue',
+    'Screening': 'orange',
+    'Interview': 'purple',
+    'Offer': 'geekblue',
+    'Hired': 'green',
+    'Rejected': 'red'
   }
   return colors[status] || 'default'
 }
