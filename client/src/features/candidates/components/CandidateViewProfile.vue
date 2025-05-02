@@ -144,7 +144,7 @@
                 <div class="timeline-item">
                   <div class="timeline-title">Application Submitted</div>
                   <div class="timeline-date">{{ formatDate(candidate.applied_date) }}</div>
-                  <div class="timeline-description">Candidate applied for {{ candidate.position }} position</div>
+                  <div class="timeline-description">Candidate applied for {{ candidate.position || 'this' }} position</div>
                 </div>
               </a-timeline-item>
               
@@ -154,6 +154,7 @@
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-title">Screening</div>
+                  <div class="timeline-date" v-if="candidate.screening_date">{{ formatDate(candidate.screening_date) }}</div>
                   <div class="timeline-description">Initial resume and application review</div>
                 </div>
               </a-timeline-item>
@@ -164,6 +165,7 @@
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-title">Interview</div>
+                  <div class="timeline-date" v-if="candidate.interview_date">{{ formatDate(candidate.interview_date) }}</div>
                   <div class="timeline-description">Technical and cultural fit assessment</div>
                 </div>
               </a-timeline-item>
@@ -174,6 +176,7 @@
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-title">Offer</div>
+                  <div class="timeline-date" v-if="candidate.offer_date">{{ formatDate(candidate.offer_date) }}</div>
                   <div class="timeline-description">Job offer extended</div>
                 </div>
               </a-timeline-item>
@@ -184,11 +187,12 @@
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-title">Hired</div>
+                  <div class="timeline-date" v-if="candidate.hired_date">{{ formatDate(candidate.hired_date) }}</div>
                   <div class="timeline-description">Candidate joined the team</div>
                 </div>
               </a-timeline-item>
 
-              <a-timeline-item v-if="candidate.status === 'rejected'" color="red">
+              <a-timeline-item v-if="candidate.status && candidate.status.toLowerCase() === 'rejected'" color="red">
                 <template #dot>
                   <close-circle-outlined style="font-size: 16px" />
                 </template>
@@ -255,6 +259,10 @@ const getStatusColor = (status) => {
 
 // Hàm xác định màu sắc cho timeline đã được cải tiến
 const getTimelineColor = (step, currentStatus) => {
+  // Standardize status strings to lowercase for reliable comparison
+  step = step.toLowerCase();
+  currentStatus = currentStatus ? currentStatus.toLowerCase() : '';
+  
   // Định nghĩa thứ tự các bước trong quy trình tuyển dụng
   const stepsOrder = {
     'new': 0,
@@ -301,10 +309,11 @@ const getTimelineColor = (step, currentStatus) => {
 
 // Hàm phụ trợ để xác định giai đoạn bị từ chối một cách an toàn
 const determineRejectionStage = (currentStep) => {
-  // Giả lập việc xác định các giai đoạn đã hoàn thành, đang bị từ chối, và chưa bắt đầu
-  // Trong thực tế, bạn có thể muốn lấy thông tin này từ dữ liệu ứng viên
+  // Convert to lowercase for consistency
+  currentStep = currentStep.toLowerCase();
   
-  // Trường hợp mặc định: từ chối sau giai đoạn phỏng vấn
+  // Define the rejection stage based on each step
+  // This assumes a default rejection after interview, but can be changed
   const defaultStages = {
     'new': 'completed',
     'screening': 'completed',
@@ -313,9 +322,12 @@ const determineRejectionStage = (currentStep) => {
     'hired': 'pending'
   };
   
-  return {
-    [currentStep]: defaultStages[currentStep] || 'pending'
-  };
+  // Create a result object with the current step's status
+  // This approach allows for future enhancements to handle more complex cases
+  const result = {};
+  result[currentStep] = defaultStages[currentStep] || 'pending';
+  
+  return result;
 }
 </script>
 

@@ -347,12 +347,24 @@ const viewCandidate = (application) => {
     skills: application.skills,
     resume_url: application.resumeUrl,
     department: application.department,
+    position: application.position || props.jobTitle, // Use the jobTitle from props
     background_score: application.backgroundScore,
     project_score: application.projectScore,
     skill_score: application.skillScore,
     certificate_score: application.certificateScore,
-    total_score: application.totalScore
+    total_score: application.totalScore,
+    // Additional fields needed for timeline
+    rejected_date: application.rejectedDate,
+    rejection_reason: application.rejectionReason,
+    interview_date: application.interviewDate,
+    offer_date: application.offerDate,
+    hired_date: application.hiredDate,
+    screening_date: application.screeningDate,
+    notes: application.notes
   };
+  
+  // Add a small logging debug to verify status is being passed correctly
+  console.log('Opening candidate view with status:', application.status);
   viewProfileDialog.visible = true;
 };
 
