@@ -70,6 +70,27 @@
             </div>
           </div> -->
 
+          <!-- Resume Section -->
+          <div class="form-section" v-if="candidate.resume_url">
+            <div class="section-header">
+              <h3 class="text-lg font-semibold">Resume</h3>
+              <p class="text-sm text-gray-500">Candidate's resume</p>
+            </div>
+            <div class="resume-content">
+              <div v-if="isPdf(candidate.resume_url)" class="pdf-viewer">
+                <iframe :src="candidate.resume_url" width="100%" height="500" class="pdf-frame"></iframe>
+              </div>
+              <div class="resume-actions">
+                <a :href="candidate.resume_url" target="_blank" class="view-button">
+                  <eye-outlined /> View Resume
+                </a>
+                <a :href="candidate.resume_url" download class="download-button">
+                  <download-outlined /> Download
+                </a>
+              </div>
+            </div>
+          </div>
+
           <!-- Evaluation Scores Section -->
           <div class="form-section">
             <div class="section-header">
@@ -218,7 +239,9 @@ import {
   TeamOutlined, 
   GiftOutlined, 
   UserAddOutlined,
-  CloseCircleOutlined 
+  CloseCircleOutlined,
+  EyeOutlined,
+  DownloadOutlined
 } from '@ant-design/icons-vue'
 
 const props = defineProps({
@@ -324,6 +347,10 @@ const determineRejectionStage = (currentStep) => {
   result[currentStep] = defaultStages[currentStep] || 'pending';
   
   return result;
+}
+
+const isPdf = (url) => {
+  return url.endsWith('.pdf');
 }
 </script>
 
@@ -561,5 +588,59 @@ const determineRejectionStage = (currentStep) => {
   --input-bg: white;
   --hover-bg: #f5f5f5;
   --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Resume section styles */
+.pdf-viewer {
+  margin-bottom: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pdf-frame {
+  border: none;
+}
+
+.resume-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.view-button, .download-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.view-button {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.download-button {
+  background-color: #1890ff;
+  color: white;
+  border: 1px solid #1890ff;
+}
+
+.view-button:hover {
+  background-color: var(--hover-bg);
+}
+
+.download-button:hover {
+  background-color: #40a9ff;
+  border-color: #40a9ff;
+}
+
+.view-button :deep(svg), .download-button :deep(svg) {
+  margin-right: 8px;
 }
 </style>
