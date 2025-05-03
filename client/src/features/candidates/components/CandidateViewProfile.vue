@@ -51,17 +51,13 @@
                 <div class="form-value">{{ candidate.department || 'N/A' }}</div>
               </div>
               <div class="form-group">
-                <label class="form-label">Experience</label>
-                <div class="form-value">{{ candidate.experience || 0 }} years</div>
-              </div>
-              <div class="form-group">
                 <label class="form-label">Applied Date</label>
                 <div class="form-value">{{ formatDate(candidate.applied_date) }}</div>
               </div>
             </div>
           </div>
 
-          <!-- Skills Section -->
+          <!-- Skills Section
           <div class="form-section" v-if="candidate.skills && candidate.skills.length">
             <div class="section-header">
               <h3 class="text-lg font-semibold">Skills</h3>
@@ -72,7 +68,7 @@
                 {{ skill }}
               </a-tag>
             </div>
-          </div>
+          </div> -->
 
           <!-- Evaluation Scores Section -->
           <div class="form-section">

@@ -176,8 +176,8 @@ import {
   TrophyOutlined
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
-import candidatesService from '../api/candidates.service'
 import { formatDate as formatDateUtil } from '../../../shared/utils/dateHelpers'
+import candidatesService from '../api/candidates.service'
 import CreateCandidateForm from '../components/CandidateCreateForm.vue'
 import CandidateViewProfile from '../components/CandidateViewProfile.vue'
 import UpdateScoresCandidate from '../components/CandidateUpdateScores.vue'

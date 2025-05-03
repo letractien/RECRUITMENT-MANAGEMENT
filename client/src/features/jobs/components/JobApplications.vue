@@ -159,6 +159,7 @@ import { message, Modal } from 'ant-design-vue';
 import { useStore } from 'vuex';
 
 // Import the same components used in Candidates.vue
+import { formatDate as formatDateUtil } from '../../../shared/utils/dateHelpers'
 import CandidateViewProfile from '../../../features/candidates/components/CandidateViewProfile.vue';
 import UpdateScoresCandidate from '../../../features/candidates/components/CandidateUpdateScores.vue';
 import CandidateMakeScheduleInterview from '../../../features/candidates/components/CandidateMakeScheduleInterview.vue';
@@ -329,9 +330,9 @@ const getStatusColor = (status) => {
 };
 
 const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDateString();
-};
+  if (!dateString) return 'N/A'
+  return formatDateUtil(dateString, 'YYYY-MM-DD HH:mm')
+}
 
 // Use the same method names and structure as in Candidates.vue
 const viewCandidate = (application) => {
