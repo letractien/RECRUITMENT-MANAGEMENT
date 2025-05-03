@@ -58,8 +58,8 @@ async def get_jobs(
         ]
     
     # Fetch jobs
-    cursor = jobs_collection.find(query).skip(skip).limit(limit)
-    jobs = await cursor.to_list(length=limit)
+    jobs = jobs_collection.find(query).skip(skip).limit(limit)
+    jobs = await jobs.to_list(length=limit)
     return jobs
 
 
@@ -233,8 +233,8 @@ async def get_job_candidates(
         )
     
     # Get candidates with matching position
-    cursor = candidates_collection.find({"position": job["title"]})
-    candidates = await cursor.to_list(length=100)
+    candidates = candidates_collection.find({"position": job["title"]})
+    candidates = await candidates.to_list(length=100)
     
     return candidates
 
@@ -246,8 +246,8 @@ async def get_jobs_by_department(
     """
     Get all jobs for a specific department
     """
-    cursor = jobs_collection.find({"department": department})
-    jobs = await cursor.to_list(length=100)
+    jobs = jobs_collection.find({"department": department})
+    jobs = await jobs.to_list(length=100)
     
     return jobs 
 
@@ -267,8 +267,8 @@ async def get_job_applications(
         )
     
     # Get applications for the job
-    cursor = candidates_collection.find({"job_id": job_id})
-    applications = await cursor.to_list(length=100)
+    applications = candidates_collection.find({"job_id": job_id})
+    applications = await applications.to_list(length=100)
     applications = [transform_candidate_data(application) for application in applications]
 
     return applications

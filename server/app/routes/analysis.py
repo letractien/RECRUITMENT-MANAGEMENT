@@ -5,44 +5,82 @@ from ..db.database import jobs_collection, candidates_collection
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
-@router.get("/data", response_model=[])
+@router.get("/data", response_model=list)
 async def get_data():
-    open_jobs = []
+    pipeline = [
+        {"$match": {"status": "open"}},
+        {"$lookup": {
+            "from": "candidates",
+              "let": {"jobId": "$id"},
+            "pipeline": [
+                {"$match": {
+                    "$expr": {"$and": [
+                        {"$eq": ["$job_id", "$$jobId"]},
+                        {"$eq": ["$status", "new"]}
+                    ]}
+                }},
+                {"$project": {"_id": 0}}
+            ],
+            "as": "candidates"
+        }},
+        {"$match": {"candidates.0": {"$exists": True}}},
+        {"$project": {
+            "_id": 0,
+            "id": 1,
+            "title": 1,
+            "department": 1,
+            "background_criteria": 1,
+            "project_criteria": 1,
+            "skill_criteria": 1,
+            "certification_criteria": 1,
+            "candidates": 1
+        }}
+    ]
 
-    # Get open jobs
-    data_open_jobs = jobs_collection.find({
-        "status": "open"
-    })
-    
-    data_open_jobs = await data_open_jobs.to_list(length=100)
+    jobs_with_candidates = jobs_collection.aggregate(pipeline)
+    results = []
 
-    if len(data_open_jobs) == 0:
-        return open_jobs
-
-    # Get candidate with status new in job open
-    for open_job in data_open_jobs:
-        print(open_job)
-        candidates = candidates_collection.find({
-            "job_id": open_job['id']
+    async for doc in jobs_with_candidates:
+        # rename fields to match response format
+        results.append({
+            "id": doc["id"],
+            "name": doc.get("title"),
+            "field": doc.get("department"),
+            "rq_background": doc.get("background_criteria"),
+            "rq_project": doc.get("project_criteria"),
+            "rq_skill": doc.get("skill_criteria"),
+            "rq_certification": doc.get("certification_criteria"),
+            "candidates": doc.get("candidates", [])
         })
-        candidates = await candidates.to_list(length=100)
 
-        open_jobs.append({
-            "id": open_job['id'],
-            "name": open_job['title'],
-        	"field": open_job['department'],
-            "rq_background": open_job['background_criteria'],
-            "rq_project": open_job['project_criteria'],
-            "rq_skill": open_job['skill_criteria'],
-            "rq_certification": open_job['certification_criteria'],
-            "candidates": candidates
-        })
-
-    return open_jobs
+    return results
     
 
-    
+@router.get("/new_candidates")
+async def get_new_candidates(job_id: str):
+    pipeline = [
+        {"$match": {
+            "job_id": job_id,
+            "status": "new"
+        }},
+        {"$group": {
+            "_id": "$job_id",
+            "candidates": {"$push": "$$ROOT"}
+        }}
+    ]
 
-    
-    
+    jobs_with_candidates = candidates_collection.aggregate(pipeline)
+    grouped_result = await jobs_with_candidates.to_list(length=1)
+
+    if not grouped_result:
+        return []
+
+    candidates = grouped_result[0]["candidates"]
+
+    # Loại bỏ ObjectId trong từng candidate
+    for c in candidates:
+        c.pop("_id", None)
+
+    return candidates
+
 

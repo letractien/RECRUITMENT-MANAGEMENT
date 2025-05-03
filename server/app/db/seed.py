@@ -181,7 +181,64 @@ for i, dept in enumerate(departments):
             "posted_date": posting_date if random.random() > 0.2 else None,
             "closed_date": None,
             "applicants": 0,  # Will be calculated later
-            "interviews": 0   # Will be calculated later
+            "interviews": 0,   # Will be calculated later
+            # New criteria fields
+            "background_criteria": {
+                "importance_ratio": 25,
+                "required": f"Bachelor's degree in {dept} or related field with relevant experience.",
+                "criteria": [
+                    {
+                        "description": f"Education level in {dept}",
+                        "max_score": 5
+                    },
+                    {
+                        "description": "Years of relevant experience",
+                        "max_score": 5
+                    }
+                ]
+            },
+            "project_criteria": {
+                "importance_ratio": 25,
+                "required": f"Experience working on {dept} projects with demonstrable results.",
+                "criteria": [
+                    {
+                        "description": f"Number of {dept} projects completed",
+                        "max_score": 5
+                    },
+                    {
+                        "description": "Project complexity and impact",
+                        "max_score": 5
+                    }
+                ]
+            },
+            "skill_criteria": {
+                "importance_ratio": 25,
+                "required": f"Proficiency in {', '.join(random.sample(skills_by_department[dept], min(3, len(skills_by_department[dept]))))}.",
+                "criteria": [
+                    {
+                        "description": f"Technical skills in {dept}",
+                        "max_score": 5
+                    },
+                    {
+                        "description": "Problem-solving abilities",
+                        "max_score": 5
+                    }
+                ]
+            },
+            "certification_criteria": {
+                "importance_ratio": 25,
+                "required": f"Relevant certifications in {dept} are a plus but not required.",
+                "criteria": [
+                    {
+                        "description": f"Professional certifications in {dept}",
+                        "max_score": 5
+                    },
+                    {
+                        "description": "Industry recognition and achievements",
+                        "max_score": 5
+                    }
+                ]
+            }
         })
 
 # Sample data - Candidates

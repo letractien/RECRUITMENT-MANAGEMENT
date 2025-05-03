@@ -104,10 +104,10 @@ async def get_jobs_by_department(
         {"$sort": {"count": -1}}
     ]
     
-    cursor = jobs_collection.aggregate(pipeline)
-    departments = await cursor.to_list(length=100)
+    jobs_by_department = jobs_collection.aggregate(pipeline)
+    jobs_by_department = await jobs_by_department.to_list(length=100)
     
-    return departments
+    return jobs_by_department
 
 
 @router.get("/hiring-funnel")
@@ -128,8 +128,8 @@ async def get_hiring_funnel(
         {"$sort": {"count": -1}}
     ]
     
-    cursor = candidates_collection.aggregate(pipeline)
-    statuses = await cursor.to_list(length=100)
+    statuses = candidates_collection.aggregate(pipeline)
+    statuses = await statuses.to_list(length=100)
     
     # Ensure we have all stages in the funnel
     all_stages = ["applied", "screening", "interview", "offer", "hired", "rejected"]
@@ -158,11 +158,11 @@ async def get_recent_applications(
     start_date = get_date_from_range(time_range)
     
     # Get filtered candidates
-    cursor = candidates_collection.find({
+    candidates = candidates_collection.find({
         "created_at": {"$gte": start_date}
     }).sort("created_at", -1)
     
-    candidates = await cursor.to_list(length=100)  # Lấy tối đa 100 ứng viên gần nhất
+    candidates = await candidates.to_list(length=100)  # Lấy tối đa 100 ứng viên gần nhất
     
     # Get total count for the selected time range
     total = await candidates_collection.count_documents({
@@ -204,12 +204,12 @@ async def get_upcoming_interviews(
     end_date = now + timedelta(days=days)
     
     # Find upcoming interviews
-    cursor = interviews_collection.find({
+    interviews = interviews_collection.find({
         "scheduled_date": {"$gte": now, "$lte": end_date},
         "status": {"$nin": ["cancelled", "completed"]}
     }).sort("scheduled_date", 1).limit(limit)
     
-    interviews = await cursor.to_list(length=limit)
+    interviews = await interviews.to_list(length=limit)
     
     # Format and augment interview data
     upcoming = []
@@ -248,8 +248,8 @@ async def get_recent_activity(
     activities = []
     
     # Get recent candidates (new applications)
-    candidate_cursor = candidates_collection.find().sort("created_at", -1).limit(limit)
-    recent_candidates = await candidate_cursor.to_list(length=limit)
+    candidates = candidates_collection.find().sort("created_at", -1).limit(limit)
+    recent_candidates = await candidates.to_list(length=limit)
     
     for candidate in recent_candidates:
         job = None
@@ -268,8 +268,8 @@ async def get_recent_activity(
         })
     
     # Get recent interviews
-    interview_cursor = interviews_collection.find().sort("created_at", -1).limit(limit)
-    recent_interviews = await interview_cursor.to_list(length=limit)
+    interviews = interviews_collection.find().sort("created_at", -1).limit(limit)
+    recent_interviews = await interviews.to_list(length=limit)
     
     for interview in recent_interviews:
         candidate = await candidates_collection.find_one({"id": interview.get("candidate_id")})
@@ -288,8 +288,8 @@ async def get_recent_activity(
         })
     
     # Get recent job postings
-    job_cursor = jobs_collection.find().sort("created_at", -1).limit(limit)
-    recent_jobs = await job_cursor.to_list(length=limit)
+    jobs = jobs_collection.find().sort("created_at", -1).limit(limit)
+    recent_jobs = await jobs.to_list(length=limit)
     
     for job in recent_jobs:
         activities.append({
@@ -409,14 +409,14 @@ async def get_application_trend(
     ]
     
     # Execute aggregations
-    app_cursor = candidates_collection.aggregate(application_pipeline)
-    app_data = await app_cursor.to_list(length=100)
+    applications = candidates_collection.aggregate(application_pipeline)
+    app_data = await applications.to_list(length=100)
     
-    interview_cursor = interviews_collection.aggregate(interview_pipeline)
-    interview_data = await interview_cursor.to_list(length=100)
+    interviews = interviews_collection.aggregate(interview_pipeline)
+    interview_data = await interviews.to_list(length=100)
     
-    offer_cursor = candidates_collection.aggregate(offers_pipeline)
-    offer_data = await offer_cursor.to_list(length=100)
+    offers = candidates_collection.aggregate(offers_pipeline)
+    offer_data = await offers.to_list(length=100)
     
     # Create dictionaries for easy lookup
     app_dict = {item["_id"]: item["applications"] for item in app_data}

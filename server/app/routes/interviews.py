@@ -201,12 +201,12 @@ async def get_upcoming_interviews(
     end_date = now + timedelta(days=days)
     
     # Find upcoming interviews
-    cursor = interviews_collection.find({
+    interviews = interviews_collection.find({
         "scheduled_date": {"$gte": now, "$lte": end_date},
         "status": {"$nin": ["cancelled", "completed"]}
     }).sort("scheduled_date", 1).limit(limit)
     
-    interviews = await cursor.to_list(length=limit)
+    interviews = await interviews.to_list(length=limit)
     
     # Format and augment interview data
     upcoming = []
@@ -581,12 +581,12 @@ async def get_today_interviews():
     today_end = today_start + timedelta(days=1)
     
     # Find today's interviews
-    cursor = interviews_collection.find({
+    interviews = interviews_collection.find({
         "scheduled_date": {"$gte": today_start, "$lt": today_end},
         "status": {"$nin": ["cancelled"]}
     }).sort("scheduled_date", 1)
     
-    interviews = await cursor.to_list(length=100)
+    interviews = await interviews.to_list(length=100)
     
     # Format and augment interview data
     today_interviews = []
@@ -638,11 +638,11 @@ async def get_interviews_by_date(
         day_end = day_start + timedelta(days=1)
         
         # Find interviews for the specified date
-        cursor = interviews_collection.find({
+        interviews = interviews_collection.find({
             "scheduled_date": {"$gte": day_start, "$lt": day_end}
         }).sort("scheduled_date", 1)
         
-        interviews = await cursor.to_list(length=100)
+        interviews = await interviews.to_list(length=100)
         
         # Format and augment interview data
         day_interviews = []
@@ -702,11 +702,11 @@ async def get_interviews_by_date_range(
         end_day = parsed_end_date.replace(hour=23, minute=59, second=59, microsecond=999)
         
         # Find interviews within the specified date range
-        cursor = interviews_collection.find({
+        interviews = interviews_collection.find({
             "scheduled_date": {"$gte": start_day, "$lte": end_day}
         }).sort("scheduled_date", 1)
         
-        interviews = await cursor.to_list(length=500)
+        interviews = await interviews.to_list(length=500)
         
         # Format and augment interview data
         range_interviews = []

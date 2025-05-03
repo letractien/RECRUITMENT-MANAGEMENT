@@ -115,8 +115,8 @@ async def get_candidates(
         ]
     
     # Fetch candidates
-    cursor = candidates_collection.find(query).skip(skip).limit(limit)
-    candidates = await cursor.to_list(length=limit)
+    candidates = candidates_collection.find(query).skip(skip).limit(limit)
+    candidates = await candidates.to_list(length=limit)
     
     # Transform data to match Pydantic model
     transformed_candidates = [transform_candidate_data(candidate) for candidate in candidates]
@@ -288,6 +288,8 @@ async def delete_candidate(
     await interviews_collection.delete_many({"candidate_id": candidate_id})
     
     return None
+
+
 @router.patch("/{candidate_id}/status", response_model=Candidate)
 async def update_candidate_status(
     candidate_id: str,
@@ -345,6 +347,7 @@ async def update_candidate_status(
         send_rejection_email(output)
     return updated_candidate
 
+
 @router.get("/{candidate_id}/interviews", response_model=List[Interview])
 async def get_candidate_interviews(
     candidate_id: str,
@@ -361,8 +364,8 @@ async def get_candidate_interviews(
         )
     
     # Get interviews
-    cursor = interviews_collection.find({"candidate_id": candidate_id})
-    interviews = await cursor.to_list(length=100)
+    interviews = interviews_collection.find({"candidate_id": candidate_id})
+    interviews = await interviews.to_list(length=100)
     
     # Process interviews to ensure result field is properly structured
     for interview in interviews:
