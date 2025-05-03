@@ -60,7 +60,6 @@ async def get_jobs(
     # Fetch jobs
     cursor = jobs_collection.find(query).skip(skip).limit(limit)
     jobs = await cursor.to_list(length=limit)
-    
     return jobs
 
 
@@ -270,6 +269,59 @@ async def get_job_applications(
     # Get applications for the job
     cursor = candidates_collection.find({"job_id": job_id})
     applications = await cursor.to_list(length=100)
+    applications = [transform_candidate_data(application) for application in applications]
 
     return applications
 
+
+def transform_candidate_data(candidate):
+    """
+    Transform MongoDB candidate document to match Pydantic model requirements
+    """
+    if not candidate:
+        return None
+        
+    # Create a copy to avoid modifying the original
+    candidate = dict(candidate)
+    
+    # Convert MongoDB _id to string id if not present
+    if "_id" in candidate and "id" not in candidate:
+        candidate["id"] = str(candidate["_id"])
+    
+    # Ensure status is lowercase to match enum
+    if "status" in candidate and candidate["status"] == "New":
+        candidate["status"] = "new"
+        
+    # Set default values for required fields if missing
+    if "phone" not in candidate:
+        candidate["phone"] = "Not provided"
+        
+    if "department" not in candidate:
+        candidate["department"] = "Not specified"
+        
+    if "experience" not in candidate:
+        candidate["experience"] = 0
+        
+    # Add timestamps if missing
+    now = datetime.now()
+    if "created_at" not in candidate:
+        candidate["created_at"] = now
+        
+    if "updated_at" not in candidate:
+        candidate["updated_at"] = now
+        
+    if "applied_date" not in candidate:
+        candidate["applied_date"] = now
+        
+    # Fix resume_url to be a valid URL
+    if "resume_url" in candidate and candidate["resume_url"]:
+        if not candidate["resume_url"].startswith(("http://", "https://")):
+            # Convert relative path to absolute URL
+            base_url = "https://ftp.cntt.io/view"
+            candidate["resume_url"] = f"{base_url}/{candidate['resume_url']}"
+            
+            # # Convert relative path to absolute URL with URL encoding for the path parameter
+            # path = urllib.parse.quote(candidate["resume_url"])
+            # candidate["resume_url"] = f"https://ftp.cntt.io/api/files/cat?path=%2F{path}"
+    
+    return candidate

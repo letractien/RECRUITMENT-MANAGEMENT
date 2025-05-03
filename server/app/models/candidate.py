@@ -20,7 +20,7 @@ class CandidateBase(BaseModel):
     department: str
     experience: int
     status: CandidateStatus = CandidateStatus.NEW
-    resume_url: Optional[HttpUrl] = None
+    resume_url: Optional[str] = None
     skills: List[str] = []
     notes: Optional[str] = None
     salary_expectation: Optional[float] = None
@@ -49,7 +49,7 @@ class CandidateUpdate(BaseModel):
     department: Optional[str] = None
     experience: Optional[int] = None
     status: Optional[CandidateStatus] = None
-    resume_url: Optional[HttpUrl] = None
+    resume_url: Optional[str] = None
     skills: Optional[List[str]] = None
     notes: Optional[str] = None
     salary_expectation: Optional[float] = None
