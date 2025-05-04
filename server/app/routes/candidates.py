@@ -314,9 +314,6 @@ async def update_candidate_status(
     
     # Get updated candidate
     updated_candidate = await candidates_collection.find_one({"id": candidate_id})
-    
-    # Transform the candidate data
-    transformed_candidate = transform_candidate_data(updated_candidate)
 
     # Get the candidate's email
     candidate_email = updated_candidate.get("email", "Unknown")
@@ -340,12 +337,16 @@ async def update_candidate_status(
             "email": candidate_email
         }
     }
-    print(status)
+    
     if (status =='hired'):
         send_acceptance_email(output)
     if (status =='rejected'):
         send_rejection_email(output)
-    return updated_candidate
+        
+    # Transform the candidate data
+    transformed_candidate = transform_candidate_data(updated_candidate)
+
+    return transformed_candidate
 
 
 @router.get("/{candidate_id}/interviews", response_model=List[Interview])
