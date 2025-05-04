@@ -28,6 +28,7 @@ docker-volumes/
 
 # Environment files
 .env**
+.venv**
 
 # Build artifacts
 .cache/

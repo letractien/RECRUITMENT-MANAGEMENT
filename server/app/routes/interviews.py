@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query, status
 from typing import List, Optional
-
+from ..email.email import send_interview_email
 from ..db.database import interviews_collection, candidates_collection, jobs_collection
 from ..models.interview import (
     Interview, 
@@ -38,62 +38,118 @@ async def get_interviews(
     Get all interviews with optional filtering
     """
     # Build the filter query
-    query = {}
+    match_stage = {}
     
     if status:
-        query["status"] = status
+        match_stage["status"] = status
         
     # If interviewer_id is provided, filter by it
     if interviewer_id:
-        query["interviewer_id"] = interviewer_id
+        match_stage["interviewer_id"] = interviewer_id
     
-    # Fetch interviews
-    cursor = interviews_collection.find(query).skip(skip).limit(limit)
-    interviews = await cursor.to_list(length=limit)
+    # Create aggregation pipeline
+    pipeline = [
+        {"$match": match_stage},
+        {"$skip": skip},
+        {"$limit": limit},
+        # Join with candidates collection for candidate info
+        {
+            "$lookup": {
+                "from": "candidates",
+                "localField": "candidate_id",
+                "foreignField": "id",
+                "as": "candidate"
+            }
+        },
+        # Join with jobs collection for job info
+        {
+            "$lookup": {
+                "from": "jobs",
+                "localField": "job_id",
+                "foreignField": "id",
+                "as": "job"
+            }
+        },
+        # Join with candidates collection again for interviewer info
+        {
+            "$lookup": {
+                "from": "candidates",
+                "localField": "interviewer_id",
+                "foreignField": "id",
+                "as": "interviewer"
+            }
+        },
+        # Process and structure the results
+        {
+            "$addFields": {
+                "candidate_name": {
+                    "$cond": {
+                        "if": {"$gt": [{"$size": "$candidate"}, 0]},
+                        "then": {
+                            "$concat": [
+                                {"$ifNull": [{"$arrayElemAt": ["$candidate.first_name", 0]}, ""]}, 
+                                " ", 
+                                {"$ifNull": [{"$arrayElemAt": ["$candidate.last_name", 0]}, ""]}
+                            ]
+                        },
+                        "else": "Unknown Candidate"
+                    }
+                },
+                "job_title": {
+                    "$cond": {
+                        "if": {"$gt": [{"$size": "$job"}, 0]},
+                        "then": {"$ifNull": [{"$arrayElemAt": ["$job.title", 0]}, "Unknown Position"]},
+                        "else": "Unknown Position"
+                    }
+                },
+                "interviewer_name": {
+                    "$cond": {
+                        "if": {"$gt": [{"$size": "$interviewer"}, 0]},
+                        "then": {
+                            "$concat": [
+                                {"$ifNull": [{"$arrayElemAt": ["$interviewer.first_name", 0]}, ""]}, 
+                                " ", 
+                                {"$ifNull": [{"$arrayElemAt": ["$interviewer.last_name", 0]}, ""]}
+                            ]
+                        },
+                        "else": "Unknown Interviewer"
+                    }
+                },
+                "result": {
+                    "$cond": {
+                        "if": {
+                            "$or": [
+                                {"$eq": [{"$type": "$result"}, "string"]},
+                                {"$ne": [{"$type": "$result"}, "object"]}
+                            ]
+                        },
+                        "then": None,
+                        "else": "$result"
+                    }
+                }
+            }
+        },
+        # Remove the arrays from the final output
+        {
+            "$project": {
+                "candidate": 0,
+                "job": 0,
+                "interviewer": 0
+            }
+        }
+    ]
     
-    # Enhance interviews with related information
-    enhanced_interviews = []
+    # Execute the aggregation pipeline
+    interviews = await interviews_collection.aggregate(pipeline).to_list(length=limit)
     
-    for interview in interviews:
-        # Fetch candidate info
-        candidate = await candidates_collection.find_one({"id": interview["candidate_id"]})
-        if candidate:
-            interview["candidate_name"] = f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}"
-        else:
-            interview["candidate_name"] = "Unknown Candidate"
-            
-        # Fetch job info
-        job = await jobs_collection.find_one({"id": interview["job_id"]})
-        if job:
-            interview["job_title"] = job.get("title", "Unknown Position")
-        else:
-            interview["job_title"] = "Unknown Position"
-            
-        # Fetch interviewer info (assuming there's an interviewers collection)
-        try:
-            interviewer = await candidates_collection.find_one({"id": interview["interviewer_id"]})
-            if interviewer:
-                interview["interviewer_name"] = f"{interviewer.get('first_name', '')} {interviewer.get('last_name', '')}"
-            else:
-                interview["interviewer_name"] = "Unknown Interviewer"
-        except:
-            interview["interviewer_name"] = "Unknown Interviewer"
+    return interviews
 
-        # Ensure result field is properly structured according to InterviewResult model
-        if "result" in interview:
-            # If result is a string like 'passed', 'failed', 'pending', set it to None
-            if isinstance(interview["result"], str) or not isinstance(interview["result"], dict):
-                interview["result"] = None
-        
-        enhanced_interviews.append(interview)
-    
-    return enhanced_interviews
 
-
-@router.post("/", response_model=Interview, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=Interview, status_code=status.HTTP_201_CREATED)
 async def create_interview(
     interview_data: InterviewCreate,
 ):
+    send_interview_email(interview_data.dict())
     """
     Schedule a new interview
     """
@@ -145,12 +201,12 @@ async def get_upcoming_interviews(
     end_date = now + timedelta(days=days)
     
     # Find upcoming interviews
-    cursor = interviews_collection.find({
+    interviews = interviews_collection.find({
         "scheduled_date": {"$gte": now, "$lte": end_date},
         "status": {"$nin": ["cancelled", "completed"]}
     }).sort("scheduled_date", 1).limit(limit)
     
-    interviews = await cursor.to_list(length=limit)
+    interviews = await interviews.to_list(length=limit)
     
     # Format and augment interview data
     upcoming = []
@@ -185,46 +241,106 @@ async def get_interview(
     """
     Get a specific interview by ID
     """
-    interview = await interviews_collection.find_one({"id": interview_id})
+    # Create aggregation pipeline
+    pipeline = [
+        {"$match": {"id": interview_id}},
+        # Join with candidates collection for candidate info
+        {
+            "$lookup": {
+                "from": "candidates",
+                "localField": "candidate_id",
+                "foreignField": "id",
+                "as": "candidate"
+            }
+        },
+        # Join with jobs collection for job info
+        {
+            "$lookup": {
+                "from": "jobs",
+                "localField": "job_id",
+                "foreignField": "id",
+                "as": "job"
+            }
+        },
+        # Join with candidates collection again for interviewer info
+        {
+            "$lookup": {
+                "from": "candidates",
+                "localField": "interviewer_id",
+                "foreignField": "id",
+                "as": "interviewer"
+            }
+        },
+        # Process and structure the results
+        {
+            "$addFields": {
+                "candidate_name": {
+                    "$cond": {
+                        "if": {"$gt": [{"$size": "$candidate"}, 0]},
+                        "then": {
+                            "$concat": [
+                                {"$ifNull": [{"$arrayElemAt": ["$candidate.first_name", 0]}, ""]}, 
+                                " ", 
+                                {"$ifNull": [{"$arrayElemAt": ["$candidate.last_name", 0]}, ""]}
+                            ]
+                        },
+                        "else": "Unknown Candidate"
+                    }
+                },
+                "job_title": {
+                    "$cond": {
+                        "if": {"$gt": [{"$size": "$job"}, 0]},
+                        "then": {"$ifNull": [{"$arrayElemAt": ["$job.title", 0]}, "Unknown Position"]},
+                        "else": "Unknown Position"
+                    }
+                },
+                "interviewer_name": {
+                    "$cond": {
+                        "if": {"$gt": [{"$size": "$interviewer"}, 0]},
+                        "then": {
+                            "$concat": [
+                                {"$ifNull": [{"$arrayElemAt": ["$interviewer.first_name", 0]}, ""]}, 
+                                " ", 
+                                {"$ifNull": [{"$arrayElemAt": ["$interviewer.last_name", 0]}, ""]}
+                            ]
+                        },
+                        "else": "Unknown Interviewer"
+                    }
+                },
+                "result": {
+                    "$cond": {
+                        "if": {
+                            "$or": [
+                                {"$eq": [{"$type": "$result"}, "string"]},
+                                {"$ne": [{"$type": "$result"}, "object"]}
+                            ]
+                        },
+                        "then": None,
+                        "else": "$result"
+                    }
+                }
+            }
+        },
+        # Remove the arrays from the final output
+        {
+            "$project": {
+                "candidate": 0,
+                "job": 0,
+                "interviewer": 0
+            }
+        }
+    ]
     
-    if not interview:
+    # Execute the aggregation pipeline
+    interview_results = await interviews_collection.aggregate(pipeline).to_list(length=1)
+    
+    if not interview_results:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Interview with ID {interview_id} not found",
         )
     
-    # Enhance interview with related information
-    # Fetch candidate info
-    candidate = await candidates_collection.find_one({"id": interview["candidate_id"]})
-    if candidate:
-        interview["candidate_name"] = f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}"
-    else:
-        interview["candidate_name"] = "Unknown Candidate"
-        
-    # Fetch job info
-    job = await jobs_collection.find_one({"id": interview["job_id"]})
-    if job:
-        interview["job_title"] = job.get("title", "Unknown Position")
-    else:
-        interview["job_title"] = "Unknown Position"
-        
-    # Fetch interviewer info
-    try:
-        interviewer = await candidates_collection.find_one({"id": interview["interviewer_id"]})
-        if interviewer:
-            interview["interviewer_name"] = f"{interviewer.get('first_name', '')} {interviewer.get('last_name', '')}"
-        else:
-            interview["interviewer_name"] = "Unknown Interviewer"
-    except:
-        interview["interviewer_name"] = "Unknown Interviewer"
-    
-    # Ensure result field is properly structured according to InterviewResult model
-    if "result" in interview:
-        # If result is a string like 'passed', 'failed', 'pending', set it to None
-        if isinstance(interview["result"], str) or not isinstance(interview["result"], dict):
-            interview["result"] = None
-    
-    return interview
+    return interview_results[0]
 
 
 @router.put("/{interview_id}", response_model=Interview)
@@ -375,16 +491,82 @@ async def get_job_interviews(
             detail=f"Job with ID {job_id} not found",
         )
     
-    # Get interviews
-    cursor = interviews_collection.find({"job_id": job_id})
-    interviews = await cursor.to_list(length=100)
+    # Create aggregation pipeline
+    pipeline = [
+        {"$match": {"job_id": job_id}},
+        # Join with candidates collection for candidate info
+        {
+            "$lookup": {
+                "from": "candidates",
+                "localField": "candidate_id",
+                "foreignField": "id",
+                "as": "candidate"
+            }
+        },
+        # Join with candidates collection again for interviewer info
+        {
+            "$lookup": {
+                "from": "candidates",
+                "localField": "interviewer_id",
+                "foreignField": "id",
+                "as": "interviewer"
+            }
+        },
+        # Process and structure the results
+        {
+            "$addFields": {
+                "candidate_name": {
+                    "$cond": {
+                        "if": {"$gt": [{"$size": "$candidate"}, 0]},
+                        "then": {
+                            "$concat": [
+                                {"$ifNull": [{"$arrayElemAt": ["$candidate.first_name", 0]}, ""]}, 
+                                " ", 
+                                {"$ifNull": [{"$arrayElemAt": ["$candidate.last_name", 0]}, ""]}
+                            ]
+                        },
+                        "else": "Unknown Candidate"
+                    }
+                },
+                "job_title": job.get("title", "Unknown Position"),
+                "interviewer_name": {
+                    "$cond": {
+                        "if": {"$gt": [{"$size": "$interviewer"}, 0]},
+                        "then": {
+                            "$concat": [
+                                {"$ifNull": [{"$arrayElemAt": ["$interviewer.first_name", 0]}, ""]}, 
+                                " ", 
+                                {"$ifNull": [{"$arrayElemAt": ["$interviewer.last_name", 0]}, ""]}
+                            ]
+                        },
+                        "else": "Unknown Interviewer"
+                    }
+                },
+                "result": {
+                    "$cond": {
+                        "if": {
+                            "$or": [
+                                {"$eq": [{"$type": "$result"}, "string"]},
+                                {"$ne": [{"$type": "$result"}, "object"]}
+                            ]
+                        },
+                        "then": None,
+                        "else": "$result"
+                    }
+                }
+            }
+        },
+        # Remove the arrays from the final output
+        {
+            "$project": {
+                "candidate": 0,
+                "interviewer": 0
+            }
+        }
+    ]
     
-    # Process interviews to ensure result field is properly structured
-    for interview in interviews:
-        if "result" in interview:
-            # If result is a string like 'passed', 'failed', 'pending', set it to None
-            if isinstance(interview["result"], str) or not isinstance(interview["result"], dict):
-                interview["result"] = None
+    # Execute the aggregation pipeline
+    interviews = await interviews_collection.aggregate(pipeline).to_list(length=100)
     
     return interviews
 
@@ -399,12 +581,12 @@ async def get_today_interviews():
     today_end = today_start + timedelta(days=1)
     
     # Find today's interviews
-    cursor = interviews_collection.find({
+    interviews = interviews_collection.find({
         "scheduled_date": {"$gte": today_start, "$lt": today_end},
         "status": {"$nin": ["cancelled"]}
     }).sort("scheduled_date", 1)
     
-    interviews = await cursor.to_list(length=100)
+    interviews = await interviews.to_list(length=100)
     
     # Format and augment interview data
     today_interviews = []
@@ -456,11 +638,11 @@ async def get_interviews_by_date(
         day_end = day_start + timedelta(days=1)
         
         # Find interviews for the specified date
-        cursor = interviews_collection.find({
+        interviews = interviews_collection.find({
             "scheduled_date": {"$gte": day_start, "$lt": day_end}
         }).sort("scheduled_date", 1)
         
-        interviews = await cursor.to_list(length=100)
+        interviews = await interviews.to_list(length=100)
         
         # Format and augment interview data
         day_interviews = []
@@ -520,11 +702,11 @@ async def get_interviews_by_date_range(
         end_day = parsed_end_date.replace(hour=23, minute=59, second=59, microsecond=999)
         
         # Find interviews within the specified date range
-        cursor = interviews_collection.find({
+        interviews = interviews_collection.find({
             "scheduled_date": {"$gte": start_day, "$lte": end_day}
         }).sort("scheduled_date", 1)
         
-        interviews = await cursor.to_list(length=500)
+        interviews = await interviews.to_list(length=500)
         
         # Format and augment interview data
         range_interviews = []

@@ -1,3 +1,4 @@
+
 <template>
   <a-modal
     :visible="visible"
@@ -7,7 +8,12 @@
     @ok="handleOk"
   >
     <div class="interview-creation-form">
-      <form @submit.prevent="handleOk">
+      <a-form 
+        ref="formRef"
+        :model="form" 
+        :rules="rules" 
+        layout="vertical"
+      >
         <!-- Basic Interview Information -->
         <div class="form-section">
           <div class="section-header">
@@ -15,8 +21,7 @@
             <p class="text-sm text-gray-500">Please fill in the following information to schedule an interview</p>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="form-group">
-              <label class="form-label">Candidate</label>
+            <a-form-item name="candidate" label="Candidate" class="form-group">
               <a-select
                 v-model:value="form.candidate"
                 placeholder="Select candidate"
@@ -24,14 +29,14 @@
                 <a-select-option
                   v-for="candidate in candidates"
                   :key="candidate.id"
-                  :value="candidate.name"
+                  :value="candidate.id"
                 >
                   {{ candidate.name }}
                 </a-select-option>
               </a-select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Position</label>
+            </a-form-item>
+
+            <a-form-item name="position" label="Position" class="form-group">
               <a-select
                 v-model:value="form.position"
                 placeholder="Select position"
@@ -39,48 +44,50 @@
                 <a-select-option
                   v-for="job in jobs"
                   :key="job.id"
-                  :value="job.title"
+                  :value="job.id"
                 >
                   {{ job.title }}
                 </a-select-option>
               </a-select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Interview Type</label>
+            </a-form-item>
+
+            <a-form-item name="interviewType" label="Interview Type" class="form-group">
               <a-select
                 v-model:value="form.interviewType"
                 placeholder="Select type"
               >
-                <a-select-option value="Phone Screen">Phone Screen</a-select-option>
-                <a-select-option value="Video">Video</a-select-option>
-                <a-select-option value="Onsite">Onsite</a-select-option>
-                <a-select-option value="Technical">Technical</a-select-option>
-                <a-select-option value="HR">HR</a-select-option>
+                <a-select-option value="phone">Phone Screen</a-select-option>
+                <a-select-option value="video">Video</a-select-option>
+                <a-select-option value="onsite">Onsite</a-select-option>
+                <a-select-option value="technical">Technical</a-select-option>
+                <a-select-option value="hr">HR</a-select-option>
               </a-select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Location/Meeting Link</label>
+            </a-form-item>
+
+            <a-form-item name="location" label="Location/Meeting Link" class="form-group">
               <a-input
                 v-model:value="form.location"
                 placeholder="Enter location or meeting link"
               />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Date</label>
+            </a-form-item>
+
+            <a-form-item name="date" label="Date" class="form-group">
               <a-date-picker
                 v-model:value="form.date"
                 placeholder="Select date"
                 :disabledDate="disabledDate"
+                style="width: 100%"
               />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Time</label>
+            </a-form-item>
+
+            <a-form-item name="time" label="Time" class="form-group">
               <a-time-picker
                 v-model:value="form.time"
                 format="HH:mm"
                 placeholder="Select time"
+                style="width: 100%"
               />
-            </div>
+            </a-form-item>
           </div>
         </div>
 
@@ -90,18 +97,22 @@
             <h3 class="text-lg font-semibold">Interviewers</h3>
             <p class="text-sm text-gray-500">Select interviewers for this session</p>
           </div>
-          <div class="form-group">
+          <a-form-item name="interviewers" class="form-group">
             <a-select
               v-model:value="form.interviewers"
               mode="multiple"
               placeholder="Select interviewers"
               style="width: 100%"
             >
-              <a-select-option v-for="interviewer in interviewers" :key="interviewer.id" :value="interviewer.id">
+              <a-select-option 
+                v-for="interviewer in interviewers" 
+                :key="interviewer.id" 
+                :value="interviewer.id"
+              >
                 {{ interviewer.name }}
               </a-select-option>
             </a-select>
-          </div>
+          </a-form-item>
         </div>
 
         <!-- Notes Section -->
@@ -110,24 +121,25 @@
             <h3 class="text-lg font-semibold">Additional Information</h3>
             <p class="text-sm text-gray-500">Add any notes or special instructions</p>
           </div>
-          <div class="form-group">
+          <a-form-item name="notes" class="form-group">
             <a-textarea
               v-model:value="form.notes"
               :rows="4"
               placeholder="Additional notes about the interview"
             />
-          </div>
+          </a-form-item>
         </div>
-      </form>
+      </a-form>
     </div>
   </a-modal>
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits } from 'vue'
+import { ref, reactive, defineProps, defineEmits } from 'vue'
 import { message } from 'ant-design-vue'
 import { useStore } from 'vuex'
 import dayjs from 'dayjs'
+import candidatesService from '../../candidates/api/candidates.service'
 
 const props = defineProps({
   visible: {
@@ -147,6 +159,7 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'saved'])
 
 const store = useStore()
+const formRef = ref(null)
 
 // Mock interviewers data - in real app this would come from an API
 const interviewers = ref([
@@ -155,16 +168,61 @@ const interviewers = ref([
   { id: 3, name: 'Mike Johnson' }
 ])
 
-const form = ref({
-  candidate: '',
-  position: '',
-  interviewType: '',
-  date: null,
-  time: null,
+const form = reactive({
+  candidate: undefined,
+  position: undefined,
+  interviewType: undefined,
+  date: undefined,
+  time: undefined,
   interviewers: [],
   location: '',
   notes: ''
 })
+
+// Validation rules
+const rules = {
+  candidate: [{ 
+    required: true, 
+    message: 'Please select a candidate',
+    trigger: 'change'
+  }],
+  position: [{ 
+    required: true, 
+    message: 'Please select a position',
+    trigger: 'change'
+  }],
+  interviewType: [{ 
+    required: true, 
+    message: 'Please select an interview type',
+    trigger: 'change'
+  }],
+  date: [{ 
+    required: true, 
+    message: 'Please select a date',
+    trigger: 'change'
+  }],
+  time: [{ 
+    required: true, 
+    message: 'Please select a time',
+    trigger: 'change'
+  }],
+  location: [{ 
+    required: true, 
+    message: 'Please enter location or meeting link',
+    trigger: 'blur'
+  }],
+  interviewers: [{ 
+    required: true, 
+    message: 'Please select at least one interviewer',
+    validator: async (rule, value) => {
+      if (!value || value.length === 0) {
+        throw new Error('Please select at least one interviewer')
+      }
+      return true
+    },
+    trigger: 'change'
+  }]
+}
 
 const disabledDate = (current) => {
   return current && current < dayjs().startOf('day')
@@ -172,74 +230,71 @@ const disabledDate = (current) => {
 
 const handleOk = async () => {
   try {
-    // Check if form is valid
-    if (!form.value.candidate || !form.value.position || 
-        !form.value.interviewType || !form.value.date || 
-        !form.value.time || !form.value.location || 
-        form.value.interviewers.length === 0) {
-      message.warning('Please fill out all required fields');
-      return;
+    // Validate the form
+    await formRef.value.validate()
+    
+    // Find selected candidate and job
+    const selectedCandidate = props.candidates.find(c => c.id === form.candidate)
+    const selectedJob = props.jobs.find(j => j.id === form.position)
+    
+    if (!selectedCandidate) {
+      message.warning('Invalid candidate selection')
+      return
     }
     
-    // Format datetime from separate date and time inputs
-    const scheduledAt = new Date(
-      form.value.date.getFullYear(),
-      form.value.date.getMonth(),
-      form.value.date.getDate(),
-      form.value.time.getHours(),
-      form.value.time.getMinutes()
-    ).toISOString();
-    
-    // Find selected candidate and job from selectors
-    const selectedCandidate = props.candidates.find(c => c.name === form.value.candidate || c.fullName === form.value.candidate);
-    const selectedJob = props.jobs.find(j => j.title === form.value.position);
-    
-    if (!selectedCandidate || !selectedJob) {
-      message.warning('Invalid candidate or job selection');
-      return;
+    if (!selectedJob) {
+      message.warning('Invalid job selection')
+      return
     }
     
-    // Create interview data object
+    // Prepare scheduled date
+    const localDateTime = new Date(
+      form.date.year(), 
+      form.date.month(), 
+      form.date.date(), 
+      form.time.hour(), 
+      form.time.minute()
+    );
+
+    const scheduledDate = new Date(
+      localDateTime.getTime() - (localDateTime.getTimezoneOffset() * 60000)
+    ).toISOString()
+    
+    // Prepare interview data
     const interviewData = {
-      candidateId: selectedCandidate.id,
-      candidateName: selectedCandidate.name || selectedCandidate.fullName,
-      jobId: selectedJob.id,
-      jobTitle: selectedJob.title,
-      interviewType: form.value.interviewType,
-      scheduledAt,
-      duration: 60, // Default duration in minutes
-      notes: form.value.notes,
-      interviewers: form.value.interviewers,
-      location: form.value.location,
-      status: 'scheduled'
-    };
+      candidate_id: selectedCandidate.id,
+      job_id: selectedJob.id,
+      interviewer_id: String(form.interviewers[0]), // First interviewer
+      scheduled_date: scheduledDate,
+      duration_minutes: 60,
+      type: form.interviewType,
+      description: form.notes,
+      location: form.location,
+      status: 'scheduled',
+      candidate_email: selectedCandidate.email
+    }
     
-    const result = await store.dispatch('interviews/createInterview', interviewData);
+    console.log("Interview Data:", interviewData)
+    
+    // Create interview
+    const result = await store.dispatch('interviews/createInterview', interviewData)
     
     if (result) {
-      message.success('Interview scheduled successfully');
-      emit('update:visible', false);
-      emit('saved');
-      resetForm();
+      // Update candidate status
+      await candidatesService.updateCandidateStatus(selectedCandidate.id, 'interview')
+      
+      message.success('Interview scheduled successfully')
+      emit('update:visible', false)
+      emit('saved')
+      
+      // Reset form
+      formRef.value.resetFields()
     } else {
-      message.error('Failed to schedule interview');
+      message.error('Failed to schedule interview')
     }
   } catch (error) {
-    message.error('Failed to schedule interview: ' + (error.message || 'Unknown error'));
-    console.error('Error scheduling interview:', error);
-  }
-}
-
-const resetForm = () => {
-  form.value = {
-    candidate: '',
-    position: '',
-    interviewType: '',
-    date: null,
-    time: null,
-    interviewers: [],
-    location: '',
-    notes: ''
+    console.error('Error scheduling interview:', error)
+    message.error('Failed to schedule interview: ' + (error.message || 'Unknown error'))
   }
 }
 </script>

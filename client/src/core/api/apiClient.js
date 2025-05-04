@@ -25,12 +25,28 @@ apiClient.interceptors.response.use(
     const { response } = error;
     
     if (response) {
-      // Show error notification or handle specific error codes
-      const errorMessage = response.data && response.data.detail 
-        ? response.data.detail 
-        : 'An unexpected error occurred';
-      
-      console.error('API Error:', errorMessage);
+      // Handle validation errors (422) specifically
+      if (response.status === 422) {
+        console.error('API Error:', response.data);
+        
+        // If response contains validation_error and detail fields, it's a FastAPI validation error
+        if (response.data && response.data.detail) {
+          // Format and display validation errors
+          const validationErrors = Array.isArray(response.data.detail) ? 
+            response.data.detail.map(err => `${err.loc.join('.')} - ${err.msg}`).join('\n') :
+            response.data.detail;
+            
+          console.error('Validation errors:', validationErrors);
+          error.validationErrors = response.data.detail;
+        }
+      } else {
+        // Show error notification or handle specific error codes
+        const errorMessage = response.data && response.data.detail 
+          ? response.data.detail 
+          : 'An unexpected error occurred';
+        
+        console.error('API Error:', errorMessage);
+      }
     } else if (error.request) {
       // The request was made but no response was received
       console.error('Network Error: No response received from server');

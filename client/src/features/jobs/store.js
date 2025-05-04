@@ -173,7 +173,7 @@ const actions = {
         posted_date: jobData.posted_date || new Date().toISOString(),
         postedDate: jobData.postedDate || new Date().toISOString()
       };
-      
+      console.log(jobWithDate); // Kiểm tra dữ liệu gửi đến backend
       // Use API service to create a job
       const response = await jobsService.createJob(jobWithDate);
       const newJob = response.data;
@@ -198,14 +198,26 @@ const actions = {
     }
   },
   
-  async updateJob({ commit, dispatch }, { id, data }) {
+  async updateJob({ commit, dispatch, state }, { id, data }) {
     try {
       commit('SET_LOADING', true);
-      const response = await jobsService.updateJob(id, data);
+      
+      // Check if id is a timestamp-like value and needs conversion
+      let jobId = id;
+      if (data.id) {
+        // If data has an id property, use that instead
+        jobId = data.id;
+      } else if (state.currentJob && state.currentJob.id) {
+        // If we have a current job with an id, use that
+        jobId = state.currentJob.id;
+      }
+      
+      console.log("Using job ID for update:", jobId);
+      const response = await jobsService.updateJob(jobId, data);
       commit('SET_ERROR', null);
       
       // If the current job is being updated, update it in the state
-      if (state.currentJob && state.currentJob.id === id) {
+      if (state.currentJob && state.currentJob.id === jobId) {
         commit('SET_CURRENT_JOB', response.data);
       }
       

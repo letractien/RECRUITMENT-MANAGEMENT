@@ -58,16 +58,16 @@ async def get_jobs(
         ]
     
     # Fetch jobs
-    cursor = jobs_collection.find(query).skip(skip).limit(limit)
-    jobs = await cursor.to_list(length=limit)
-    
+    jobs = jobs_collection.find(query).skip(skip).limit(limit)
+    jobs = await jobs.to_list(length=limit)
     return jobs
 
 
-@router.post("/", response_model=Job, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=Job, status_code=status.HTTP_201_CREATED)
 async def create_job(
     job_data: JobCreate,
 ):
+    print(job_data)
     """
     Create a new job posting
     """
@@ -105,7 +105,7 @@ async def get_job(
 @router.put("/{job_id}", response_model=Job)
 async def update_job(
     job_id: str,
-    job_data: JobUpdate,
+    job_data: dict,
 ):
     """
     Update a job posting
@@ -163,7 +163,7 @@ async def delete_job(
 @router.patch("/{job_id}/status", response_model=Job)
 async def update_job_status(
     job_id: str,
-    status: JobStatus,
+    status_data: dict,
 ):
     """
     Update a job's status
@@ -176,15 +176,33 @@ async def update_job_status(
             detail=f"Job with ID {job_id} not found",
         )
     
+    # Get status from request body
+    if 'status' not in status_data:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="status field is required in request body"
+        )
+    
+    job_status = status_data['status']
+    
+    # Validate status value
+    try:
+        job_status = JobStatus(job_status)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid status value: {job_status}"
+        )
+    
     # Update status based on the new status
-    update_data = {"status": status, "updated_at": datetime.now()}
+    update_data = {"status": job_status, "updated_at": datetime.now()}
     
     # If status is OPEN, set posted_date if not already set
-    if status == JobStatus.OPEN and not job.get("posted_date"):
+    if job_status == JobStatus.OPEN and not job.get("posted_date"):
         update_data["posted_date"] = datetime.now()
     
     # If status is CLOSED, set closed_date
-    if status == JobStatus.CLOSED:
+    if job_status == JobStatus.CLOSED:
         update_data["closed_date"] = datetime.now()
     
     # Update job
@@ -215,8 +233,8 @@ async def get_job_candidates(
         )
     
     # Get candidates with matching position
-    cursor = candidates_collection.find({"position": job["title"]})
-    candidates = await cursor.to_list(length=100)
+    candidates = candidates_collection.find({"position": job["title"]})
+    candidates = await candidates.to_list(length=100)
     
     return candidates
 
@@ -228,8 +246,8 @@ async def get_jobs_by_department(
     """
     Get all jobs for a specific department
     """
-    cursor = jobs_collection.find({"department": department})
-    jobs = await cursor.to_list(length=100)
+    jobs = jobs_collection.find({"department": department})
+    jobs = await jobs.to_list(length=100)
     
     return jobs 
 
@@ -249,8 +267,61 @@ async def get_job_applications(
         )
     
     # Get applications for the job
-    cursor = candidates_collection.find({"job_id": job_id})
-    applications = await cursor.to_list(length=100)
+    applications = candidates_collection.find({"job_id": job_id})
+    applications = await applications.to_list(length=100)
+    applications = [transform_candidate_data(application) for application in applications]
 
     return applications
 
+
+def transform_candidate_data(candidate):
+    """
+    Transform MongoDB candidate document to match Pydantic model requirements
+    """
+    if not candidate:
+        return None
+        
+    # Create a copy to avoid modifying the original
+    candidate = dict(candidate)
+    
+    # Convert MongoDB _id to string id if not present
+    if "_id" in candidate and "id" not in candidate:
+        candidate["id"] = str(candidate["_id"])
+    
+    # Ensure status is lowercase to match enum
+    if "status" in candidate and candidate["status"] == "New":
+        candidate["status"] = "new"
+        
+    # Set default values for required fields if missing
+    if "phone" not in candidate:
+        candidate["phone"] = "Not provided"
+        
+    if "department" not in candidate:
+        candidate["department"] = "Not specified"
+        
+    if "experience" not in candidate:
+        candidate["experience"] = 0
+        
+    # Add timestamps if missing
+    now = datetime.now()
+    if "created_at" not in candidate:
+        candidate["created_at"] = now
+        
+    if "updated_at" not in candidate:
+        candidate["updated_at"] = now
+        
+    if "applied_date" not in candidate:
+        candidate["applied_date"] = now
+        
+    # Fix resume_url to be a valid URL
+    if "resume_url" in candidate and candidate["resume_url"]:
+        if not candidate["resume_url"].startswith(("http://", "https://")):
+            # Convert relative path to absolute URL
+            base_url = "https://ftp.cntt.io/view"
+            candidate["resume_url"] = f"{base_url}/{candidate['resume_url']}"
+            
+            # # Convert relative path to absolute URL with URL encoding for the path parameter
+            # path = urllib.parse.quote(candidate["resume_url"])
+            # candidate["resume_url"] = f"https://ftp.cntt.io/api/files/cat?path=%2F{path}"
+    
+    return candidate

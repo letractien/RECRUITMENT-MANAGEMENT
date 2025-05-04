@@ -27,6 +27,7 @@ export default {
    * @returns {Promise} - Promise with response data
    */
   createInterview(interviewData) {
+    console.log("interviewData", interviewData);
     return apiClient.post(RESOURCE, interviewData);
   },
 

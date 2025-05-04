@@ -31,7 +31,7 @@ class InterviewBase(BaseModel):
     description: Optional[str] = None
     location: Optional[str] = None
     meeting_link: Optional[str] = None
-
+    candidate_email: Optional[str] = None
 
 class InterviewCreate(InterviewBase):
     pass

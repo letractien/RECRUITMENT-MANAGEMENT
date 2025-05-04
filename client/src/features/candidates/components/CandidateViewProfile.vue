@@ -51,17 +51,13 @@
                 <div class="form-value">{{ candidate.department || 'N/A' }}</div>
               </div>
               <div class="form-group">
-                <label class="form-label">Experience</label>
-                <div class="form-value">{{ candidate.experience || 0 }} years</div>
-              </div>
-              <div class="form-group">
                 <label class="form-label">Applied Date</label>
                 <div class="form-value">{{ formatDate(candidate.applied_date) }}</div>
               </div>
             </div>
           </div>
 
-          <!-- Skills Section -->
+          <!-- Skills Section
           <div class="form-section" v-if="candidate.skills && candidate.skills.length">
             <div class="section-header">
               <h3 class="text-lg font-semibold">Skills</h3>
@@ -71,6 +67,27 @@
               <a-tag v-for="skill in candidate.skills" :key="skill">
                 {{ skill }}
               </a-tag>
+            </div>
+          </div> -->
+
+          <!-- Resume Section -->
+          <div class="form-section" v-if="candidate.resume_url">
+            <div class="section-header">
+              <h3 class="text-lg font-semibold">Resume</h3>
+              <p class="text-sm text-gray-500">Candidate's resume</p>
+            </div>
+            <div class="resume-content">
+              <div v-if="isPdf(candidate.resume_url)" class="pdf-viewer">
+                <iframe :src="candidate.resume_url" width="100%" height="500" class="pdf-frame"></iframe>
+              </div>
+              <div class="resume-actions">
+                <a :href="candidate.resume_url" target="_blank" class="view-button">
+                  <eye-outlined /> View Resume
+                </a>
+                <a :href="candidate.resume_url" download class="download-button">
+                  <download-outlined /> Download
+                </a>
+              </div>
             </div>
           </div>
 
@@ -144,57 +161,62 @@
                 <div class="timeline-item">
                   <div class="timeline-title">Application Submitted</div>
                   <div class="timeline-date">{{ formatDate(candidate.applied_date) }}</div>
-                  <div class="timeline-description">Candidate applied for {{ candidate.position }} position</div>
+                  <div class="timeline-description">Candidate applied for {{ candidate.position || 'this' }} position</div>
                 </div>
               </a-timeline-item>
               
-              <a-timeline-item :color="candidate.status === 'screening' ? 'blue' : 'gray'">
+              <a-timeline-item :color="getTimelineColor('screening', candidate.status)">
                 <template #dot>
                   <file-search-outlined style="font-size: 16px" />
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-title">Screening</div>
+                  <div class="timeline-date" v-if="candidate.screening_date">{{ formatDate(candidate.screening_date) }}</div>
                   <div class="timeline-description">Initial resume and application review</div>
                 </div>
               </a-timeline-item>
 
-              <a-timeline-item :color="candidate.status === 'interview' ? 'blue' : 'gray'">
+              <a-timeline-item :color="getTimelineColor('interview', candidate.status)">
                 <template #dot>
                   <team-outlined style="font-size: 16px" />
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-title">Interview</div>
+                  <div class="timeline-date" v-if="candidate.interview_date">{{ formatDate(candidate.interview_date) }}</div>
                   <div class="timeline-description">Technical and cultural fit assessment</div>
                 </div>
               </a-timeline-item>
 
-              <a-timeline-item :color="candidate.status === 'offer' ? 'blue' : 'gray'">
+              <a-timeline-item :color="getTimelineColor('offer', candidate.status)">
                 <template #dot>
                   <gift-outlined style="font-size: 16px" />
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-title">Offer</div>
+                  <div class="timeline-date" v-if="candidate.offer_date">{{ formatDate(candidate.offer_date) }}</div>
                   <div class="timeline-description">Job offer extended</div>
                 </div>
               </a-timeline-item>
 
-              <a-timeline-item :color="candidate.status === 'hired' ? 'green' : 'gray'">
+              <a-timeline-item :color="getTimelineColor('hired', candidate.status)">
                 <template #dot>
                   <user-add-outlined style="font-size: 16px" />
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-title">Hired</div>
+                  <div class="timeline-date" v-if="candidate.hired_date">{{ formatDate(candidate.hired_date) }}</div>
                   <div class="timeline-description">Candidate joined the team</div>
                 </div>
               </a-timeline-item>
 
-              <a-timeline-item v-if="candidate.status === 'rejected'" color="red">
+              <a-timeline-item v-if="candidate.status && candidate.status.toLowerCase() === 'rejected'" color="red">
                 <template #dot>
                   <close-circle-outlined style="font-size: 16px" />
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-title">Rejected</div>
-                  <div class="timeline-description">Application was not successful</div>
+                  <div class="timeline-date" v-if="candidate.rejected_date">{{ formatDate(candidate.rejected_date) }}</div>
+                  <div class="timeline-description">{{ candidate.rejection_reason || 'Application was not successful' }}</div>
                 </div>
               </a-timeline-item>
             </a-timeline>
@@ -217,7 +239,9 @@ import {
   TeamOutlined, 
   GiftOutlined, 
   UserAddOutlined,
-  CloseCircleOutlined 
+  CloseCircleOutlined,
+  EyeOutlined,
+  DownloadOutlined
 } from '@ant-design/icons-vue'
 
 const props = defineProps({
@@ -250,6 +274,83 @@ const getStatusColor = (status) => {
     'rejected': 'red'
   }
   return colors[status] || 'default'
+}
+
+// Hàm xác định màu sắc cho timeline đã được cải tiến
+const getTimelineColor = (step, currentStatus) => {
+  // Standardize status strings to lowercase for reliable comparison
+  step = step.toLowerCase();
+  currentStatus = currentStatus ? currentStatus.toLowerCase() : '';
+  
+  // Định nghĩa thứ tự các bước trong quy trình tuyển dụng
+  const stepsOrder = {
+    'new': 0,
+    'screening': 1,
+    'interview': 2,
+    'offer': 3,
+    'hired': 4
+  }
+  
+  // Trường hợp đặc biệt: nếu đang ở trạng thái rejected
+  if (currentStatus === 'rejected') {
+    // Xác định giai đoạn bị từ chối dựa trên thông tin trong dữ liệu ứng viên
+    // Mặc định là 'interview' nếu thông tin này không có
+    const rejectionStage = determineRejectionStage(step);
+    
+    // Các bước trước khi bị từ chối vẫn hiển thị màu xanh lá (hoàn thành)
+    if (rejectionStage[step] === 'completed') {
+      return 'green';
+    } 
+    // Bước bị từ chối hiển thị màu đỏ
+    else if (rejectionStage[step] === 'rejected') {
+      return 'red';
+    } 
+    // Các bước sau khi bị từ chối hiển thị màu xám
+    else {
+      return 'gray';
+    }
+  }
+  
+  // Nếu là bước hiện tại
+  if (step === currentStatus) {
+    return 'blue';
+  }
+  
+  // Nếu bước đã hoàn thành
+  if (stepsOrder[step] !== undefined && stepsOrder[currentStatus] !== undefined && 
+      stepsOrder[step] < stepsOrder[currentStatus]) {
+    return 'green';
+  }
+  
+  // Các bước còn lại (chưa đến) hiển thị màu xám
+  return 'gray';
+}
+
+// Hàm phụ trợ để xác định giai đoạn bị từ chối một cách an toàn
+const determineRejectionStage = (currentStep) => {
+  // Convert to lowercase for consistency
+  currentStep = currentStep.toLowerCase();
+  
+  // Define the rejection stage based on each step
+  // This assumes a default rejection after interview, but can be changed
+  const defaultStages = {
+    'new': 'completed',
+    'screening': 'completed',
+    'interview': 'rejected',
+    'offer': 'pending',
+    'hired': 'pending'
+  };
+  
+  // Create a result object with the current step's status
+  // This approach allows for future enhancements to handle more complex cases
+  const result = {};
+  result[currentStep] = defaultStages[currentStep] || 'pending';
+  
+  return result;
+}
+
+const isPdf = (url) => {
+  return url.endsWith('.pdf');
 }
 </script>
 
@@ -488,4 +589,58 @@ const getStatusColor = (status) => {
   --hover-bg: #f5f5f5;
   --shadow-color: rgba(0, 0, 0, 0.1);
 }
-</style> 
+
+/* Resume section styles */
+.pdf-viewer {
+  margin-bottom: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pdf-frame {
+  border: none;
+}
+
+.resume-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.view-button, .download-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.view-button {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.download-button {
+  background-color: #1890ff;
+  color: white;
+  border: 1px solid #1890ff;
+}
+
+.view-button:hover {
+  background-color: var(--hover-bg);
+}
+
+.download-button:hover {
+  background-color: #40a9ff;
+  border-color: #40a9ff;
+}
+
+.view-button :deep(svg), .download-button :deep(svg) {
+  margin-right: 8px;
+}
+</style>

@@ -130,18 +130,20 @@
     <!-- Create/Edit Job Dialog -->
     <a-modal
       v-model:visible="jobDialog.visible"
-      :title="jobDialog.isEdit ? 'Edit Job' : 'Create New Job'"
       width="1000px"
+      :title="jobDialog.isEdit ? 'Edit Job' : 'Create New Job'"
       :okText="jobDialog.isEdit ? 'Update' : 'Create'"
       :cancelText="'Cancel'"
       :okButtonProps="{ type: 'primary', size: 'large' }"
       :cancelButtonProps="{ size: 'large' }"
-      @ok="saveJob"
+      @ok="handleSubmitClick"
     >
       <JobCreationForm
         ref="jobFormRef"
+        :key="jobDialog.isEdit ? jobForm.id : 'create'"
         :initial-data="jobForm"
-        @submit="handleJobFormSubmit"
+        :is-edit="jobDialog.isEdit"
+        @success="handleFormSuccess"
       />
     </a-modal>
 
@@ -195,7 +197,6 @@ import {
 import { message, Modal } from 'ant-design-vue'
 import JobCreationForm from '../components/JobCreationForm.vue'
 import { formatDate } from '../../../shared/utils/dateHelpers.js'
-import { formatCurrency } from '../../../shared/utils/formatHelpers.js'
 import JobApplications from '../components/JobApplications.vue'
 import JobViewDetail from '../components/JobViewDetail.vue'
 import JobChangeStatus from '../components/JobChangeStatus.vue'
@@ -207,6 +208,7 @@ const statusFilter = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const jobFormRef = ref(null)
+const DEFAULT_USER_ID = "admin123"
 
 // Computed
 const jobs = computed(() => store.getters['jobs/allJobs'])
@@ -262,34 +264,51 @@ const columns = [
   }
 ]
 
+// Initialize job form with default values including required fields
 const jobForm = reactive({
   title: '',
   department: '',
   location: '',
   description: '',
   requirements: '',
-  salaryMin: 0,
-  salaryMax: 0,
-  status: 'Active',
-  backgroundCriteria: {
-    importanceRatio: 25,
+  min_salary: null,
+  max_salary: null,
+  status: 'draft',
+  is_remote: false,
+  employment_type: 'full-time',
+  created_by: DEFAULT_USER_ID, // Set default user ID
+  hiring_manager: DEFAULT_USER_ID, // Set default hiring manager
+  background_criteria: {
+    importance_ratio: 25,
     required: '',
-    criteria: []
+    criteria: [{
+      description: '',
+      max_score: 10
+    }]
   },
-  projectCriteria: {
-    importanceRatio: 25,
+  project_criteria: {
+    importance_ratio: 25,
     required: '',
-    criteria: []
+    criteria: [{
+      description: '',
+      max_score: 10
+    }]
   },
-  skillCriteria: {
-    importanceRatio: 25,
+  skill_criteria: {
+    importance_ratio: 25,
     required: '',
-    criteria: []
+    criteria: [{
+      description: '',
+      max_score: 10
+    }]
   },
-  certificationCriteria: {
-    importanceRatio: 25,
+  certification_criteria: {
+    importance_ratio: 25,
     required: '',
-    criteria: []
+    criteria: [{
+      description: '',
+      max_score: 10
+    }]
   }
 })
 
@@ -336,35 +355,30 @@ const jobDetailsDialog = reactive({
   job: null
 })
 
-
-const totalJobs = computed(() => filteredJobs.value.length)
-
-// Add new dialog state
 const applicationsDialog = reactive({
   visible: false,
   job: null
 })
 
-// Add computed property for unique statuses
+const totalJobs = computed(() => filteredJobs.value.length)
+
 const uniqueStatuses = computed(() => {
   const statusSet = new Set(jobs.value.map(job => job.status))
   return Array.from(statusSet).filter(status => status) // Filter out any null/undefined values
 })
 
-// Add new dialog state
 const changeStatusDialog = reactive({
   visible: false,
   job: null
 })
 
-// Methods
-const formatSalary = (amount) => {
-  return formatCurrency(amount, 'VND');
-}
-
 const showCreateJobDialog = () => {
   jobDialog.isEdit = false
   jobDialog.visible = true
+
+  if ('id' in jobForm) {
+    delete jobForm.id
+  }
   
   // Reset form with all required nested properties
   Object.assign(jobForm, {
@@ -373,28 +387,44 @@ const showCreateJobDialog = () => {
     location: '',
     description: '',
     requirements: '',
-    salaryMin: 0,
-    salaryMax: 0,
-    status: 'Active',
-    backgroundCriteria: {
-      importanceRatio: 25,
+    min_salary: null,
+    max_salary: null,
+    status: 'draft',
+    is_remote: false,
+    employment_type: 'full-time',
+    created_by: DEFAULT_USER_ID,
+    hiring_manager: DEFAULT_USER_ID,
+    background_criteria: {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     },
-    projectCriteria: {
-      importanceRatio: 25,
+    project_criteria: {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     },
-    skillCriteria: {
-      importanceRatio: 25,
+    skill_criteria: {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     },
-    certificationCriteria: {
-      importanceRatio: 25,
+    certification_criteria: {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     }
   })
 }
@@ -405,33 +435,50 @@ const editJob = (job) => {
   
   // Set form data with all required nested properties
   Object.assign(jobForm, {
+    id: job.id,
     title: job.title,
     department: job.department,
     location: job.location,
     description: job.description,
     requirements: job.requirements,
-    salaryMin: job.salaryMin,
-    salaryMax: job.salaryMax,
+    min_salary: job.min_salary,
+    max_salary: job.max_salary,
     status: job.status,
-    backgroundCriteria: job.backgroundCriteria || {
-      importanceRatio: 25,
+    is_remote: job.is_remote,
+    employment_type: job.employment_type,
+    created_by: job.created_by,
+    hiring_manager: job.hiring_manager,
+    background_criteria: job.background_criteria || {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     },
-    projectCriteria: job.projectCriteria || {
-      importanceRatio: 25,
+    project_criteria: job.project_criteria || {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     },
-    skillCriteria: job.skillCriteria || {
-      importanceRatio: 25,
+    skill_criteria: job.skill_criteria || {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     },
-    certificationCriteria: job.certificationCriteria || {
-      importanceRatio: 25,
+    certification_criteria: job.certification_criteria || {
+      importance_ratio: 25,
       required: '',
-      criteria: []
+      criteria: [{
+        description: '',
+        max_score: 10
+      }]
     }
   })
   
@@ -491,26 +538,22 @@ const deleteJob = (job) => {
   })
 }
 
-const saveJob = async () => {
-  try {
-    if (jobDialog.isEdit) {
-      await store.dispatch('jobs/updateJob', { id: jobDetailsDialog.job.id, data: jobForm })
-      message.success('Job updated successfully')
-    } else {
-      await store.dispatch('jobs/createJob', jobForm)
-      message.success('Job created successfully')
-    }
-    
-    jobDialog.visible = false
-  } catch (error) {
-    console.error('Error saving job:', error)
-    message.error('Failed to save job. Please try again later.')
+const handleSubmitClick = () => {
+  // Trigger the form's submit method when the modal's OK button is clicked
+  if (jobFormRef.value) {
+    jobFormRef.value.handleSubmit();
+  } else {
+    message.error('Form reference not found. Please try again.')
   }
 }
 
-const handleJobFormSubmit = (formData) => {
-  Object.assign(jobForm, formData)
-  saveJob()
+// Add a new function to handle form success
+const handleFormSuccess = () => {
+  // Close the dialog
+  jobDialog.visible = false
+  
+  // Refresh the job list
+  store.dispatch('jobs/fetchJobs')
 }
 
 const handleCurrentChange = (page) => {

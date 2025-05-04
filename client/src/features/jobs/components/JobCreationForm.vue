@@ -11,7 +11,7 @@
           <div class="form-group">
             <label class="form-label">Job Title</label>
             <input
-              v-model="form.jobTitle"
+              v-model="form.title"
               type="text"
               class="form-input"
               placeholder="e.g. Senior Software Engineer"
@@ -42,7 +42,7 @@
             <label class="form-label">Salary Range (VND)</label>
             <div class="flex gap-2">
               <input
-                v-model="form.salaryMin"
+                v-model="form.min_salary"
                 type="number"
                 placeholder="Min"
                 class="form-input"
@@ -50,7 +50,7 @@
                 required
               />
               <input
-                v-model="form.salaryMax"
+                v-model="form.max_salary"
                 type="number"
                 placeholder="Max"
                 class="form-input"
@@ -97,7 +97,7 @@
               <label class="form-label">Importance Ratio (%)</label>
               <div class="flex items-center gap-2">
                 <input
-                  v-model="form.backgroundCriteria.importanceRatio"
+                  v-model="form.background_criteria.importance_ratio"
                   type="number"
                   min="0"
                   max="100"
@@ -108,19 +108,19 @@
                   <div class="h-2 bg-gray-200 rounded-full">
                     <div
                       class="h-full bg-blue-500 rounded-full"
-                      :style="{ width: `${Math.min(form.backgroundCriteria.importanceRatio, 100)}%` }"
+                      :style="{ width: `${Math.min(form.background_criteria.importance_ratio, 100)}%` }"
                     ></div>
                   </div>
                 </div>
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Required</label>
+              <label class="form-label"></label>
               <textarea
-                v-model="form.backgroundCriteria.required"
+                v-model="form.background_criteria.required"
                 rows="3"
                 class="form-input"
-                required
+                placeholder="Enter the required criteria for this position..."
               ></textarea>
             </div>
           </div>
@@ -128,19 +128,21 @@
             <div class="form-group">
               <label class="form-label">Evaluation Criteria</label>
               <div class="space-y-3">
-                <div v-for="(criterion, index) in form.backgroundCriteria.criteria" :key="index" class="criterion-row">
+                <div v-for="(criterion, index) in form.background_criteria.criteria" :key="index" class="criterion-row">
                   <div class="criterion-inputs">
                     <input
                       v-model="criterion.description"
                       type="text"
                       placeholder="Criterion description"
                       class="form-input"
+                      required
                     />
                     <input
-                      v-model="criterion.maxScore"
+                      v-model="criterion.max_score"
                       type="number"
-                      placeholder="Max score"
+                      placeholder="MScore"
                       class="form-input w-32"
+                      required
                     />
                     <button
                       type="button"
@@ -181,7 +183,7 @@
               <label class="form-label">Importance Ratio (%)</label>
               <div class="flex items-center gap-2">
                 <input
-                  v-model="form.projectCriteria.importanceRatio"
+                  v-model="form.project_criteria.importance_ratio"
                   type="number"
                   min="0"
                   max="100"
@@ -192,19 +194,19 @@
                   <div class="h-2 bg-gray-200 rounded-full">
                     <div
                       class="h-full bg-blue-500 rounded-full"
-                      :style="{ width: `${Math.min(form.projectCriteria.importanceRatio, 100)}%` }"
+                      :style="{ width: `${Math.min(form.project_criteria.importance_ratio, 100)}%` }"
                     ></div>
                   </div>
                 </div>
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Required</label>
+              <label class="form-label"></label>
               <textarea
-                v-model="form.projectCriteria.required"
+                v-model="form.project_criteria.required"
                 rows="3"
                 class="form-input"
-                required
+                placeholder="Enter the required criteria for this position..."
               ></textarea>
             </div>
           </div>
@@ -212,7 +214,7 @@
             <div class="form-group">
               <label class="form-label">Evaluation Criteria</label>
               <div class="space-y-3">
-                <div v-for="(criterion, index) in form.projectCriteria.criteria" :key="index" class="criterion-row">
+                <div v-for="(criterion, index) in form.project_criteria.criteria" :key="index" class="criterion-row">
                   <div class="criterion-inputs">
                     <input
                       v-model="criterion.description"
@@ -221,9 +223,9 @@
                       class="form-input"
                     />
                     <input
-                      v-model="criterion.maxScore"
+                      v-model="criterion.max_score"
                       type="number"
-                      placeholder="Max score"
+                      placeholder="MScore"
                       class="form-input w-32"
                     />
                     <button
@@ -265,7 +267,7 @@
               <label class="form-label">Importance Ratio (%)</label>
               <div class="flex items-center gap-2">
                 <input
-                  v-model="form.skillCriteria.importanceRatio"
+                  v-model="form.skill_criteria.importance_ratio"
                   type="number"
                   min="0"
                   max="100"
@@ -276,25 +278,25 @@
                   <div class="h-2 bg-gray-200 rounded-full">
                     <div
                       class="h-full bg-blue-500 rounded-full"
-                      :style="{ width: `${Math.min(form.skillCriteria.importanceRatio, 100)}%` }"
+                      :style="{ width: `${Math.min(form.skill_criteria.importance_ratio, 100)}%` }"
                     ></div>
                   </div>
                 </div>
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Required</label>
+              <label class="form-label"></label>
               <textarea
-                v-model="form.skillCriteria.required"
+                v-model="form.skill_criteria.required"
                 rows="3"
                 class="form-input"
-                required
+                placeholder="Enter the required criteria for this position..."
               ></textarea>
             </div>
             <div class="form-group">
               <label class="form-label">Evaluation Criteria</label>
               <div class="space-y-3">
-                <div v-for="(criterion, index) in form.skillCriteria.criteria" :key="index" class="criterion-row">
+                <div v-for="(criterion, index) in form.skill_criteria.criteria" :key="index" class="criterion-row">
                   <div class="criterion-inputs">
                     <input
                       v-model="criterion.description"
@@ -303,9 +305,9 @@
                       class="form-input"
                     />
                     <input
-                      v-model="criterion.maxScore"
+                      v-model="criterion.max_score"
                       type="number"
-                      placeholder="Max score"
+                      placeholder="MScore"
                       class="form-input w-32"
                     />
                     <button
@@ -347,7 +349,7 @@
               <label class="form-label">Importance Ratio (%)</label>
               <div class="flex items-center gap-2">
                 <input
-                  v-model="form.certificationCriteria.importanceRatio"
+                  v-model="form.certification_criteria.importance_ratio"
                   type="number"
                   min="0"
                   max="100"
@@ -358,25 +360,25 @@
                   <div class="h-2 bg-gray-200 rounded-full">
                     <div
                       class="h-full bg-blue-500 rounded-full"
-                      :style="{ width: `${Math.min(form.certificationCriteria.importanceRatio, 100)}%` }"
+                      :style="{ width: `${Math.min(form.certification_criteria.importance_ratio, 100)}%` }"
                     ></div>
                   </div>
                 </div>
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Required</label>
+              <label class="form-label"></label>
               <textarea
-                v-model="form.certificationCriteria.required"
+                v-model="form.certification_criteria.required"
                 rows="3"
                 class="form-input"
-                required
+                placeholder="Enter the required criteria for this position..."
               ></textarea>
             </div>
             <div class="form-group">
               <label class="form-label">Evaluation Criteria</label>
               <div class="space-y-3">
-                <div v-for="(criterion, index) in form.certificationCriteria.criteria" :key="index" class="criterion-row">
+                <div v-for="(criterion, index) in form.certification_criteria.criteria" :key="index" class="criterion-row">
                   <div class="criterion-inputs">
                     <input
                       v-model="criterion.description"
@@ -385,9 +387,9 @@
                       class="form-input"
                     />
                     <input
-                      v-model="criterion.maxScore"
+                      v-model="criterion.max_score"
                       type="number"
-                      placeholder="Max score"
+                      placeholder="MScore"
                       class="form-input w-32"
                     />
                     <button
@@ -423,124 +425,238 @@
 </template>
 
 <script>
+import { message } from 'ant-design-vue'
+import { useStore } from 'vuex'
+
 export default {
   name: 'JobCreationForm',
   props: {
     initialData: {
       type: Object,
       required: true
+    },
+    isEdit: {
+      type: Boolean,
+      default: false
     }
+  },
+  setup() {
+    const store = useStore()
+    return { store }
   },
   data() {
     return {
-      form: JSON.parse(JSON.stringify(this.initialData))
+      form: {
+        title: '',
+        description: '',
+        department: '',
+        location: '',
+        requirements: '',
+        min_salary: null,
+        max_salary: null,
+        status: 'draft',
+        is_remote: false,
+        employment_type: 'full-time',
+        created_by: '', // This should be set from the logged in user
+        background_criteria: {
+          importance_ratio: 25,
+          required: '',
+          criteria: [{
+            description: '',
+            max_score: 10
+          }]
+        },
+        project_criteria: {
+          importance_ratio: 25,
+          required: '',
+          criteria: [{
+            description: '',
+            max_score: 10
+          }]
+        },
+        skill_criteria: {
+          importance_ratio: 25,
+          required: '',
+          criteria: [{
+            description: '',
+            max_score: 10
+          }]
+        },
+        certification_criteria: {
+          importance_ratio: 25,
+          required: '',
+          criteria: [{
+            description: '',
+            max_score: 10
+          }]
+        }
+      }
+    }
+  },
+  created() {
+    // Initialize form with initialData if provided
+    if (this.initialData) {
+      this.form = {
+        ...this.form,
+        ...this.initialData,
+        background_criteria: {
+          ...this.form.background_criteria,
+          ...(this.initialData.background_criteria || {})
+        },
+        project_criteria: {
+          ...this.form.project_criteria,
+          ...(this.initialData.project_criteria || {})
+        },
+        skill_criteria: {
+          ...this.form.skill_criteria,
+          ...(this.initialData.skill_criteria || {})
+        },
+        certification_criteria: {
+          ...this.form.certification_criteria,
+          ...(this.initialData.certification_criteria || {})
+        }
+      }
     }
   },
   watch: {
-    initialData: {
-      handler(newData) {
-        this.form = JSON.parse(JSON.stringify(newData))
-      },
-      deep: true
+    'form.background_criteria.importance_ratio': function(val) {
+      if (val >= 100) this.form.background_criteria.importance_ratio = 100
+      if (val <= 0) this.form.background_criteria.importance_ratio = 0
+      if (val % 1 !== 0) this.form.background_criteria.importance_ratio = Math.round(val)
     },
-    'form.backgroundCriteria.importanceRatio': function(val) {
-      if (val > 100) this.form.backgroundCriteria.importanceRatio = 100
-      if (val < 0) this.form.backgroundCriteria.importanceRatio = 0
-      if (val % 1 !== 0) this.form.backgroundCriteria.importanceRatio = Math.round(val)
+    'form.project_criteria.importance_ratio': function(val) {
+      if (val >= 100) this.form.project_criteria.importance_ratio = 100
+      if (val <= 0) this.form.project_criteria.importance_ratio = 0
+      if (val % 1 !== 0) this.form.project_criteria.importance_ratio = Math.round(val)
     },
-    'form.projectCriteria.importanceRatio': function(val) {
-      if (val > 100) this.form.projectCriteria.importanceRatio = 100
-      if (val < 0) this.form.projectCriteria.importanceRatio = 0
-      if (val % 1 !== 0) this.form.projectCriteria.importanceRatio = Math.round(val)
+    'form.skill_criteria.importance_ratio': function(val) {
+      if (val >= 100) this.form.skill_criteria.importance_ratio = 100
+      if (val <= 0) this.form.skill_criteria.importance_ratio = 0
+      if (val % 1 !== 0) this.form.skill_criteria.importance_ratio = Math.round(val)
     },
-    'form.skillCriteria.importanceRatio': function(val) {
-      if (val > 100) this.form.skillCriteria.importanceRatio = 100
-      if (val < 0) this.form.skillCriteria.importanceRatio = 0
-      if (val % 1 !== 0) this.form.skillCriteria.importanceRatio = Math.round(val)
+    'form.certification_criteria.importance_ratio': function(val) {
+      if (val >= 100) this.form.certification_criteria.importance_ratio = 100
+      if (val <= 0) this.form.certification_criteria.importance_ratio = 0
+      if (val % 1 !== 0) this.form.certification_criteria.importance_ratio = Math.round(val)
     },
-    'form.certificationCriteria.importanceRatio': function(val) {
-      if (val > 100) this.form.certificationCriteria.importanceRatio = 100
-      if (val < 0) this.form.certificationCriteria.importanceRatio = 0
-      if (val % 1 !== 0) this.form.certificationCriteria.importanceRatio = Math.round(val)
-    },
-    'form.salaryMin': function(val) {
+    'form.min_salary': function(val) {
       // Round to integer
       if (val % 1 !== 0) {
-        this.form.salaryMin = Math.round(val)
+        this.form.min_salary = Math.round(val)
       }
       
       // Ensure min is not greater than max
-      if (this.form.salaryMax && Number(this.form.salaryMin) > Number(this.form.salaryMax)) {
-        this.form.salaryMin = this.form.salaryMax
+      if (this.form.max_salary && Number(this.form.min_salary) >= Number(this.form.max_salary)) {
+        this.form.min_salary = this.form.max_salary
       }
     },
-    'form.salaryMax': function(val) {
+    'form.max_salary': function(val) {
       // Round to integer
       if (val % 1 !== 0) {
-        this.form.salaryMax = Math.round(val)
+        this.form.max_salary = Math.round(val)
       }
       
       // Ensure min is not greater than max
-      if (this.form.salaryMin && Number(this.form.salaryMax) < Number(this.form.salaryMin)) {
-        this.form.salaryMax = this.form.salaryMin
+      if (this.form.min_salary && Number(this.form.max_salary) <= Number(this.form.min_salary)) {
+        this.form.max_salary = this.form.min_salary
       }
     }
   },
   methods: {
     addCriterion(type) {
-      this.form[`${type}Criteria`].criteria.push({
-        name: '',
-        maxScore: 10
+      this.form[`${type}_criteria`].criteria.push({
+        description: '',
+        max_score: null
       })
     },
     removeCriterion(type, index) {
-      this.form[`${type}Criteria`].criteria.splice(index, 1)
+      this.form[`${type}_criteria`].criteria.splice(index, 1)
     },
-    handleSubmit() {
+    validateForm() {
       // Validate total importance ratio is 100%
       const totalRatio = 
-        Number(this.form.backgroundCriteria.importanceRatio) +
-        Number(this.form.projectCriteria.importanceRatio) +
-        Number(this.form.skillCriteria.importanceRatio) +
-        Number(this.form.certificationCriteria.importanceRatio)
+        Number(this.form.background_criteria.importance_ratio) +
+        Number(this.form.project_criteria.importance_ratio) +
+        Number(this.form.skill_criteria.importance_ratio) +
+        Number(this.form.certification_criteria.importance_ratio)
 
       if (totalRatio !== 100) {
-        this.$message.error('Total importance ratio must be 100%')
-        return
+        message.error('Total importance ratio must be 100%')
+        return false
       }
 
       // Validate all required fields
-      if (!this.form.jobTitle || !this.form.department || !this.form.location || 
-          !this.form.description || !this.form.requirements || !this.form.salaryMin || 
-          !this.form.salaryMax) {
-        this.$message.error('Please fill in all required fields')
-        return
+      if (!this.form.title || !this.form.department || !this.form.location || 
+          !this.form.description || !this.form.requirements || !this.form.min_salary || 
+          !this.form.max_salary) {
+        message.error('Please fill in all required fields')
+        return false
       }
 
       // Validate salary range
-      if (Number(this.form.salaryMin) > Number(this.form.salaryMax)) {
-        this.$message.error('Minimum salary cannot be greater than maximum salary')
-        return
+      if (Number(this.form.min_salary) > Number(this.form.max_salary)) {
+        message.error('Minimum salary cannot be greater than maximum salary')
+        return false
       }
 
       // Validate criteria
       const criteriaTypes = ['background', 'project', 'skill', 'certification']
       for (const type of criteriaTypes) {
-        const criteria = this.form[`${type}Criteria`].criteria
+        const criteria = this.form[`${type}_criteria`].criteria
         if (!criteria.length) {
-          this.$message.error(`Please add at least one criterion for ${type} evaluation`)
-          return
+          message.error(`Please add at least one criterion for ${type} evaluation`)
+          return false
         }
         for (const criterion of criteria) {
-          if (!criterion.description || !criterion.maxScore) {
-            this.$message.error(`Please fill in all criterion fields for ${type} evaluation`)
-            return
+          if (!criterion.description || !criterion.max_score) {
+            message.error(`Please fill in all criterion fields for ${type} evaluation`)
+            return false
           }
         }
       }
+      return true
+    },
+    async saveJob() {
+      try {
+        // Ensure default values for any required fields
+        if (!this.form.created_by) {
+          this.form.created_by = 'admin123' // Default user ID
+        }
+        
+        // Check if editing or creating
+        if (this.isEdit) {
 
-      // Emit the form data to parent component
-      this.$emit('submit', this.form)
+          // Get the job ID from initialData and ensure it's included in the form data
+          const jobId = this.initialData.id;
+          
+          // Include the ID in the form data to ensure it's available for the update
+          const formWithId = {
+            ...this.form,
+            id: jobId
+          };
+          
+          await this.store.dispatch('jobs/updateJob', { id: jobId, data: formWithId });
+          message.success('Job updated successfully');
+        } else {
+          await this.store.dispatch('jobs/createJob', this.form);
+          message.success('Job created successfully');
+        }
+        
+        // Emit success event to parent for UI updates
+        this.$emit('success');
+        return true;
+      } catch (error) {
+        console.error('Error saving job:', error);
+        message.error('Failed to save job: ' + (error.message || 'Please try again later.'));
+        return false;
+      }
+    },
+    handleSubmit() {
+      // Validate and save the form
+      if (!this.validateForm()) return false;
+      
+      // Save job directly from the form
+      return this.saveJob();
     }
   }
 }

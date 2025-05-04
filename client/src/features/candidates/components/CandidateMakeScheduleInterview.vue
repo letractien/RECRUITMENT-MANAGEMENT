@@ -7,7 +7,13 @@
       @update:visible="$emit('update:visible', $event)"
       @ok="handleOk"
     >
-      <form @submit.prevent="handleOk">
+      <!-- Thay thẻ form thành a-form và thêm ref -->
+      <a-form
+        ref="formRef"
+        :model="formState"
+        :rules="rules"
+        layout="vertical"
+      >
         <!-- Interview Details Section -->
         <div class="form-section">
           <div class="section-header">
@@ -15,41 +21,39 @@
             <p class="text-sm text-gray-500">Schedule an interview for {{ candidate.name }}</p>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="form-group">
-              <label class="form-label">Interview Type</label>
+            <!-- Đổi các thẻ div thành a-form-item -->
+            <a-form-item name="type" label="Interview Type" class="form-group">
               <a-select v-model:value="formState.type" placeholder="Select interview type">
                 <a-select-option value="technical">Technical Interview</a-select-option>
                 <a-select-option value="hr">HR Interview</a-select-option>
-                <a-select-option value="managerial">Managerial Interview</a-select-option>
-                <a-select-option value="final">Final Interview</a-select-option>
+                <a-select-option value="onsite">Onsite Interview</a-select-option>
+                <a-select-option value="phone">Phone Interview</a-select-option>
+                <a-select-option value="video">Video Interview</a-select-option>
               </a-select>
-            </div>
+            </a-form-item>
 
-            <div class="form-group">
-              <label class="form-label">Date</label>
+            <a-form-item name="date" label="Date" class="form-group">
               <a-date-picker
                 v-model:value="formState.date"
                 style="width: 100%"
                 :disabledDate="disabledDate"
               />
-            </div>
+            </a-form-item>
 
-            <div class="form-group">
-              <label class="form-label">Time</label>
+            <a-form-item name="time" label="Time" class="form-group">
               <a-time-picker
                 v-model:value="formState.time"
                 style="width: 100%"
                 format="HH:mm"
               />
-            </div>
+            </a-form-item>
 
-            <div class="form-group">
-              <label class="form-label">Location/Meeting Link</label>
+            <a-form-item name="location" label="Location/Meeting Link" class="form-group">
               <a-input
                 v-model:value="formState.location"
                 placeholder="Enter location or meeting link"
               />
-            </div>
+            </a-form-item>
           </div>
         </div>
 
@@ -59,7 +63,7 @@
             <h3 class="text-lg font-semibold">Interviewers</h3>
             <p class="text-sm text-gray-500">Select interviewers for this session</p>
           </div>
-          <div class="form-group">
+          <a-form-item name="interviewers" class="form-group">
             <a-select
               v-model:value="formState.interviewers"
               mode="multiple"
@@ -70,7 +74,7 @@
                 {{ interviewer.name }}
               </a-select-option>
             </a-select>
-          </div>
+          </a-form-item>
         </div>
 
         <!-- Notes Section -->
@@ -79,15 +83,15 @@
             <h3 class="text-lg font-semibold">Additional Information</h3>
             <p class="text-sm text-gray-500">Add any notes or special instructions</p>
           </div>
-          <div class="form-group">
+          <a-form-item name="notes" class="form-group">
             <a-textarea
               v-model:value="formState.notes"
               placeholder="Add any additional notes"
               :rows="4"
             />
-          </div>
+          </a-form-item>
         </div>
-      </form>
+      </a-form>
     </a-modal>
   </div>
 </template>
@@ -144,30 +148,65 @@ const disabledDate = (current) => {
 
 const handleOk = async () => {
   try {
-    await formRef.value.validate()
-    loading.value = true
+    await formRef.value.validate();
+    loading.value = true;
 
-    const interviewData = {
-      candidate_id: props.candidate.id,
-      type: formState.type,
-      date: formState.date.format('YYYY-MM-DD'),
-      time: formState.time.format('HH:mm'),
-      interviewers: formState.interviewers,
-      location: formState.location,
-      notes: formState.notes
+    // Định dạng ngày giờ
+    const localDateTime = new Date(
+      formState.date.year(),
+      formState.date.month(),
+      formState.date.date(),
+      formState.time.hour(),
+      formState.time.minute()
+    );
+    
+    // Chuyển đổi sang múi giờ UTC+0
+    const scheduledDate = new Date(
+      localDateTime.getTime() - (localDateTime.getTimezoneOffset() * 60000)
+    ).toISOString();
+
+    // Đảm bảo có ít nhất một người phỏng vấn
+    if (!formState.interviewers || formState.interviewers.length === 0) {
+      message.warning('Please select at least one interviewer');
+      return;
     }
 
-    await candidatesService.scheduleInterview(interviewData)
-    message.success('Interview scheduled successfully')
-    emit('saved')
-    emit('update:visible', false)
+    // Tạo đối tượng dữ liệu phù hợp với API backend
+    const interviewData = {
+      candidate_id: props.candidate.id,
+      job_id: props.candidate.job_id, // Giả sử candidate có job_id
+      interviewer_id: String(formState.interviewers[0]), // Chuyển đổi sang chuỗi
+      scheduled_date: scheduledDate,
+      duration_minutes: 60, // Thời lượng mặc định
+      type: formState.type, // Type đã được chọn từ dropdown phù hợp với backend
+      description: formState.notes,
+      location: formState.location,
+      status: 'scheduled',
+      candidate_email: props.candidate.email
+    };
+    console.log("interviewData", interviewData);
+
+    await candidatesService.updateCandidateStatus(props.candidate.id, 'interview');
+
+    await candidatesService.scheduleInterview(interviewData);
+    message.success('Interview scheduled successfully');
+    emit('saved');
+    emit('update:visible', false);
+    
+    // Reset form
+    formState.type = undefined;
+    formState.date = undefined;
+    formState.time = undefined;
+    formState.interviewers = [];
+    formState.location = '';
+    formState.notes = '';
   } catch (error) {
-    console.error('Error scheduling interview:', error)
-    message.error('Failed to schedule interview')
+    console.error('Error scheduling interview:', error);
+    message.error('Failed to schedule interview: ' + (error.message || 'Unknown error'));
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // Reset form when modal is closed
 watch(() => props.visible, (newVal) => {

@@ -176,8 +176,8 @@ import {
   TrophyOutlined
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
-import candidatesService from '../api/candidates.service'
 import { formatDate as formatDateUtil } from '../../../shared/utils/dateHelpers'
+import candidatesService from '../api/candidates.service'
 import CreateCandidateForm from '../components/CandidateCreateForm.vue'
 import CandidateViewProfile from '../components/CandidateViewProfile.vue'
 import UpdateScoresCandidate from '../components/CandidateUpdateScores.vue'
@@ -218,12 +218,6 @@ const columns = [
     key: 'department',
     width: 150,
     sorter: (a, b) => a.department.localeCompare(b.department),
-  },
-  {
-    title: 'Experience',
-    key: 'experience',
-    width: 100,
-    sorter: (a, b) => (a.experience || 0) - (b.experience || 0),
   },
   {
     title: 'Total Score',
