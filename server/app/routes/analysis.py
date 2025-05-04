@@ -16,7 +16,7 @@ async def get_data():
                 {"$match": {
                     "$expr": {"$and": [
                         {"$eq": ["$job_id", "$$jobId"]},
-                        {"$eq": ["$status", "new"]}
+                        {"$eq": [{ "$toLower": "$status" }, "new" ]}
                     ]}
                 }},
                 {"$project": {"_id": 0}}
@@ -59,14 +59,22 @@ async def get_data():
 @router.get("/new_candidates")
 async def get_new_candidates(job_id: str):
     pipeline = [
-        {"$match": {
-            "job_id": job_id,
-            "status": "new"
-        }},
-        {"$group": {
-            "_id": "$job_id",
-            "candidates": {"$push": "$$ROOT"}
-        }}
+        {
+            "$match": {
+                "$expr": {
+                    "$and": [
+                        {"$eq": ["$job_id", job_id]},
+                        {"$eq": [{"$toLower": "$status"}, "new"]}
+                    ]
+                }
+            }
+        },
+        {
+            "$group": {
+                "_id": "$job_id",
+                "candidates": {"$push": "$$ROOT"}
+            }
+        }
     ]
 
     jobs_with_candidates = candidates_collection.aggregate(pipeline)
