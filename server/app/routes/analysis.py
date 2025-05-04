@@ -23,7 +23,6 @@ async def get_data():
             ],
             "as": "candidates"
         }},
-        {"$match": {"candidates.0": {"$exists": True}}},
         {"$project": {
             "_id": 0,
             "id": 1,
