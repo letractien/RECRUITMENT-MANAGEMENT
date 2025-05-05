@@ -308,6 +308,10 @@ const actions = {
           skills: app.skills,
           notes: app.notes,
           totalScore: app.total_score,
+          backgroundScore: app.background_score,
+          projectScore: app.project_score,
+          skillScore: app.skill_score,
+          certificateScore: app.certificate_score,
           sourceOfApplication: app.source,
           resume_drive_url: app.resume_drive_url,
           resume_download_url: app.resume_download_url
