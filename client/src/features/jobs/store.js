@@ -304,7 +304,9 @@ const actions = {
           skills: app.skills,
           notes: app.notes,
           totalScore: app.total_score,
-          sourceOfApplication: app.source
+          sourceOfApplication: app.source,
+          resume_drive_url: app.resume_drive_url,
+          resume_download_url: app.resume_download_url
         }));
         commit('SET_APPLICATIONS', applications);
       }

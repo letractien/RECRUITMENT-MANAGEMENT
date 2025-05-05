@@ -28,7 +28,8 @@ class CandidateBase(BaseModel):
     current_company: Optional[str] = None
     current_position: Optional[str] = None
     notice_period: Optional[int] = None  # In days
-    
+    resume_download_url: Optional[str] = None
+    resume_drive_url: Optional[str] = None
     # Scoring fields
     total_score: Optional[float] = 0
     background_score: Optional[float] = 0

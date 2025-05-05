@@ -77,14 +77,17 @@
               <p class="text-sm text-gray-500">Candidate's resume</p>
             </div>
             <div class="resume-content">
-              <div v-if="isPdf(candidate.resume_url)" class="pdf-viewer">
-                <iframe :src="candidate.resume_url" width="100%" height="500" class="pdf-frame"></iframe>
-              </div>
+              <iframe
+                :src="candidate.resume_drive_url ? candidate.resume_drive_url.replace('/view', '/preview') : ''"
+                width="100%"
+                height="500"
+                class="pdf-frame"
+              />
               <div class="resume-actions">
-                <a :href="candidate.resume_url" target="_blank" class="view-button">
+                <a :href="candidate.resume_drive_url" target="_blank" class="view-button">
                   <eye-outlined /> View Resume
                 </a>
-                <a :href="candidate.resume_url" download class="download-button">
+                <a :href="candidate.resume_download_url" download class="download-button">
                   <download-outlined /> Download
                 </a>
               </div>

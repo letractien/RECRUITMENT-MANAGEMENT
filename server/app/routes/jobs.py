@@ -324,4 +324,11 @@ def transform_candidate_data(candidate):
             # path = urllib.parse.quote(candidate["resume_url"])
             # candidate["resume_url"] = f"https://ftp.cntt.io/api/files/cat?path=%2F{path}"
     
+    # Preserve resume_drive_url and resume_download_url if they exist
+    if "resume_url" in candidate and candidate["resume_url"]:
+        if "resume_drive_url" not in candidate:
+            candidate["resume_drive_url"] = candidate["resume_url"]
+        if "resume_download_url" not in candidate:
+            candidate["resume_download_url"] = candidate["resume_url"]
+    
     return candidate

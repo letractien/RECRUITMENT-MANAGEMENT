@@ -336,6 +336,9 @@ const formatDate = (dateString) => {
 
 // Use the same method names and structure as in Candidates.vue
 const viewCandidate = (application) => {
+  // Debug log to check resume URL
+  console.log('Resume URL:', application);
+  
   // Map application fields to candidate fields expected by CandidateViewProfile
   viewProfileDialog.candidate = {
     id: application.id,
@@ -347,14 +350,15 @@ const viewCandidate = (application) => {
     experience: application.experience,
     skills: application.skills,
     resume_url: application.resumeUrl,
+    resume_drive_url: application.resume_drive_url ,
+    resume_download_url: application.resume_download_url,
     department: application.department,
-    position: application.position || props.jobTitle, // Use the jobTitle from props
+    position: application.position || props.jobTitle,
     background_score: application.backgroundScore,
     project_score: application.projectScore,
     skill_score: application.skillScore,
     certificate_score: application.certificateScore,
     total_score: application.totalScore,
-    // Additional fields needed for timeline
     rejected_date: application.rejectedDate,
     rejection_reason: application.rejectionReason,
     interview_date: application.interviewDate,
