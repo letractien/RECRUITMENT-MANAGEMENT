@@ -36,7 +36,27 @@ export default {
    * @returns {Promise} - Promise with response data
    */
   updateJob(id, jobData) {
-    return apiClient.put(`${RESOURCE}/${id}`, jobData);
+    // Ensure we have a valid ID
+    if (!id) {
+      return Promise.reject(new Error('Job ID is required for update'));
+    }
+
+    // Clean up the data before sending
+    const cleanData = {
+      ...jobData,
+      id: undefined // Remove id from update data as it's in the URL
+    };
+
+    console.log('Updating job with data:', cleanData);
+    return apiClient.put(`${RESOURCE}/${id}`, cleanData)
+      .then(response => {
+        console.log('Update response:', response);
+        return response;
+      })
+      .catch(error => {
+        console.error('Error updating job:', error);
+        throw error;
+      });
   },
 
   /**

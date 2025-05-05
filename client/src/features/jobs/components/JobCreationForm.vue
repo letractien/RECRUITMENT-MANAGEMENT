@@ -625,17 +625,18 @@ export default {
         
         // Check if editing or creating
         if (this.isEdit) {
-
-          // Get the job ID from initialData and ensure it's included in the form data
           const jobId = this.initialData.id;
+          if (!jobId) {
+            throw new Error('Job ID is required for update');
+          }
           
-          // Include the ID in the form data to ensure it's available for the update
-          const formWithId = {
+          // Clean up the form data before sending
+          const updateData = {
             ...this.form,
-            id: jobId
+            id: undefined // Remove id from update data as it's in the URL
           };
           
-          await this.store.dispatch('jobs/updateJob', { id: jobId, data: formWithId });
+          await this.store.dispatch('jobs/updateJob', { id: jobId, data: updateData });
           message.success('Job updated successfully');
         } else {
           await this.store.dispatch('jobs/createJob', this.form);
