@@ -17,6 +17,12 @@
             <a-breadcrumb-item>{{ currentPage }}</a-breadcrumb-item>
           </a-breadcrumb>
         </div>
+        <div class="header-center">
+          <div class="logo">
+            <img src="./assets/images/logo.svg" class="logo-img" />
+            <span class="logo-text">Recruitment System</span>
+          </div>
+        </div>
         <div class="header-right">
           <a-dropdown>
             <template #overlay>
@@ -183,6 +189,7 @@ watch(route, () => {
   --sidebar-active-bg: #e6f7ff;
   --sidebar-active-text: #1890ff;
   --sidebar-hover-bg: #f0f0f0;
+  --logo-filter: none;
 }
 
 .dark-theme {
@@ -198,6 +205,7 @@ watch(route, () => {
   --sidebar-active-bg: #177ddc;
   --sidebar-active-text: #fff;
   --sidebar-hover-bg: #2a2a2a;
+  --logo-filter: brightness(0) invert(1);
 }
 
 .app {
@@ -219,23 +227,6 @@ watch(route, () => {
   display: flex;
 }
 
-.logo {
-  height: 64px;
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  color: white;
-  font-size: 18px;
-  font-weight: 700;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.logo-img {
-  height: 32px;
-  margin-right: 10px;
-}
-
 .header {
   background: var(--header-bg);
   padding: 0 16px;
@@ -248,23 +239,61 @@ watch(route, () => {
   line-height: 64px;
   transition: background-color 0.3s ease;
   width: 100%;
+  position: relative;
 }
 
 .header-left {
   display: flex;
   align-items: center;
+  flex: 1;
 }
+
+.header-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  height: 64px;
+  background-color: var(--header-bg);
+}
+
+.logo-img {
+  height: 32px;
+  width: auto;
+  margin-right: 8px;
+  filter: var(--logo-filter);
+  display: block; 
+}
+
+.logo-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color);
+  white-space: nowrap;
+  line-height: normal;
+}
+
 
 .toggle-btn {
   padding: 0 12px;
   margin-right: 12px;
   font-size: 18px;
   color: var(--text-color);
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
 }
 
 .user-avatar {
@@ -369,6 +398,18 @@ watch(route, () => {
 }
 
 @media (max-width: 768px) {
+  .header-center {
+    display: none;
+  }
+  
+  .header-left {
+    flex: 1;
+  }
+  
+  .header-right {
+    flex: 0;
+  }
+  
   .toggle-btn {
     margin-right: 8px;
   }
