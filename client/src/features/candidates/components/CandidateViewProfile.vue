@@ -43,8 +43,28 @@
                 <div class="form-value">{{ candidate.phone || 'N/A' }}</div>
               </div>
               <div class="form-group">
-                <label class="form-label">Position</label>
-                <div class="form-value">{{ candidate.position || 'N/A' }}</div>
+                <label class="form-label">LinkedIn URL</label>
+                <div class="form-value">{{ candidate.linkedin_url || 'N/A' }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Address</label>
+                <div class="form-value">{{ candidate.address || 'N/A' }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">LinkedIn URL</label>
+                <div class="form-value">{{ candidate.linkedin_url || 'N/A' }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Career Goal</label>
+                <div class="form-value">{{ candidate.career_goal || 'N/A' }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Education</label>
+                <div class="form-value">
+                  <a-tag v-for="education in candidate.education" :key="education">
+                    {{ education }}
+                  </a-tag>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Department</label>
@@ -57,7 +77,7 @@
             </div>
           </div>
 
-          <!-- Skills Section
+          <!-- Skills Section -->
           <div class="form-section" v-if="candidate.skills && candidate.skills.length">
             <div class="section-header">
               <h3 class="text-lg font-semibold">Skills</h3>
@@ -68,7 +88,7 @@
                 {{ skill }}
               </a-tag>
             </div>
-          </div> -->
+          </div>
 
           <!-- Resume Section -->
           <div class="form-section" v-if="candidate.resume_url">
