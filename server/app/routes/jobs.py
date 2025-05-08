@@ -312,16 +312,5 @@ def transform_candidate_data(candidate):
         
     if "applied_date" not in candidate:
         candidate["applied_date"] = now
-        
-    # Fix resume_url to be a valid URL
-    if "resume_url" in candidate and candidate["resume_url"]:
-        if not candidate["resume_url"].startswith(("http://", "https://")):
-            # Convert relative path to absolute URL
-            base_url = "https://ftp.cntt.io/view"
-            candidate["resume_url"] = f"{base_url}/{candidate['resume_url']}"
-            
-            # # Convert relative path to absolute URL with URL encoding for the path parameter
-            # path = urllib.parse.quote(candidate["resume_url"])
-            # candidate["resume_url"] = f"https://ftp.cntt.io/api/files/cat?path=%2F{path}"
     
     return candidate

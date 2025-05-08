@@ -15,20 +15,30 @@ class CandidateStatus(str, Enum):
 class CandidateBase(BaseModel):
     name: str
     email: EmailStr
-    phone: str
-    job_id: str  # Foreign key to Job model
-    department: str
-    experience: int
     status: CandidateStatus = CandidateStatus.NEW
-    resume_url: Optional[str] = None
-    skills: List[str] = []
+
+    job_id: str  # Foreign key to Job model
+    department: Optional[str] = "Not specified"
+    phone: Optional[str] = "Not provided"
+
+    position: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    address: Optional[str] = None
+    career_goal: Optional[str] = None
+    education: Optional[str] = None
+    experience: Optional[int] = 0
+    
+    skills: Optional[List[str]] = None
     notes: Optional[str] = None
     salary_expectation: Optional[float] = None
     source: Optional[str] = None  # How did they find the job posting
     current_company: Optional[str] = None
     current_position: Optional[str] = None
     notice_period: Optional[int] = None  # In days
-    
+    resume_url: Optional[str] = None
+    resume_download_url: Optional[str] = None
+    resume_drive_url: Optional[str] = None
+
     # Scoring fields
     total_score: Optional[float] = 0
     background_score: Optional[float] = 0
