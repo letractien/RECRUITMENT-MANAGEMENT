@@ -132,15 +132,16 @@ async def get_hiring_funnel(
     statuses = await statuses.to_list(length=100)
     
     # Ensure we have all stages in the funnel
-    all_stages = ["applied", "screening", "interview", "offer", "hired", "rejected"]
+    all_stages = ["new", "screening", "interview", "offer", "hired", "rejected"]
     
     # Map actual stages to expected stages and fill in missing ones
     stage_map = {status["stage"]: status["count"] for status in statuses}
     
     hiring_funnel = []
     for stage in all_stages:
+        display_name = stage.title()
         hiring_funnel.append({
-            "stage": stage.title(),
+            "stage": display_name,
             "count": stage_map.get(stage, 0)
         })
     

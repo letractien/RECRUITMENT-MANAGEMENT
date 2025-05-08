@@ -59,14 +59,17 @@ class JobUpdate(BaseModel):
     description: Optional[str] = None
     department: Optional[str] = None
     location: Optional[str] = None
-    requirements: Optional[List[str]] = None
-    responsibilities: Optional[List[str]] = None
+    requirements: Optional[str] = None
     min_salary: Optional[float] = None
     max_salary: Optional[float] = None
     status: Optional[JobStatus] = None
     is_remote: Optional[bool] = None
     employment_type: Optional[EmploymentType] = None
     hiring_manager: Optional[str] = None
+    background_criteria: Optional[EvaluationSection] = None
+    project_criteria: Optional[EvaluationSection] = None
+    skill_criteria: Optional[EvaluationSection] = None
+    certification_criteria: Optional[EvaluationSection] = None
 
 
 class JobInDB(JobBase):

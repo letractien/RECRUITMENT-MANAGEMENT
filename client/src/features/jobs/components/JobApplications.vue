@@ -336,6 +336,20 @@ const formatDate = (dateString) => {
 
 // Use the same method names and structure as in Candidates.vue
 const viewCandidate = (application) => {
+  // Debug log to check application data
+  console.log('Application data in viewCandidate:', {
+    id: application.id,
+    name: application.candidateName,
+    email: application.email,
+    scores: {
+      total: application.totalScore,
+      background: application.backgroundScore,
+      project: application.projectScore,
+      skill: application.skillScore,
+      certificate: application.certificateScore
+    }
+  });
+  
   // Map application fields to candidate fields expected by CandidateViewProfile
   viewProfileDialog.candidate = {
     id: application.id,
@@ -347,14 +361,15 @@ const viewCandidate = (application) => {
     experience: application.experience,
     skills: application.skills,
     resume_url: application.resumeUrl,
+    resume_drive_url: application.resume_drive_url,
+    resume_download_url: application.resume_download_url,
     department: application.department,
-    position: application.position || props.jobTitle, // Use the jobTitle from props
+    position: application.position || props.jobTitle,
     background_score: application.backgroundScore,
     project_score: application.projectScore,
     skill_score: application.skillScore,
     certificate_score: application.certificateScore,
     total_score: application.totalScore,
-    // Additional fields needed for timeline
     rejected_date: application.rejectedDate,
     rejection_reason: application.rejectionReason,
     interview_date: application.interviewDate,
@@ -364,22 +379,34 @@ const viewCandidate = (application) => {
     notes: application.notes
   };
   
-  // Add a small logging debug to verify status is being passed correctly
-  console.log('Opening candidate view with status:', application.status);
   viewProfileDialog.visible = true;
 };
 
 const updateScores = (application) => {
-  // Map application fields to candidate fields expected by UpdateScoresCandidate
-  scoreDialog.candidate = {
+  // Debug log to check application data
+  console.log('Application data in updateScores:', {
     id: application.id,
     name: application.candidateName,
     email: application.email,
-    background_score: application.backgroundScore || 0,
-    project_score: application.projectScore || 0,
-    skill_score: application.skillScore || 0,
-    certificate_score: application.certificateScore || 0,
-    total_score: application.totalScore || 0
+    scores: {
+      total: application.totalScore,
+      background: application.backgroundScore,
+      project: application.projectScore,
+      skill: application.skillScore,
+      certificate: application.certificateScore
+    }
+  });
+
+  const candidate = application.candidate || application;
+  scoreDialog.candidate = {
+    id: candidate.id || application.id,
+    name: candidate.name || application.candidateName,
+    email: candidate.email || application.email,
+    background_score: candidate.backgroundScore ?? candidate.background_score ?? 0,
+    project_score: candidate.projectScore ?? candidate.project_score ?? 0,
+    skill_score: candidate.skillScore ?? candidate.skill_score ?? 0,
+    certificate_score: candidate.certificateScore ?? candidate.certificate_score ?? 0,
+    total_score: candidate.totalScore ?? candidate.total_score ?? 0
   };
   scoreDialog.visible = true;
 };

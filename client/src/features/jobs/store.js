@@ -202,31 +202,35 @@ const actions = {
     try {
       commit('SET_LOADING', true);
       
-      // Check if id is a timestamp-like value and needs conversion
-      let jobId = id;
-      if (data.id) {
-        // If data has an id property, use that instead
-        jobId = data.id;
-      } else if (state.currentJob && state.currentJob.id) {
-        // If we have a current job with an id, use that
-        jobId = state.currentJob.id;
+      // Ensure we have a valid job ID
+      const jobId = id || data.id;
+      if (!jobId) {
+        throw new Error('Job ID is required for update');
       }
       
-      console.log("Using job ID for update:", jobId);
-      const response = await jobsService.updateJob(jobId, data);
+      // Clean up the data before sending
+      const updateData = {
+        ...data,
+        id: undefined // Remove id from update data as it's in the URL
+      };
+      
+      console.log("Updating job with ID:", jobId, "Data:", updateData);
+      const response = await jobsService.updateJob(jobId, updateData);
       commit('SET_ERROR', null);
       
-      // If the current job is being updated, update it in the state
+      // Update the current job in state if it's the one being updated
       if (state.currentJob && state.currentJob.id === jobId) {
-        commit('SET_CURRENT_JOB', response.data);
+        commit('SET_CURRENT_JOB', response);
       }
       
-      dispatch('fetchJobs'); // Refresh list after updating
-      return response.data;
+      // Refresh the jobs list to show updated data
+      await dispatch('fetchJobs');
+      
+      return response;
     } catch (error) {
-      commit('SET_ERROR', error.message || `Failed to update job with ID ${id}`);
-      console.error(`Error updating job ${id}:`, error);
-      return null;
+      commit('SET_ERROR', error.message || 'Failed to update job');
+      console.error('Error updating job:', error);
+      throw error;
     } finally {
       commit('SET_LOADING', false);
     }
@@ -304,7 +308,13 @@ const actions = {
           skills: app.skills,
           notes: app.notes,
           totalScore: app.total_score,
-          sourceOfApplication: app.source
+          backgroundScore: app.background_score,
+          projectScore: app.project_score,
+          skillScore: app.skill_score,
+          certificateScore: app.certificate_score,
+          sourceOfApplication: app.source,
+          resume_drive_url: app.resume_drive_url,
+          resume_download_url: app.resume_download_url
         }));
         commit('SET_APPLICATIONS', applications);
       }

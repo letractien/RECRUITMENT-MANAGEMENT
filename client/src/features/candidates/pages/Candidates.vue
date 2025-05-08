@@ -59,7 +59,7 @@
             </template>
             <template v-else-if="column.key === 'status'">
               <a-tag :color="getStatusColor(record.status)">
-                {{ record.status }}
+                {{ capitalizeStatus(record.status) }}
               </a-tag>
             </template>
             <template v-else-if="column.key === 'experience'">
@@ -314,6 +314,11 @@ const getStatusColor = (status) => {
   }
   return colors[status] || 'default'
 }
+
+const capitalizeStatus = (status) => {
+  if (!status) return '';
+  return status.charAt(0).toUpperCase() + status.slice(1);
+};
 
 const candidateDialog = reactive({
   visible: false,
