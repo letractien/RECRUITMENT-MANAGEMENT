@@ -43,16 +43,25 @@
                 <div class="form-value">{{ candidate.phone || 'N/A' }}</div>
               </div>
               <div class="form-group">
-                <label class="form-label">LinkedIn URL</label>
-                <div class="form-value">{{ candidate.linkedin_url || 'N/A' }}</div>
+                <label class="form-label">Position Applied</label>
+                <div class="form-value">{{ candidate.position || 'N/A' }}</div>
               </div>
               <div class="form-group">
                 <label class="form-label">Address</label>
                 <div class="form-value">{{ candidate.address || 'N/A' }}</div>
               </div>
               <div class="form-group">
-                <label class="form-label">LinkedIn URL</label>
-                <div class="form-value">{{ candidate.linkedin_url || 'N/A' }}</div>
+                <label class="form-label">External Links</label>
+                <div class="form-value">
+                  <ul class="external-links-list" v-if="candidate.external_links && candidate.external_links.length > 0">
+                    <li v-for="link in candidate.external_links" :key="link" class="external-link-item">
+                      <a :href="link" target="_blank" rel="noopener noreferrer" class="external-link">
+                        <link-outlined /> {{ link }}
+                      </a>
+                    </li>
+                  </ul>
+                  <span v-else>N/A</span>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Career Goal</label>
@@ -61,15 +70,15 @@
               <div class="form-group">
                 <label class="form-label">Education</label>
                 <div class="form-value">
-                  <a-tag v-for="education in candidate.education" :key="education">
-                    {{ education }}
-                  </a-tag>
+                  <ul class="education-list" v-if="candidate.educations && candidate.educations.length > 0">
+                    <li v-for="education in candidate.educations" :key="education" class="education-item">
+                      {{ education }}
+                    </li>
+                  </ul>
+                  <span v-else>N/A</span>
                 </div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Department</label>
-                <div class="form-value">{{ candidate.department || 'N/A' }}</div>
-              </div>
+
               <div class="form-group">
                 <label class="form-label">Applied Date</label>
                 <div class="form-value">{{ formatDate(candidate.applied_date) }}</div>
@@ -264,7 +273,8 @@ import {
   UserAddOutlined,
   CloseCircleOutlined,
   EyeOutlined,
-  DownloadOutlined
+  DownloadOutlined,
+  LinkOutlined
 } from '@ant-design/icons-vue'
 
 const props = defineProps({
@@ -665,5 +675,52 @@ const isPdf = (url) => {
 
 .view-button :deep(svg), .download-button :deep(svg) {
   margin-right: 8px;
+}
+
+.education-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.education-item {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.education-item:last-child {
+  border-bottom: none;
+}
+
+.external-links-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.external-link-item {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.external-link-item:last-child {
+  border-bottom: none;
+}
+
+.external-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.external-link:hover {
+  color: #40a9ff;
+}
+
+.external-link :deep(svg) {
+  font-size: 14px;
 }
 </style>

@@ -22,10 +22,10 @@ class CandidateBase(BaseModel):
     phone: Optional[str] = "Not provided"
 
     position: Optional[str] = None
-    linkedin_url: Optional[str] = None
     address: Optional[str] = None
     career_goal: Optional[str] = None
-    education: Optional[str] = None
+    external_links: Optional[List[str]] = None
+    educations: Optional[List[str]] = None
     experience: Optional[int] = 0
     
     skills: Optional[List[str]] = None
@@ -61,10 +61,10 @@ class CandidateUpdate(BaseModel):
     department: Optional[str] = None
 
     position: Optional[str] = None
-    linkedin_url: Optional[str] = None
     address: Optional[str] = None
     career_goal: Optional[str] = None
-    education: Optional[List[str]] = None
+    external_links: Optional[List[str]] = None
+    educations: Optional[List[str]] = None
     experience: Optional[int] = None
 
     skills: Optional[List[str]] = None
