@@ -335,48 +335,48 @@ const formatDate = (dateString) => {
 }
 
 // Use the same method names and structure as in Candidates.vue
-const viewCandidate = (application) => {
-  // Debug log to check application data
-  console.log('Application data in viewCandidate:', {
-    id: application.id,
-    name: application.candidateName,
-    email: application.email,
-    scores: {
-      total: application.totalScore,
-      background: application.backgroundScore,
-      project: application.projectScore,
-      skill: application.skillScore,
-      certificate: application.certificateScore
-    }
-  });
-  
+const viewCandidate = (application) => {  
   // Map application fields to candidate fields expected by CandidateViewProfile
   viewProfileDialog.candidate = {
     id: application.id,
     name: application.candidateName,
     email: application.email,
-    phone: application.phone,
     status: application.status,
+
+    department: application.department,
+    phone: application.phone,
     applied_date: application.appliedDate,
+    
+    position: application.position || props.jobTitle,
+    address: application.address,
+    career_goal: application.career_goal,
+    external_links: application.external_links,
+    educations: application.educations,
     experience: application.experience,
+
     skills: application.skills,
+    notes: application.notes,
+    salary_expectation: application.salaryExpectation,
+    source: application.source,
+    current_company: application.currentCompany,
+    current_position: application.currentPosition,
+    notice_period: application.noticePeriod,
     resume_url: application.resumeUrl,
     resume_drive_url: application.resume_drive_url,
     resume_download_url: application.resume_download_url,
-    department: application.department,
-    position: application.position || props.jobTitle,
+
     background_score: application.backgroundScore,
     project_score: application.projectScore,
     skill_score: application.skillScore,
     certificate_score: application.certificateScore,
     total_score: application.totalScore,
+    
     rejected_date: application.rejectedDate,
     rejection_reason: application.rejectionReason,
     interview_date: application.interviewDate,
     offer_date: application.offerDate,
     hired_date: application.hiredDate,
     screening_date: application.screeningDate,
-    notes: application.notes
   };
   
   viewProfileDialog.visible = true;

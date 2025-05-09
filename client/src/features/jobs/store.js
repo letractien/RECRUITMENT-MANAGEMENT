@@ -296,6 +296,7 @@ const actions = {
       
       if (response.data) {
         const applications = response.data.map(app => ({
+          // Basic info
           id: app.id,
           candidateName: app.name,
           email: app.email,
@@ -303,18 +304,47 @@ const actions = {
           status: app.status.charAt(0).toUpperCase() + app.status.slice(1),
           appliedDate: app.applied_date || app.applied_date,
           department: app.department,
+          
+          // Position and experience
+          position: app.position,
           experience: app.experience,
+          
+          // Personal info
+          address: app.address,
+          career_goal: app.career_goal,
+          current_company: app.current_company,
+          current_position: app.current_position,
+          notice_period: app.notice_period,
+          
+          // Education and skills
+          educations: app.educations || [],
+          skills: app.skills || [],
+          external_links: app.external_links || [],
+          
+          // Documents
           resumeUrl: app.resume_url,
-          skills: app.skills,
+          resume_drive_url: app.resume_drive_url,
+          resume_download_url: app.resume_download_url,
+          
+          // Additional info
           notes: app.notes,
+          salary_expectation: app.salary_expectation,
+          sourceOfApplication: app.source,
+          
+          // Scores
           totalScore: app.total_score,
           backgroundScore: app.background_score,
           projectScore: app.project_score,
           skillScore: app.skill_score,
           certificateScore: app.certificate_score,
-          sourceOfApplication: app.source,
-          resume_drive_url: app.resume_drive_url,
-          resume_download_url: app.resume_download_url
+          
+          // Status dates
+          rejected_date: app.rejected_date,
+          rejection_reason: app.rejection_reason,
+          interview_date: app.interview_date,
+          offer_date: app.offer_date,
+          hired_date: app.hired_date,
+          screening_date: app.screening_date
         }));
         commit('SET_APPLICATIONS', applications);
       }
