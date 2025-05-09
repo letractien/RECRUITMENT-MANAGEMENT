@@ -64,7 +64,7 @@ class CandidateUpdate(BaseModel):
     linkedin_url: Optional[str] = None
     address: Optional[str] = None
     career_goal: Optional[str] = None
-    education: Optional[str] = None
+    education: Optional[List[str]] = None
     experience: Optional[int] = None
 
     skills: Optional[List[str]] = None
