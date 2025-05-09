@@ -55,7 +55,7 @@
                 <div class="form-value">
                   <ul class="external-links-list" v-if="candidate.external_links && candidate.external_links.length > 0">
                     <li v-for="link in candidate.external_links" :key="link" class="external-link-item">
-                      <a :href="link" target="_blank" rel="noopener noreferrer" class="external-link">
+                      <a :href="link.split(': ')[1]" target="_blank" rel="noopener noreferrer" class="external-link">
                         <link-outlined /> {{ link }}
                       </a>
                     </li>
