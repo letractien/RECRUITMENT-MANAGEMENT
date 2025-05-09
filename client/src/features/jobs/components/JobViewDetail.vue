@@ -99,10 +99,9 @@
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="form-group" v-if="job.background_criteria">
-          <label class="form-label">Background Criteria</label>
+          <label class="form-label">Background Criteria | Weight: {{ job.background_criteria.importance_ratio }}%</label>
           <div class="criteria-content">
             <div class="criteria-header">
-              <span class="criteria-ratio">Weight: {{ job.background_criteria.importance_ratio }}%</span>
               <span class="criteria-required">{{ job.background_criteria.required }}</span>
             </div>
             <ul class="criteria-list">
@@ -114,10 +113,9 @@
         </div>
 
         <div class="form-group" v-if="job.project_criteria">
-          <label class="form-label">Project Criteria</label>
+          <label class="form-label">Project Criteria | Weight: {{ job.project_criteria.importance_ratio }}%</label>
           <div class="criteria-content">
             <div class="criteria-header">
-              <span class="criteria-ratio">Weight: {{ job.project_criteria.importance_ratio }}%</span>
               <span class="criteria-required">{{ job.project_criteria.required }}</span>
             </div>
             <ul class="criteria-list">
@@ -129,10 +127,9 @@
         </div>
 
         <div class="form-group" v-if="job.skill_criteria">
-          <label class="form-label">Skill Criteria</label>
+          <label class="form-label">Skill Criteria | Weight: {{ job.skill_criteria.importance_ratio }}%</label>
           <div class="criteria-content">
             <div class="criteria-header">
-              <span class="criteria-ratio">Weight: {{ job.skill_criteria.importance_ratio }}%</span>
               <span class="criteria-required">{{ job.skill_criteria.required }}</span>
             </div>
             <ul class="criteria-list">
@@ -144,10 +141,9 @@
         </div>
 
         <div class="form-group" v-if="job.certification_criteria">
-          <label class="form-label">Certification Criteria</label>
+          <label class="form-label">Certification Criteria | Weight: {{ job.certification_criteria.importance_ratio }}%</label>
           <div class="criteria-content">
             <div class="criteria-header">
-              <span class="criteria-ratio">Weight: {{ job.certification_criteria.importance_ratio }}%</span>
               <span class="criteria-required">{{ job.certification_criteria.required }}</span>
             </div>
             <ul class="criteria-list">
