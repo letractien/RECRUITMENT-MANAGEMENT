@@ -54,12 +54,19 @@ class CandidateCreate(CandidateBase):
 class CandidateUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
-    phone: Optional[str] = None
-    job_id: Optional[str] = None
-    department: Optional[str] = None
-    experience: Optional[int] = None
     status: Optional[CandidateStatus] = None
-    resume_url: Optional[str] = None
+    
+    job_id: Optional[str] = None
+    phone: Optional[str] = None
+    department: Optional[str] = None
+
+    position: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    address: Optional[str] = None
+    career_goal: Optional[str] = None
+    education: Optional[str] = None
+    experience: Optional[int] = None
+
     skills: Optional[List[str]] = None
     notes: Optional[str] = None
     salary_expectation: Optional[float] = None
@@ -67,6 +74,7 @@ class CandidateUpdate(BaseModel):
     current_company: Optional[str] = None
     current_position: Optional[str] = None
     notice_period: Optional[int] = None
+    resume_url: Optional[str] = None
 
     # Scoring fields
     total_score: Optional[float] = None
