@@ -129,43 +129,45 @@
               <h3 class="text-lg font-semibold">Evaluation Scores</h3>
               <p class="text-sm text-gray-500">Candidate's performance evaluation</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div class="form-group">
-                <label class="form-label">Background Score</label>
-                <div class="score-display">
-                  <span class="score-value">{{ candidate.background_score || 0 }}</span>
-                  <span class="score-max">/100</span>
+            <a-spin :spinning="jobLoading">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="form-group">
+                  <label class="form-label">Background Score</label>
+                  <div class="score-display">
+                    <span class="score-value">{{ candidate.background_score || 0 }}</span>
+                    <span class="score-max">/{{ job ? (job.background_criteria.importance_ratio || 0) : 0 }}</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Project Score</label>
+                  <div class="score-display">
+                    <span class="score-value">{{ candidate.project_score || 0 }}</span>
+                    <span class="score-max">/{{ job ? (job.project_criteria.importance_ratio || 0) : 0 }}</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Skill Score</label>
+                  <div class="score-display">
+                    <span class="score-value">{{ candidate.skill_score || 0 }}</span>
+                    <span class="score-max">/{{ job ? (job.skill_criteria.importance_ratio || 0) : 0 }}</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Certificate Score</label>
+                  <div class="score-display">
+                    <span class="score-value">{{ candidate.certificate_score || 0 }}</span>
+                    <span class="score-max">/{{ job ? (job.certification_criteria.importance_ratio || 0) : 0 }}</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Total Score</label>
+                  <div class="score-display total-score">
+                    <span class="score-value">{{ candidate.total_score || 0 }}</span>
+                    <span class="score-max">/{{ totalImportanceRatio }}</span>
+                  </div>
                 </div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Project Score</label>
-                <div class="score-display">
-                  <span class="score-value">{{ candidate.project_score || 0 }}</span>
-                  <span class="score-max">/100</span>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Skill Score</label>
-                <div class="score-display">
-                  <span class="score-value">{{ candidate.skill_score || 0 }}</span>
-                  <span class="score-max">/100</span>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Certificate Score</label>
-                <div class="score-display">
-                  <span class="score-value">{{ candidate.certificate_score || 0 }}</span>
-                  <span class="score-max">/100</span>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Total Score</label>
-                <div class="score-display total-score">
-                  <span class="score-value">{{ candidate.total_score || 0 }}</span>
-                  <span class="score-max">/100</span>
-                </div>
-              </div>
-            </div>
+            </a-spin>
           </div>
 
           <!-- Notes Section -->
@@ -263,8 +265,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { formatDate as formatDateUtil } from '../../../shared/utils/dateHelpers'
+import candidatesService from '../api/candidates.service'
 import { 
   CheckCircleOutlined, 
   FileSearchOutlined, 
@@ -291,6 +294,43 @@ const props = defineProps({
 const emit = defineEmits(['update:visible'])
 
 const loading = ref(false)
+const job = ref(null)
+const jobLoading = ref(false)
+
+const totalImportanceRatio = computed(() => {
+  if (!job.value) return 100
+  const ratios = [
+    job.value.background_criteria.importance_ratio || 0,
+    job.value.project_criteria.importance_ratio || 0,
+    job.value.skill_criteria.importance_ratio || 0,
+    job.value.certification_criteria.importance_ratio || 0
+  ]
+  return ratios.reduce((sum, ratio) => sum + ratio, 0)
+})
+
+watch(() => props.visible, (newVisible) => {
+  if (newVisible && props.candidate && props.candidate.id) {
+    fetchJobInfo(props.candidate.id)
+  }
+})
+
+const fetchJobInfo = async (candidateId) => {
+  jobLoading.value = true
+  try {
+    const response = await candidatesService.getCandidateJob(candidateId)
+    job.value = response.data
+  } catch (error) {
+    console.error('Error fetching job information:', error)
+  } finally {
+    jobLoading.value = false
+  }
+}
+
+onMounted(() => {
+  if (props.visible && props.candidate && props.candidate.id) {
+    fetchJobInfo(props.candidate.id)
+  }
+})
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'

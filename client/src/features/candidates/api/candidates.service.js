@@ -115,5 +115,14 @@ export default {
    */
   getCandidateNotes(id) {
     return apiClient.get(`${RESOURCE}/${id}/notes`);
+  },
+
+  /**
+   * Get candidate job information
+   * @param {string|number} id - The candidate ID
+   * @returns {Promise} - Promise with response data
+   */
+  getCandidateJob(id) {
+    return apiClient.get(`${RESOURCE}/${id}/job`);
   }
 }; 

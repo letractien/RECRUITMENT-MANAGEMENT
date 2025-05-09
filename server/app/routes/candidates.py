@@ -374,3 +374,40 @@ async def get_candidate_email_by_id(candidate_id: str):
     if candidate:
         return candidate.get("email")
     return None
+
+@router.get("/{candidate_id}/job")
+async def get_candidate_job(
+    candidate_id: str,
+):
+    """
+    Get a candidate's job information
+    """
+    # Find the candidate
+    candidate = await candidates_collection.find_one({"id": candidate_id})
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Candidate with ID {candidate_id} not found",
+        )
+    
+    # Check if the candidate has a job_id
+    if not candidate.get("job_id"):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No job found for candidate with ID {candidate_id}",
+        )
+    
+    # Find the job
+    job = await jobs_collection.find_one({"id": candidate["job_id"]})
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job with ID {candidate['job_id']} not found",
+        )
+    
+    # Transform MongoDB _id to string
+    if "_id" in job:
+        job["id"] = str(job["_id"])
+        del job["_id"]
+    
+    return job
