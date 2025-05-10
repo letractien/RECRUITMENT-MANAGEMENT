@@ -418,7 +418,8 @@ const scheduleInterview = (application) => {
     name: application.candidateName,
     email: application.email,
     phone: application.phone,
-    status: application.status
+    status: application.status,
+    job_id: props.jobId
   };
   scheduleInterviewDialog.visible = true;
 };
