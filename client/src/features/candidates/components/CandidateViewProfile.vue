@@ -43,6 +43,10 @@
                 <div class="form-value">{{ candidate.phone || 'N/A' }}</div>
               </div>
               <div class="form-group">
+                <label class="form-label">Sex</label>
+                <div class="form-value">{{ capitalizeFirstLetter(candidate.sex === 'M' ? 'Male' : candidate.sex === 'F' ? 'Female' : candidate.sex) }}</div>
+              </div>
+              <div class="form-group">
                 <label class="form-label">Position Applied</label>
                 <div class="form-value">{{ candidate.position || 'N/A' }}</div>
               </div>
@@ -335,6 +339,11 @@ onMounted(() => {
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
   return formatDateUtil(dateString, 'YYYY-MM-DD HH:mm')
+}
+
+const capitalizeFirstLetter = (string) => {
+  if (!string) return 'N/A'
+  return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase()
 }
 
 const getStatusColor = (status) => {
