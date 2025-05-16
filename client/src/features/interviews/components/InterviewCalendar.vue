@@ -183,8 +183,9 @@ const formatInterviewsForCalendar = (interviews) => {
     try {
       if (interview.scheduledAt) {
         interviewDate = new Date(interview.scheduledAt)
-        // Change from toLocaleTimeString to a custom format with only hours and minutes
-        const hours = String(interviewDate.getHours()).padStart(2, '0')
+        // Convert UTC+0 time to UTC+7 time by subtracting 7 hours
+        const localHours = interviewDate.getHours() - 7
+        const hours = String(localHours).padStart(2, '0')
         const minutes = String(interviewDate.getMinutes()).padStart(2, '0')
         interviewTime = `${hours}:${minutes}`
       }

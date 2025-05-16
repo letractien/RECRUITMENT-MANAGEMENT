@@ -128,13 +128,19 @@ const upcomingInterviews = computed(() => {
   // Map and return the filtered interviews
   return filteredInterviews.map(interview => {
     const interviewDate = new Date(interview.scheduledAt);
+    // Convert UTC+0 time to UTC+7 time by subtracting 7 hours
+    const localHours = interviewDate.getHours() - 7;
+    const hours = String(localHours).padStart(2, '0');
+    const minutes = String(interviewDate.getMinutes()).padStart(2, '0');
+    const timeString = `${hours}:${minutes}`;
+    
     return {
       id: interview.id,
       candidate: interview.candidateName,
       position: interview.jobTitle,
       interviewType: interview.type,
       date: interviewDate,
-      time: interviewDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      time: timeString
     };
   });
 })

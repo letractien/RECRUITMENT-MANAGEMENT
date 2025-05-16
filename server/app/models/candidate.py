@@ -20,6 +20,7 @@ class CandidateBase(BaseModel):
     job_id: str  # Foreign key to Job model
     department: Optional[str] = "Not specified"
     phone: Optional[str] = "Not provided"
+    sex: Optional[str] = None
 
     position: Optional[str] = None
     address: Optional[str] = None

@@ -315,6 +315,9 @@ def transform_candidate_data(candidate):
     if "experience" not in candidate:
         candidate["experience"] = 0
         
+    if "sex" not in candidate:
+        candidate["sex"] = None
+        
     # Add timestamps if missing
     now = datetime.now()
     if "created_at" not in candidate:

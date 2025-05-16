@@ -346,6 +346,7 @@ const viewCandidate = (application) => {
     department: application.department,
     phone: application.phone,
     applied_date: application.appliedDate,
+    sex: application.sex,
     
     position: application.position || props.jobTitle,
     address: application.address,
