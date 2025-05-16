@@ -295,6 +295,9 @@ const actions = {
       const response = await jobsService.getJobApplications(jobId);
       
       if (response.data) {
+        // Debug log để kiểm tra dữ liệu từ API
+        console.log('API Response data:', response.data);
+
         const applications = response.data.map(app => ({
           // Basic info
           id: app.id,
@@ -304,6 +307,7 @@ const actions = {
           status: app.status.charAt(0).toUpperCase() + app.status.slice(1),
           appliedDate: app.applied_date || app.applied_date,
           department: app.department,
+          sex: app.sex,  // Thêm trường sex vào đây
           
           // Position and experience
           position: app.position,
@@ -346,6 +350,10 @@ const actions = {
           hired_date: app.hired_date,
           screening_date: app.screening_date
         }));
+
+        // Debug log để kiểm tra dữ liệu sau khi map
+        console.log('Mapped applications:', applications);
+
         commit('SET_APPLICATIONS', applications);
       }
       else {

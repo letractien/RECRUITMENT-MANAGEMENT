@@ -336,13 +336,15 @@ const formatDate = (dateString) => {
 
 // Use the same method names and structure as in Candidates.vue
 const viewCandidate = (application) => {  
+  // Debug log để kiểm tra toàn bộ dữ liệu application
+  console.log('Full application data:', application);
+
   // Map application fields to candidate fields expected by CandidateViewProfile
   viewProfileDialog.candidate = {
     id: application.id,
     name: application.candidateName,
     email: application.email,
     status: application.status,
-
     department: application.department,
     phone: application.phone,
     applied_date: application.appliedDate,
