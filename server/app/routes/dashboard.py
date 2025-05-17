@@ -20,64 +20,127 @@ async def get_stats(
     """
     Get dashboard statistics
     """
-    # Calculate date range
+    # Calculate date ranges
     start_date = get_date_from_range(time_range)
-    
-    # Get active jobs count
-    active_jobs = await jobs_collection.count_documents({
-        "status": "open"
-    })
-    
-    # Get new applications count
-    new_applications = await candidates_collection.count_documents({
-        "created_at": {"$gte": start_date}
-    })
-    
-    # Get scheduled interviews count
-    scheduled_interviews = await interviews_collection.count_documents({
-        "scheduled_date": {"$gte": start_date},
-        "status": {"$nin": ["cancelled", "completed"]}
-    })
-    
-    # Get positions filled count
-    positions_filled = await candidates_collection.count_documents({
-        "status": "hired",
-        "updated_at": {"$gte": start_date}
-    })
-    
-    # Get previous period data for comparison
     previous_start = get_previous_period_start(time_range, start_date)
     previous_end = start_date
     
-    # Get previous period applications
-    prev_applications = await candidates_collection.count_documents({
-        "created_at": {"$gte": previous_start, "$lt": previous_end}
-    })
+    # Aggregation pipeline cho jobs collection
+    jobs_pipeline = [
+        {
+            "$facet": {
+                "activeJobs": [
+                    {"$match": {"status": "open"}},
+                    {"$count": "count"}
+                ],
+                "prevActiveJobs": [
+                    {"$match": {
+                        "created_at": {"$gte": previous_start, "$lt": previous_end},
+                        "status": "OPEN"
+                    }},
+                    {"$count": "count"}
+                ]
+            }
+        }
+    ]
     
-    # Get previous period interviews
-    prev_interviews = await interviews_collection.count_documents({
-        "scheduled_date": {"$gte": previous_start, "$lt": previous_end},
-        "status": {"$nin": ["cancelled", "completed"]}
-    })
+    # Aggregation pipeline cho candidates collection
+    candidates_pipeline = [
+        {
+            "$facet": {
+                "newApplications": [
+                    {"$match": {"created_at": {"$gte": start_date}}},
+                    {"$count": "count"}
+                ],
+                "prevApplications": [
+                    {"$match": {"created_at": {"$gte": previous_start, "$lt": previous_end}}},
+                    {"$count": "count"}
+                ],
+                "positionsFilled": [
+                    {"$match": {
+                        "status": "hired",
+                        "updated_at": {"$gte": start_date}
+                    }},
+                    {"$count": "count"}
+                ],
+                "prevFilled": [
+                    {"$match": {
+                        "status": "hired",
+                        "updated_at": {"$gte": previous_start, "$lt": previous_end}
+                    }},
+                    {"$count": "count"}
+                ]
+            }
+        }
+    ]
     
-    # Get previous period filled positions
-    prev_filled = await candidates_collection.count_documents({
-        "status": "hired",
-        "updated_at": {"$gte": previous_start, "$lt": previous_end}
-    })
+    # Aggregation pipeline cho interviews collection
+    interviews_pipeline = [
+        {
+            "$facet": {
+                "scheduledInterviews": [
+                    {"$match": {
+                        "scheduled_date": {"$gte": start_date},
+                        "status": {"$nin": ["cancelled", "completed"]}
+                    }},
+                    {"$count": "count"}
+                ],
+                "prevInterviews": [
+                    {"$match": {
+                        "scheduled_date": {"$gte": previous_start, "$lt": previous_end},
+                        "status": {"$nin": ["cancelled", "completed"]}
+                    }},
+                    {"$count": "count"}
+                ]
+            }
+        }
+    ]
     
-    # Calculate changes
+    # Thực thi các aggregation pipelines
+    jobs_results = await jobs_collection.aggregate(jobs_pipeline).to_list(length=1)
+    candidates_results = await candidates_collection.aggregate(candidates_pipeline).to_list(length=1)
+    interviews_results = await interviews_collection.aggregate(interviews_pipeline).to_list(length=1)
+    
+    # Lấy kết quả từ jobs collection
+    jobs_result = jobs_results[0] if jobs_results else {}
+    
+    # An toàn khi truy cập vào mảng - xử lý trường hợp mảng rỗng
+    active_jobs = jobs_result.get("activeJobs", [])
+    active_jobs = active_jobs[0].get("count", 0) if active_jobs else 0
+    
+    prev_active_jobs_list = jobs_result.get("prevActiveJobs", [])
+    prev_active_jobs = prev_active_jobs_list[0].get("count", 0) if prev_active_jobs_list else 0
+    
+    # Lấy kết quả từ candidates collection
+    candidates_result = candidates_results[0] if candidates_results else {}
+    
+    new_applications_list = candidates_result.get("newApplications", [])
+    new_applications = new_applications_list[0].get("count", 0) if new_applications_list else 0
+    
+    prev_applications_list = candidates_result.get("prevApplications", [])
+    prev_applications = prev_applications_list[0].get("count", 0) if prev_applications_list else 0
+    
+    positions_filled_list = candidates_result.get("positionsFilled", [])
+    positions_filled = positions_filled_list[0].get("count", 0) if positions_filled_list else 0
+    
+    prev_filled_list = candidates_result.get("prevFilled", [])
+    prev_filled = prev_filled_list[0].get("count", 0) if prev_filled_list else 0
+    
+    # Lấy kết quả từ interviews collection
+    interviews_result = interviews_results[0] if interviews_results else {}
+    
+    scheduled_interviews_list = interviews_result.get("scheduledInterviews", [])
+    scheduled_interviews = scheduled_interviews_list[0].get("count", 0) if scheduled_interviews_list else 0
+    
+    prev_interviews_list = interviews_result.get("prevInterviews", [])
+    prev_interviews = prev_interviews_list[0].get("count", 0) if prev_interviews_list else 0
+    
+    # Tính toán sự thay đổi
     applications_change = calculate_percentage_change(prev_applications, new_applications)
     interviews_change = calculate_percentage_change(prev_interviews, scheduled_interviews)
     filled_change = calculate_percentage_change(prev_filled, positions_filled)
-    
-    # For jobs, count the change in raw numbers (not percentage)
-    prev_active_jobs = await jobs_collection.count_documents({
-        "created_at": {"$gte": previous_start, "$lt": previous_end},
-        "status": "OPEN"
-    })
-
     active_jobs_change = active_jobs - prev_active_jobs
+    
     return {
         "activeJobs": active_jobs,
         "activeJobsChange": active_jobs_change,
@@ -97,8 +160,16 @@ async def get_jobs_by_department(
     """
     Get job distribution by department
     """
-    # Aggregate jobs by department
+    # Tính toán khoảng thời gian
+    start_date = get_date_from_range(time_range)
+    
+    # Aggregate jobs by department với bộ lọc thời gian
+    # Bao gồm cả những bản ghi không có trường created_at
     pipeline = [
+        {"$match": {"$or": [
+            {"created_at": {"$gte": start_date}},
+            {"created_at": {"$exists": False}}
+        ]}},
         {"$group": {"_id": "$department", "count": {"$sum": 1}}},
         {"$project": {"department": "$_id", "count": 1, "_id": 0}},
         {"$sort": {"count": -1}}
@@ -158,33 +229,81 @@ async def get_recent_applications(
     # Calculate date range
     start_date = get_date_from_range(time_range)
     
-    # Get filtered candidates
-    candidates = candidates_collection.find({
-        "created_at": {"$gte": start_date}
-    }).sort("created_at", -1)
+    # Aggregation pipeline để lấy ứng viên gần đây và thông tin công việc của họ
+    pipeline = [
+        # Lọc ứng viên theo khoảng thời gian
+        {"$match": {"created_at": {"$gte": start_date}}},
+        # Sắp xếp theo thời gian tạo (mới nhất trước)
+        {"$sort": {"created_at": -1}},
+        # Giới hạn số lượng kết quả
+        {"$limit": 100},
+        # Lookup thông tin công việc
+        {"$lookup": {
+            "from": "jobs",
+            "localField": "job_id",
+            "foreignField": "id",
+            "as": "job_info"
+        }},
+        # Định dạng kết quả trả về
+        {"$project": {
+            "_id": 0,
+            "id": 1,
+            "candidate": {"$ifNull": ["$name", "Unknown"]},
+            "position": {
+                "$cond": {
+                    "if": {"$gt": [{"$size": "$job_info"}, 0]},
+                    "then": {"$ifNull": [{"$arrayElemAt": ["$job_info.title", 0]}, "Unknown"]},
+                    "else": {"$ifNull": ["$position", "Unknown"]}
+                }
+            },
+            "appliedDate": {
+                "$cond": {
+                    "if": "$created_at",
+                    "then": {"$dateToString": {"format": "%Y-%m-%dT%H:%M:%S.%LZ", "date": "$created_at"}},
+                    "else": ""
+                }
+            },
+            "status": {
+                "$cond": {
+                    "if": "$status",
+                    "then": {
+                        "$switch": {
+                            "branches": [
+                                {"case": {"$eq": ["$status", "new"]}, "then": "New"},
+                                {"case": {"$eq": ["$status", "screening"]}, "then": "Screening"},
+                                {"case": {"$eq": ["$status", "interview"]}, "then": "Interview"},
+                                {"case": {"$eq": ["$status", "offer"]}, "then": "Offer"},
+                                {"case": {"$eq": ["$status", "hired"]}, "then": "Hired"},
+                                {"case": {"$eq": ["$status", "rejected"]}, "then": "Rejected"}
+                            ],
+                            "default": {"$concat": [
+                                {"$toUpper": {"$substrCP": ["$status", 0, 1]}},
+                                {"$cond": {
+                                    "if": {"$gt": [{"$strLenCP": "$status"}, 1]},
+                                    "then": {"$substrCP": ["$status", 1, {"$subtract": [{"$strLenCP": "$status"}, 1]}]},
+                                    "else": ""
+                                }}
+                            ]}
+                        }
+                    },
+                    "else": "Pending"
+                }
+            }
+        }}
+    ]
     
-    candidates = await candidates.to_list(length=100)  # Lấy tối đa 100 ứng viên gần nhất
+    # Đếm tổng số ứng viên theo khoảng thời gian (pipeline riêng)
+    count_pipeline = [
+        {"$match": {"created_at": {"$gte": start_date}}},
+        {"$count": "total"}
+    ]
     
-    # Get total count for the selected time range
-    total = await candidates_collection.count_documents({
-        "created_at": {"$gte": start_date}
-    })
+    # Thực hiện các aggregation
+    applications = await candidates_collection.aggregate(pipeline).to_list(length=100)
+    count_result = await candidates_collection.aggregate(count_pipeline).to_list(length=1)
     
-    # Format response
-    applications = []
-    for candidate in candidates:
-        # Get job info for this candidate
-        job = None
-        if candidate.get("job_id"):
-            job = await jobs_collection.find_one({"id": candidate.get("job_id")})
-        
-        applications.append({
-            "id": candidate.get("id"),
-            "candidate": candidate.get("name", "Unknown"),
-            "position": job.get("title", "Unknown") if job else candidate.get("position", "Unknown"),
-            "appliedDate": candidate.get("created_at").isoformat() if candidate.get("created_at") else "",
-            "status": candidate.get("status", "Pending").title()
-        })
+    # Lấy tổng số từ kết quả đếm
+    total = count_result[0]["total"] if count_result else 0
     
     return {
         "applications": applications,
@@ -204,39 +323,102 @@ async def get_upcoming_interviews(
     now = datetime.now()
     end_date = now + timedelta(days=days)
     
-    # Find upcoming interviews
-    interviews = interviews_collection.find({
-        "scheduled_date": {"$gte": now, "$lte": end_date},
-        "status": {"$nin": ["cancelled", "completed"]}
-    }).sort("scheduled_date", 1).limit(limit)
+    # Aggregation pipeline để lấy phỏng vấn sắp tới và thông tin liên quan
+    pipeline = [
+        # Lọc các phỏng vấn trong phạm vi ngày
+        {"$match": {
+            "scheduled_date": {"$gte": now, "$lte": end_date},
+            "status": {"$nin": ["cancelled", "completed"]}
+        }},
+        # Sắp xếp theo ngày phỏng vấn
+        {"$sort": {"scheduled_date": 1}},
+        # Giới hạn số lượng kết quả
+        {"$limit": limit},
+        # Lookup thông tin ứng viên
+        {"$lookup": {
+            "from": "candidates",
+            "localField": "candidate_id",
+            "foreignField": "id",
+            "as": "candidate_info"
+        }},
+        # Lookup thông tin công việc
+        {"$lookup": {
+            "from": "jobs",
+            "localField": "job_id",
+            "foreignField": "id",
+            "as": "job_info"
+        }},
+        # Định dạng kết quả trả về
+        {"$project": {
+            "_id": 0,
+            "id": 1,
+            "candidateName": {
+                "$let": {
+                    "vars": {
+                        "candidate": {"$arrayElemAt": ["$candidate_info", 0]}
+                    },
+                    "in": {
+                        "$cond": {
+                            "if": {"$and": [
+                                {"$ifNull": ["$$candidate.first_name", ""]}, 
+                                {"$ifNull": ["$$candidate.last_name", ""]}
+                            ]},
+                            "then": {
+                                "$concat": [
+                                    {"$ifNull": ["$$candidate.first_name", ""]}, 
+                                    " ", 
+                                    {"$ifNull": ["$$candidate.last_name", ""]}
+                                ]
+                            },
+                            "else": {"$ifNull": ["$$candidate.name", "Unknown"]}
+                        }
+                    }
+                }
+            },
+            "jobTitle": {
+                "$ifNull": [
+                    {"$arrayElemAt": ["$job_info.title", 0]},
+                    "Unknown Position"
+                ]
+            },
+            "scheduledAt": {
+                "$cond": {
+                    "if": "$scheduled_date",
+                    "then": {"$dateToString": {"format": "%Y-%m-%dT%H:%M:%S.%LZ", "date": "$scheduled_date"}},
+                    "else": ""
+                }
+            },
+            "type": {
+                "$cond": {
+                    "if": "$type",
+                    "then": {
+                        "$switch": {
+                            "branches": [
+                                {"case": {"$eq": ["$type", "interview"]}, "then": "Interview"},
+                                {"case": {"$eq": ["$type", "screening"]}, "then": "Screening"},
+                                {"case": {"$eq": ["$type", "technical"]}, "then": "Technical"},
+                                {"case": {"$eq": ["$type", "final"]}, "then": "Final"}
+                            ],
+                            "default": {"$concat": [
+                                {"$toUpper": {"$substrCP": ["$type", 0, 1]}},
+                                {"$cond": {
+                                    "if": {"$gt": [{"$strLenCP": "$type"}, 1]},
+                                    "then": {"$substrCP": ["$type", 1, {"$subtract": [{"$strLenCP": "$type"}, 1]}]},
+                                    "else": ""
+                                }}
+                            ]}
+                        }
+                    },
+                    "else": "Interview"
+                }
+            }
+        }}
+    ]
     
-    interviews = await interviews.to_list(length=limit)
-    
-    # Format and augment interview data
-    upcoming = []
-    for interview in interviews:
-        # Get candidate info
-        candidate = await candidates_collection.find_one({"id": interview.get("candidate_id")})
-        candidate_name = "Unknown"
-        if candidate:
-            candidate_name = f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}"
-            if not candidate_name.strip():  # If name is empty
-                candidate_name = candidate.get("name", "Unknown")
-        
-        # Get job info
-        job = await jobs_collection.find_one({"id": interview.get("job_id")})
-        job_title = job.get("title", "Unknown Position") if job else "Unknown Position"
-        
-        upcoming.append({
-            "id": interview.get("id"),
-            "candidateName": candidate_name,
-            "jobTitle": job_title,
-            "scheduledAt": interview.get("scheduled_date").isoformat() if interview.get("scheduled_date") else "",
-            "type": interview.get("type", "Interview").title()
-        })
+    # Thực hiện aggregation
+    upcoming = await interviews_collection.aggregate(pipeline).to_list(length=limit)
     
     return upcoming
-
 
 
 @router.get("/recent-activity")
@@ -246,72 +428,99 @@ async def get_recent_activity(
     """
     Get recent activity from database
     """
-    activities = []
-    
-    # Get recent candidates (new applications)
-    candidates = candidates_collection.find().sort("created_at", -1).limit(limit)
-    recent_candidates = await candidates.to_list(length=limit)
-    
-    for candidate in recent_candidates:
-        job = None
-        if candidate.get("job_id"):
-            job = await jobs_collection.find_one({"id": candidate.get("job_id")})
-            
-        job_title = job.get("title", "Unknown") if job else "Unknown Position"
-        
-        activities.append({
-            "id": f"candidate_{candidate.get('id')}",
-            "type": "application",
-            "actor": candidate.get("name", "Unknown Candidate"),
-            "action": "applied for",
-            "target": job_title,
-            "timestamp": candidate.get("created_at").isoformat() if candidate.get("created_at") else datetime.now().isoformat()
-        })
-    
-    # Get recent interviews
-    interviews = interviews_collection.find().sort("created_at", -1).limit(limit)
-    recent_interviews = await interviews.to_list(length=limit)
-    
-    for interview in recent_interviews:
-        candidate = await candidates_collection.find_one({"id": interview.get("candidate_id")})
-        job = await jobs_collection.find_one({"id": interview.get("job_id")})
-        
-        candidate_name = candidate.get("name", "Unknown") if candidate else "Unknown Candidate"
-        job_title = job.get("title", "Unknown") if job else "Unknown Position"
-        
-        activities.append({
-            "id": f"interview_{interview.get('id')}",
-            "type": "interview",
-            "actor": candidate_name,
-            "action": "scheduled for",
-            "target": job_title,
-            "timestamp": interview.get("created_at").isoformat() if interview.get("created_at") else datetime.now().isoformat()
-        })
-    
-    # Get recent job postings
-    jobs = jobs_collection.find().sort("created_at", -1).limit(limit)
-    recent_jobs = await jobs.to_list(length=limit)
-    
-    for job in recent_jobs:
-        activities.append({
-            "id": f"job_{job.get('id')}",
-            "type": "job_posting",
-            "actor": job.get("title", "Unknown Position"),
-            "action": "was posted",
-            "target": job.get("department", ""),
-            "timestamp": job.get("created_at").isoformat() if job.get("created_at") else datetime.now().isoformat()
-        })
-    
-    # Sort all activities by timestamp (newest first)
+    # Lấy hoạt động dựa trên candidates tạo mới
+    candidates_pipeline = [
+        {"$sort": {"created_at": -1}},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "jobs",
+            "localField": "job_id",
+            "foreignField": "id",
+            "as": "job_info"
+        }},
+        {"$project": {
+            "type": {"$literal": "application"},
+            "actor": {"$ifNull": ["$name", "Unknown Candidate"]},
+            "action": {"$literal": "applied for"},
+            "target": {
+                "$ifNull": [
+                    {"$arrayElemAt": ["$job_info.title", 0]},
+                    "Unknown Position"
+                ]
+            },
+            "timestamp": {"$ifNull": ["$created_at", "$$NOW"]},
+            "_id": 0,
+            "id": {"$concat": ["candidate_", {"$toString": "$id"}]}
+        }}
+    ]
+
+    # Lấy hoạt động dựa trên interviews tạo mới
+    interviews_pipeline = [
+        {"$sort": {"created_at": -1}},
+        {"$limit": limit},
+        {"$lookup": {
+            "from": "jobs",
+            "localField": "job_id",
+            "foreignField": "id",
+            "as": "job_info"
+        }},
+        {"$lookup": {
+            "from": "candidates",
+            "localField": "candidate_id",
+            "foreignField": "id",
+            "as": "candidate_info"
+        }},
+        {"$project": {
+            "type": {"$literal": "interview"},
+            "actor": {
+                "$ifNull": [
+                    {"$arrayElemAt": ["$candidate_info.name", 0]},
+                    "Unknown Candidate"
+                ]
+            },
+            "action": {"$literal": "scheduled for"},
+            "target": {
+                "$ifNull": [
+                    {"$arrayElemAt": ["$job_info.title", 0]},
+                    "Unknown Position"
+                ]
+            },
+            "timestamp": {"$ifNull": ["$created_at", "$$NOW"]},
+            "_id": 0,
+            "id": {"$concat": ["interview_", {"$toString": "$id"}]}
+        }}
+    ]
+
+    # Lấy hoạt động dựa trên jobs tạo mới
+    jobs_pipeline = [
+        {"$sort": {"created_at": -1}},
+        {"$limit": limit},
+        {"$project": {
+            "type": {"$literal": "job_posting"},
+            "actor": {"$ifNull": ["$title", "Unknown Position"]},
+            "action": {"$literal": "was posted"},
+            "target": {"$ifNull": ["$department", ""]},
+            "timestamp": {"$ifNull": ["$created_at", "$$NOW"]},
+            "_id": 0,
+            "id": {"$concat": ["job_", {"$toString": "$id"}]}
+        }}
+    ]
+
+    # Thực thi các pipeline
+    candidate_activities = await candidates_collection.aggregate(candidates_pipeline).to_list(length=limit)
+    interview_activities = await interviews_collection.aggregate(interviews_pipeline).to_list(length=limit)
+    job_activities = await jobs_collection.aggregate(jobs_pipeline).to_list(length=limit)
+
+    # Gộp và sắp xếp tất cả hoạt động
+    all_activities = candidate_activities + interview_activities + job_activities
     sorted_activities = sorted(
-        activities, 
-        key=lambda x: x["timestamp"], 
+        all_activities,
+        key=lambda x: x["timestamp"],
         reverse=True
     )
-    
-    # Return only the most recent activities up to the limit
-    return sorted_activities[:limit]
 
+    # Trả về các hoạt động gần đây nhất
+    return sorted_activities[:limit]
 
 
 @router.get("/application-trend")
@@ -322,48 +531,38 @@ async def get_application_trend(
     Get application trend data
     """
     now = datetime.now()
-    group_id = "$created_at_day"
     
     # Set grouping format based on time range
     if time_range == "week":
         # Daily data for a week
         start_date = now - timedelta(days=7)
         pipeline_date_format = "%Y-%m-%d"
-        group_stage = {
-            "$addFields": {
-                "created_at_day": {
-                    "$dateToString": {"format": pipeline_date_format, "date": "$created_at"}
-                }
-            }
-        }
+        
     elif time_range == "month":
         # Weekly data for a month
         start_date = now - timedelta(days=30)
         pipeline_date_format = "%Y-%U" # Year and week number
-        group_stage = {
-            "$addFields": {
-                "created_at_day": {
-                    "$dateToString": {"format": pipeline_date_format, "date": "$created_at"}
-                }
-            }
-        }
+        
     elif time_range == "quarter":
         # Monthly data for a quarter
         start_date = now - timedelta(days=90)
         pipeline_date_format = "%Y-%m"
-        group_stage = {
-            "$addFields": {
-                "created_at_day": {
-                    "$dateToString": {"format": pipeline_date_format, "date": "$created_at"}
-                }
-            }
-        }
+        
     else:  # year
         # Quarterly data for a year
         start_date = now - timedelta(days=365)
-        group_stage = {
+        pipeline_date_format = "year-quarter"
+    
+    # Tạo định dạng date string phù hợp cho từng collection
+    candidates_pipeline = []
+    interviews_pipeline = []
+    
+    # Xác định stage cho việc định dạng ngày tháng
+    if pipeline_date_format == "year-quarter":
+        # Trường hợp đặc biệt cho định dạng năm-quý
+        candidates_date_format_stage = {
             "$addFields": {
-                "created_at_day": {
+                "date_key": {
                     "$concat": [
                         {"$toString": {"$year": "$created_at"}},
                         "-Q",
@@ -372,66 +571,96 @@ async def get_application_trend(
                 }
             }
         }
+        
+        interviews_date_format_stage = {
+            "$addFields": {
+                "date_key": {
+                    "$concat": [
+                        {"$toString": {"$year": "$created_at"}},
+                        "-Q",
+                        {"$toString": {"$add": [{"$ceil": {"$divide": [{"$month": "$created_at"}, 3]}}, 0]}}
+                    ]
+                }
+            }
+        }
+    else:
+        # Định dạng ngày tháng thông thường
+        candidates_date_format_stage = {
+            "$addFields": {
+                "date_key": {
+                    "$dateToString": {"format": pipeline_date_format, "date": "$created_at"}
+                }
+            }
+        }
+        
+        interviews_date_format_stage = {
+            "$addFields": {
+                "date_key": {
+                    "$dateToString": {"format": pipeline_date_format, "date": "$created_at"}
+                }
+            }
+        }
     
-    # Application pipeline
-    application_pipeline = [
+    # Candidates collection - sử dụng facet để thực hiện hai pipeline trong một truy vấn
+    candidates_pipeline = [
         {"$match": {"created_at": {"$gte": start_date}}},
-        group_stage,
-        {"$group": {
-            "_id": group_id,
-            "applications": {"$sum": 1}
-        }},
-        {"$sort": {"_id": 1}}
+        candidates_date_format_stage,
+        {"$facet": {
+            "applications": [
+                {"$group": {
+                    "_id": "$date_key",
+                    "count": {"$sum": 1}
+                }},
+                {"$sort": {"_id": 1}}
+            ],
+            "offers": [
+                {"$match": {"status": "offer"}},
+                {"$group": {
+                    "_id": "$date_key",
+                    "count": {"$sum": 1}
+                }},
+                {"$sort": {"_id": 1}}
+            ]
+        }}
     ]
     
-    # Interview pipeline
-    interview_pipeline = [
+    # Interviews collection
+    interviews_pipeline = [
         {"$match": {"created_at": {"$gte": start_date}}},
-        group_stage,
+        interviews_date_format_stage,
         {"$group": {
-            "_id": group_id,
-            "interviews": {"$sum": 1}
+            "_id": "$date_key",
+            "count": {"$sum": 1}
         }},
         {"$sort": {"_id": 1}}
     ]
     
-    # Offers pipeline (candidates with offer status)
-    offers_pipeline = [
-        {"$match": {
-            "created_at": {"$gte": start_date},
-            "status": "offer"
-        }},
-        group_stage,
-        {"$group": {
-            "_id": group_id,
-            "offers": {"$sum": 1}
-        }},
-        {"$sort": {"_id": 1}}
-    ]
+    # Thực thi các aggregation
+    candidates_results = await candidates_collection.aggregate(candidates_pipeline).to_list(length=1)
+    interviews_results = await interviews_collection.aggregate(interviews_pipeline).to_list(length=100)
     
-    # Execute aggregations
-    applications = candidates_collection.aggregate(application_pipeline)
-    app_data = await applications.to_list(length=100)
+    # Xử lý kết quả từ candidates - xử lý an toàn với mảng rỗng
+    if candidates_results and len(candidates_results) > 0:
+        candidates_result = candidates_results[0]
+        applications_data = candidates_result.get("applications", []) if candidates_result else []
+        offers_data = candidates_result.get("offers", []) if candidates_result else []
+    else:
+        applications_data = []
+        offers_data = []
     
-    interviews = interviews_collection.aggregate(interview_pipeline)
-    interview_data = await interviews.to_list(length=100)
+    # Tạo dictionaries cho việc tra cứu dễ dàng
+    app_dict = {item["_id"]: item["count"] for item in applications_data}
+    offer_dict = {item["_id"]: item["count"] for item in offers_data}
+    interview_dict = {item["_id"]: item["count"] for item in interviews_results}
     
-    offers = candidates_collection.aggregate(offers_pipeline)
-    offer_data = await offers.to_list(length=100)
-    
-    # Create dictionaries for easy lookup
-    app_dict = {item["_id"]: item["applications"] for item in app_data}
-    interview_dict = {item["_id"]: item["interviews"] for item in interview_data}
-    offer_dict = {item["_id"]: item["offers"] for item in offer_data}
-    
-    # Get all unique dates
+    # Lấy tất cả các ngày duy nhất
     all_dates = sorted(set(
         list(app_dict.keys()) + 
         list(interview_dict.keys()) + 
         list(offer_dict.keys())
     ))
     
-    # Build the final result
+    # Xây dựng kết quả cuối cùng
     trend_data = []
     for date_key in all_dates:
         trend_data.append({
