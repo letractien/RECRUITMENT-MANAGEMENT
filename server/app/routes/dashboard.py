@@ -236,7 +236,7 @@ async def get_recent_applications(
         # Sắp xếp theo thời gian tạo (mới nhất trước)
         {"$sort": {"created_at": -1}},
         # Giới hạn số lượng kết quả
-        {"$limit": 100},
+        {"$limit": 10},
         # Lookup thông tin công việc
         {"$lookup": {
             "from": "jobs",
@@ -292,23 +292,10 @@ async def get_recent_applications(
         }}
     ]
     
-    # Đếm tổng số ứng viên theo khoảng thời gian (pipeline riêng)
-    count_pipeline = [
-        {"$match": {"created_at": {"$gte": start_date}}},
-        {"$count": "total"}
-    ]
-    
     # Thực hiện các aggregation
     applications = await candidates_collection.aggregate(pipeline).to_list(length=100)
-    count_result = await candidates_collection.aggregate(count_pipeline).to_list(length=1)
     
-    # Lấy tổng số từ kết quả đếm
-    total = count_result[0]["total"] if count_result else 0
-    
-    return {
-        "applications": applications,
-        "total": total
-    }
+    return applications
 
 
 @router.get("/upcoming-interviews")

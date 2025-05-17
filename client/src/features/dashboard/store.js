@@ -153,11 +153,11 @@ const actions = {
       // Use API service to fetch all recent applications with timeRange
       const response = await dashboardService.getRecentApplications(state.timeRange);
       
-      commit('SET_RECENT_APPLICATIONS', response.data.applications);
+      commit('SET_RECENT_APPLICATIONS', response.data);
       // Still keep track of total count
       commit('SET_PAGINATION', {
         ...state.pagination,
-        total: response.data.total,
+        total: response.data.length || 0,
         currentPage: 1
       });
       commit('SET_ERROR', null);
