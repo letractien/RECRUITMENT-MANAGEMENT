@@ -316,7 +316,6 @@ async def update_candidate_status(
     
     if job:
         job_title = job.get("title", "Unknown")
-        
     else:
         print(f"Job with ID {updated_candidate['job_id']} not found")
 
