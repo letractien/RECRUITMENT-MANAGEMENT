@@ -28,7 +28,7 @@
 
     <a-spin :spinning="loading">
       <a-table
-        :dataSource="filteredApplications"
+        :dataSource="paginatedApplications"
         :columns="columns"
         :pagination="false"
         size="middle"
@@ -265,6 +265,13 @@ const filteredApplications = computed(() => {
   }
   
   return applications;
+});
+
+// Thêm computed property cho phân trang
+const paginatedApplications = computed(() => {
+  const start = (pagination.value.current - 1) * pagination.value.pageSize;
+  const end = start + pagination.value.pageSize;
+  return filteredApplications.value.slice(start, end);
 });
 
 watch(() => props.jobId, (newJobId) => {
