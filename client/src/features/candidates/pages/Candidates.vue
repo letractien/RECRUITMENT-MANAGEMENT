@@ -57,6 +57,21 @@
                 </div>
               </div>
             </template>
+            <template v-else-if="column.key === 'gender'">
+              <div class="gender-display">
+                <template v-if="record.sex === 'Man'">
+                  <man-outlined class="gender-icon male" />
+                  <span>Man</span>
+                </template>
+                <template v-else-if="record.sex === 'Woman'">
+                  <woman-outlined class="gender-icon female" />
+                  <span>Woman</span>
+                </template>
+                <template v-else>
+                  <span>{{ record.sex ? record.sex.charAt(0).toUpperCase() + record.sex.slice(1) : 'N/A' }}</span>
+                </template>
+              </div>
+            </template>
             <template v-else-if="column.key === 'status'">
               <a-tag :color="getStatusColor(record.status)">
                 {{ capitalizeStatus(record.status) }}
@@ -173,7 +188,9 @@ import {
   EditOutlined, 
   DeleteOutlined, 
   DownOutlined,
-  TrophyOutlined
+  TrophyOutlined,
+  ManOutlined,
+  WomanOutlined
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import { formatDate as formatDateUtil } from '../../../shared/utils/dateHelpers'
@@ -211,6 +228,12 @@ const columns = [
     key: 'candidate',
     width: 250,
     sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
+  },
+  {
+    title: 'Gender',
+    key: 'gender',
+    width: 100,
+    sorter: (a, b) => (a.gender || '').localeCompare(b.gender || ''),
   },
   {
     title: 'Applied For',
@@ -670,5 +693,23 @@ const updateScores = (candidate) => {
 
 :deep(.score-low) {
   color: #f5222d;
+}
+
+.gender-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gender-icon {
+  font-size: 16px;
+}
+
+.gender-icon.male {
+  color: #1890ff;
+}
+
+.gender-icon.female {
+  color: #eb2f96;
 }
 </style> 

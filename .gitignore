@@ -108,3 +108,12 @@ aws.json
 aws.yml
 aws.yaml
 aws-config.* 
+
+# Custom directories
+a/
+
+# Ignore result and data files
+*.txt
+*.png
+*.ipynb
+*.zip 

@@ -48,6 +48,21 @@
               </div>
             </div>
           </template>
+          <template v-else-if="column.key === 'gender'">
+            <div class="gender-display">
+              <template v-if="record.sex === 'Man'">
+                <man-outlined class="gender-icon male" />
+                <span>Man</span>
+              </template>
+              <template v-else-if="record.sex === 'Woman'">
+                <woman-outlined class="gender-icon female" />
+                <span>Woman</span>
+              </template>
+              <template v-else>
+                <span>{{ record.sex ? record.sex.charAt(0).toUpperCase() + record.sex.slice(1) : 'N/A' }}</span>
+              </template>
+            </div>
+          </template>
           <template v-else-if="column.key === 'status'">
             <a-tag :color="getStatusColor(record.status)">
               {{ record.status }}
@@ -153,7 +168,9 @@ import {
   DeleteOutlined,
   DownOutlined,
   TrophyOutlined,
-  CalendarOutlined
+  CalendarOutlined,
+  ManOutlined,
+  WomanOutlined
 } from '@ant-design/icons-vue';
 import { message, Modal } from 'ant-design-vue';
 import { useStore } from 'vuex';
@@ -219,6 +236,12 @@ const columns = [
     key: 'candidate',
     width: 250,
     sorter: (a, b) => (a.candidateName || '').localeCompare(b.candidateName || ''),
+  },
+  {
+    title: 'Gender',
+    key: 'gender',
+    width: 100,
+    sorter: (a, b) => (a.sex || '').localeCompare(b.sex || ''),
   },
   {
     title: 'Total Score',
@@ -525,6 +548,25 @@ const deleteApplication = (application) => {
   color: var(--text-color);
   opacity: 0.45;
   font-size: 0.9em;
+}
+
+.gender-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gender-icon {
+  font-size: 16px;
+  margin-right: 4px;
+}
+
+.male {
+  color: #1890ff;
+}
+
+.female {
+  color: #ff4d4f;
 }
 
 :deep(.ant-table-thead > tr > th) {
