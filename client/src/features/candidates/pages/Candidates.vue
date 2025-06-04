@@ -25,7 +25,7 @@
           allowClear
           @change="handleFilterChange"
         >
-          <a-select-option value="">All</a-select-option>
+          <a-select-option value="">All Status</a-select-option>
           <a-select-option value="new">New</a-select-option>
           <a-select-option value="screening">Screening</a-select-option>
           <a-select-option value="interview">Interview</a-select-option>

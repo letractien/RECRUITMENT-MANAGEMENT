@@ -23,7 +23,7 @@
           style="width: 200px"
           allowClear
         >
-          <a-select-option value="">All</a-select-option>
+          <a-select-option value="">All Department</a-select-option>
           <a-select-option
             v-for="dept in uniqueDepartments"
             :key="dept"
@@ -38,7 +38,7 @@
           style="width: 150px"
           allowClear
         >
-          <a-select-option value="">All</a-select-option>
+          <a-select-option value="">All Status</a-select-option>
           <a-select-option
             v-for="status in uniqueStatuses"
             :key="status"
