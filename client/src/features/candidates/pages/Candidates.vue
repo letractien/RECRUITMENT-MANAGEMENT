@@ -271,7 +271,14 @@ const columns = [
 // Format date helper
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
-  return formatDateUtil(dateString, 'YYYY-MM-DD HH:mm')
+  const d = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  if (isNaN(d.getTime())) return 'Invalid date';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
 // Load candidates from API
