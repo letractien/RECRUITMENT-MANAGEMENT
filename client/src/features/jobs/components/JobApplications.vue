@@ -340,7 +340,10 @@ const getStatusColor = (status) => {
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
-  return formatDateUtil(dateString, 'YYYY-MM-DD HH:mm')
+  // Add 7 hours for UI display only
+  const date = new Date(dateString)
+  const plus7h = new Date(date.getTime() + 7 * 60 * 60 * 1000)
+  return formatDateUtil(plus7h, 'YYYY-MM-DD HH:mm')
 }
 
 // Use the same method names and structure as in Candidates.vue
