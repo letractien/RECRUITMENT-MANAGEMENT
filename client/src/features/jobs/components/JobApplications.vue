@@ -48,21 +48,6 @@
               </div>
             </div>
           </template>
-          <template v-else-if="column.key === 'gender'">
-            <div class="gender-display">
-              <template v-if="record.sex === 'Man'">
-                <man-outlined class="gender-icon male" />
-                <span>Man</span>
-              </template>
-              <template v-else-if="record.sex === 'Woman'">
-                <woman-outlined class="gender-icon female" />
-                <span>Woman</span>
-              </template>
-              <template v-else>
-                <span>{{ record.sex ? record.sex.charAt(0).toUpperCase() + record.sex.slice(1) : 'N/A' }}</span>
-              </template>
-            </div>
-          </template>
           <template v-else-if="column.key === 'status'">
             <a-tag :color="getStatusColor(record.status)">
               {{ record.status }}
@@ -236,12 +221,6 @@ const columns = [
     key: 'candidate',
     width: 250,
     sorter: (a, b) => (a.candidateName || '').localeCompare(b.candidateName || ''),
-  },
-  {
-    title: 'Gender',
-    key: 'gender',
-    width: 100,
-    sorter: (a, b) => (a.sex || '').localeCompare(b.sex || ''),
   },
   {
     title: 'Total Score',
