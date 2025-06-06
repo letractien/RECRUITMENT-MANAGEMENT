@@ -2,7 +2,7 @@
   <a-card :bordered="false" class="chart-card">
     <template #title>
       <div class="chart-header">
-        <span>Jobs by Department</span>
+        <span>Jobs</span>
         <div class="chart-actions">
           <a-radio-group 
             v-model:value="deptSortBy" 
