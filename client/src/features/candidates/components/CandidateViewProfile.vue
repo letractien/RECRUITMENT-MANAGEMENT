@@ -43,6 +43,17 @@
                 <div class="form-value">{{ candidate.phone || 'N/A' }}</div>
               </div>
               <div class="form-group">
+                <label class="form-label">Sex</label>
+                <div class="form-value">
+                  <span v-if="candidate.sex">
+                    <man-outlined v-if="candidate.sex.toLowerCase() === 'male'" />
+                    <woman-outlined v-if="candidate.sex.toLowerCase() === 'female'" />
+                    {{ candidate.sex.charAt(0).toUpperCase() + candidate.sex.slice(1).toLowerCase() }}
+                  </span>
+                  <span v-else>N/A</span>
+                </div>
+              </div>
+              <div class="form-group">
                 <label class="form-label">Position Applied</label>
                 <div class="form-value">{{ candidate.position || 'N/A' }}</div>
               </div>
@@ -277,7 +288,9 @@ import {
   CloseCircleOutlined,
   EyeOutlined,
   DownloadOutlined,
-  LinkOutlined
+  LinkOutlined,
+  ManOutlined,
+  WomanOutlined
 } from '@ant-design/icons-vue'
 
 const props = defineProps({

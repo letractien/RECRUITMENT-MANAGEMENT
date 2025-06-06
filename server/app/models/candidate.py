@@ -20,6 +20,7 @@ class CandidateBase(BaseModel):
     job_id: str  # Foreign key to Job model
     department: Optional[str] = "Not specified"
     phone: Optional[str] = "Not provided"
+    sex: Optional[str] = None  # Added sex field
 
     position: Optional[str] = None
     address: Optional[str] = None
@@ -59,6 +60,7 @@ class CandidateUpdate(BaseModel):
     job_id: Optional[str] = None
     phone: Optional[str] = None
     department: Optional[str] = None
+    sex: Optional[str] = None  # Added sex field
 
     position: Optional[str] = None
     address: Optional[str] = None
