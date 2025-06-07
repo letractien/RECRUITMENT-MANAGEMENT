@@ -701,47 +701,67 @@ async def get_interviews_by_date_range(
         parsed_end_date = datetime.strptime(end_date, "%Y-%m-%d")
         end_day = parsed_end_date.replace(hour=23, minute=59, second=59, microsecond=999)
         
-        # Find interviews within the specified date range
-        interviews = interviews_collection.find({
-            "scheduled_date": {"$gte": start_day, "$lte": end_day}
-        }).sort("scheduled_date", 1)
+        # Use aggregation pipeline to join collections and get all data in one query
+        pipeline = [
+            {
+                "$match": {
+                    "scheduled_date": {"$gte": start_day, "$lte": end_day}
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "candidates",
+                    "localField": "candidate_id",
+                    "foreignField": "id",
+                    "as": "candidate"
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "jobs",
+                    "localField": "job_id",
+                    "foreignField": "id",
+                    "as": "job"
+                }
+            },
+            {
+                "$sort": {"scheduled_date": 1}
+            },
+            {
+                "$project": {
+                    "_id": 0,  # Exclude _id field
+                    "id": 1,
+                    "candidateId": "$candidate_id",
+                    "candidateName": {
+                        "$ifNull": [
+                            {"$arrayElemAt": ["$candidate.name", 0]},
+                            "Unknown"
+                        ]
+                    },
+                    "jobId": "$job_id",
+                    "jobTitle": {
+                        "$ifNull": [
+                            {"$arrayElemAt": ["$job.title", 0]},
+                            "Unknown Position"
+                        ]
+                    },
+                    "interviewType": {"$ifNull": ["$type", "Interview"]},
+                    "scheduledAt": {
+                        "$ifNull": [
+                            {"$dateToString": {"date": "$scheduled_date", "format": "%Y-%m-%dT%H:%M:%S.%LZ"}},
+                            ""
+                        ]
+                    },
+                    "duration": {"$ifNull": ["$duration_minutes", 60]},
+                    "status": {"$ifNull": ["$status", "scheduled"]},
+                    "interviewer": {"$ifNull": ["$interviewer_name", ""]}
+                }
+            }
+        ]
         
-        interviews = await interviews.to_list(length=500)
+        interviews = await interviews_collection.aggregate(pipeline).to_list(length=500)
+        return interviews
         
-        # Format and augment interview data
-        range_interviews = []
-        for interview in interviews:
-            # Get additional data for each interview
-            candidate_name = "Unknown"
-            job_title = "Unknown Position"
-            
-            # Fetch candidate info
-            candidate = await candidates_collection.find_one({"id": interview.get("candidate_id")})
-            if candidate:
-                candidate_name = f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}"
-                if not candidate_name.strip():  # If name is empty
-                    candidate_name = candidate.get("name", "Unknown")
-            
-            # Fetch job info
-            job = await jobs_collection.find_one({"id": interview.get("job_id")})
-            if job:
-                job_title = job.get("title", "Unknown Position")
-            
-            # Format interview data
-            range_interviews.append({
-                "id": interview.get("id"),
-                "candidateId": interview.get("candidate_id"),
-                "candidateName": candidate_name,
-                "jobId": interview.get("job_id"),
-                "jobTitle": job_title,
-                "interviewType": interview.get("type", "Interview"),
-                "scheduledAt": interview.get("scheduled_date").isoformat() if interview.get("scheduled_date") else "",
-                "duration": interview.get("duration_minutes", 60),
-                "status": interview.get("status", "scheduled"),
-                "interviewer": interview.get("interviewer_name", "")
-            })
-        
-        return range_interviews
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

@@ -28,7 +28,7 @@
 
     <a-spin :spinning="loading">
       <a-table
-        :dataSource="filteredApplications"
+        :dataSource="paginatedApplications"
         :columns="columns"
         :pagination="false"
         size="middle"
@@ -153,7 +153,9 @@ import {
   DeleteOutlined,
   DownOutlined,
   TrophyOutlined,
-  CalendarOutlined
+  CalendarOutlined,
+  ManOutlined,
+  WomanOutlined
 } from '@ant-design/icons-vue';
 import { message, Modal } from 'ant-design-vue';
 import { useStore } from 'vuex';
@@ -267,6 +269,13 @@ const filteredApplications = computed(() => {
   return applications;
 });
 
+// Thêm computed property cho phân trang
+const paginatedApplications = computed(() => {
+  const start = (pagination.value.current - 1) * pagination.value.pageSize;
+  const end = start + pagination.value.pageSize;
+  return filteredApplications.value.slice(start, end);
+});
+
 watch(() => props.jobId, (newJobId) => {
   if (newJobId) {
     loadJobApplications(newJobId);
@@ -329,57 +338,97 @@ const getStatusColor = (status) => {
   return colors[statusLower] || 'default';
 };
 
+// Add custom formatDate function to handle timezone
 const formatDate = (dateString) => {
-  if (!dateString) return 'N/A'
-  return formatDateUtil(dateString, 'YYYY-MM-DD HH:mm')
+  if (!dateString) return '';
+  
+  try {
+    // Create date object and convert to local timezone
+    const date = new Date(dateString);
+    const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+    return formatDateUtil(localDate, 'YYYY-MM-DD HH:mm');
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString;
+  }
 }
 
 // Use the same method names and structure as in Candidates.vue
-const viewCandidate = (application) => {
+const viewCandidate = (application) => {  
+  // Debug log để kiểm tra toàn bộ dữ liệu application
+  console.log('Full application data:', application);
+
   // Map application fields to candidate fields expected by CandidateViewProfile
   viewProfileDialog.candidate = {
     id: application.id,
     name: application.candidateName,
     email: application.email,
-    phone: application.phone,
     status: application.status,
-    applied_date: application.appliedDate,
-    experience: application.experience,
-    skills: application.skills,
-    resume_url: application.resumeUrl,
     department: application.department,
-    position: application.position || props.jobTitle, // Use the jobTitle from props
+    phone: application.phone,
+    applied_date: application.appliedDate,
+    sex: application.sex,
+    
+    position: application.position || props.jobTitle,
+    address: application.address,
+    career_goal: application.career_goal,
+    external_links: application.external_links,
+    educations: application.educations,
+    experience: application.experience,
+
+    skills: application.skills,
+    notes: application.notes,
+    salary_expectation: application.salaryExpectation,
+    source: application.source,
+    current_company: application.currentCompany,
+    current_position: application.currentPosition,
+    notice_period: application.noticePeriod,
+    resume_url: application.resumeUrl,
+    resume_drive_url: application.resume_drive_url,
+    resume_download_url: application.resume_download_url,
+
     background_score: application.backgroundScore,
     project_score: application.projectScore,
     skill_score: application.skillScore,
     certificate_score: application.certificateScore,
     total_score: application.totalScore,
-    // Additional fields needed for timeline
+    
     rejected_date: application.rejectedDate,
     rejection_reason: application.rejectionReason,
     interview_date: application.interviewDate,
     offer_date: application.offerDate,
     hired_date: application.hiredDate,
     screening_date: application.screeningDate,
-    notes: application.notes
   };
   
-  // Add a small logging debug to verify status is being passed correctly
-  console.log('Opening candidate view with status:', application.status);
   viewProfileDialog.visible = true;
 };
 
 const updateScores = (application) => {
-  // Map application fields to candidate fields expected by UpdateScoresCandidate
-  scoreDialog.candidate = {
+  // Debug log to check application data
+  console.log('Application data in updateScores:', {
     id: application.id,
     name: application.candidateName,
     email: application.email,
-    background_score: application.backgroundScore || 0,
-    project_score: application.projectScore || 0,
-    skill_score: application.skillScore || 0,
-    certificate_score: application.certificateScore || 0,
-    total_score: application.totalScore || 0
+    scores: {
+      total: application.totalScore,
+      background: application.backgroundScore,
+      project: application.projectScore,
+      skill: application.skillScore,
+      certificate: application.certificateScore
+    }
+  });
+
+  const candidate = application.candidate || application;
+  scoreDialog.candidate = {
+    id: candidate.id || application.id,
+    name: candidate.name || application.candidateName,
+    email: candidate.email || application.email,
+    background_score: candidate.backgroundScore ?? candidate.background_score ?? 0,
+    project_score: candidate.projectScore ?? candidate.project_score ?? 0,
+    skill_score: candidate.skillScore ?? candidate.skill_score ?? 0,
+    certificate_score: candidate.certificateScore ?? candidate.certificate_score ?? 0,
+    total_score: candidate.totalScore ?? candidate.total_score ?? 0
   };
   scoreDialog.visible = true;
 };
@@ -391,7 +440,8 @@ const scheduleInterview = (application) => {
     name: application.candidateName,
     email: application.email,
     phone: application.phone,
-    status: application.status
+    status: application.status,
+    job_id: props.jobId
   };
   scheduleInterviewDialog.visible = true;
 };
@@ -487,6 +537,25 @@ const deleteApplication = (application) => {
   color: var(--text-color);
   opacity: 0.45;
   font-size: 0.9em;
+}
+
+.gender-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gender-icon {
+  font-size: 16px;
+  margin-right: 4px;
+}
+
+.male {
+  color: #1890ff;
+}
+
+.female {
+  color: #ff4d4f;
 }
 
 :deep(.ant-table-thead > tr > th) {

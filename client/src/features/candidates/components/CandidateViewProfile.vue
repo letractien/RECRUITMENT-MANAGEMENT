@@ -43,13 +43,53 @@
                 <div class="form-value">{{ candidate.phone || 'N/A' }}</div>
               </div>
               <div class="form-group">
-                <label class="form-label">Position</label>
+                <label class="form-label">Sex</label>
+                <div class="form-value">
+                  <span v-if="candidate.sex">
+                    <man-outlined v-if="candidate.sex.toLowerCase() === 'male'" />
+                    <woman-outlined v-if="candidate.sex.toLowerCase() === 'female'" />
+                    {{ candidate.sex.charAt(0).toUpperCase() + candidate.sex.slice(1).toLowerCase() }}
+                  </span>
+                  <span v-else>N/A</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Position Applied</label>
                 <div class="form-value">{{ candidate.position || 'N/A' }}</div>
               </div>
               <div class="form-group">
-                <label class="form-label">Department</label>
-                <div class="form-value">{{ candidate.department || 'N/A' }}</div>
+                <label class="form-label">Address</label>
+                <div class="form-value">{{ candidate.address || 'N/A' }}</div>
               </div>
+              <div class="form-group">
+                <label class="form-label">External Links</label>
+                <div class="form-value">
+                  <ul class="external-links-list" v-if="candidate.external_links && candidate.external_links.length > 0">
+                    <li v-for="link in candidate.external_links" :key="link" class="external-link-item">
+                      <a :href="link.split(': ')[1]" target="_blank" rel="noopener noreferrer" class="external-link">
+                        <link-outlined /> {{ link }}
+                      </a>
+                    </li>
+                  </ul>
+                  <span v-else>N/A</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Career Goal</label>
+                <div class="form-value">{{ candidate.career_goal || 'N/A' }}</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Education</label>
+                <div class="form-value">
+                  <ul class="education-list" v-if="candidate.educations && candidate.educations.length > 0">
+                    <li v-for="education in candidate.educations" :key="education" class="education-item">
+                      {{ education }}
+                    </li>
+                  </ul>
+                  <span v-else>N/A</span>
+                </div>
+              </div>
+
               <div class="form-group">
                 <label class="form-label">Applied Date</label>
                 <div class="form-value">{{ formatDate(candidate.applied_date) }}</div>
@@ -57,7 +97,7 @@
             </div>
           </div>
 
-          <!-- Skills Section
+          <!-- Skills Section -->
           <div class="form-section" v-if="candidate.skills && candidate.skills.length">
             <div class="section-header">
               <h3 class="text-lg font-semibold">Skills</h3>
@@ -68,7 +108,7 @@
                 {{ skill }}
               </a-tag>
             </div>
-          </div> -->
+          </div>
 
           <!-- Resume Section -->
           <div class="form-section" v-if="candidate.resume_url">
@@ -77,14 +117,17 @@
               <p class="text-sm text-gray-500">Candidate's resume</p>
             </div>
             <div class="resume-content">
-              <div v-if="isPdf(candidate.resume_url)" class="pdf-viewer">
-                <iframe :src="candidate.resume_url" width="100%" height="500" class="pdf-frame"></iframe>
-              </div>
+              <iframe
+                :src="candidate.resume_drive_url ? candidate.resume_drive_url.replace('/view', '/preview') : ''"
+                width="100%"
+                height="500"
+                class="pdf-frame"
+              />
               <div class="resume-actions">
-                <a :href="candidate.resume_url" target="_blank" class="view-button">
+                <a :href="candidate.resume_drive_url" target="_blank" class="view-button">
                   <eye-outlined /> View Resume
                 </a>
-                <a :href="candidate.resume_url" download class="download-button">
+                <a :href="candidate.resume_download_url" download class="download-button">
                   <download-outlined /> Download
                 </a>
               </div>
@@ -97,43 +140,45 @@
               <h3 class="text-lg font-semibold">Evaluation Scores</h3>
               <p class="text-sm text-gray-500">Candidate's performance evaluation</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div class="form-group">
-                <label class="form-label">Background Score</label>
-                <div class="score-display">
-                  <span class="score-value">{{ candidate.background_score || 0 }}</span>
-                  <span class="score-max">/100</span>
+            <a-spin :spinning="jobLoading">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="form-group">
+                  <label class="form-label">Background Score</label>
+                  <div class="score-display">
+                    <span class="score-value">{{ candidate.background_score || 0 }}</span>
+                    <span class="score-max">/{{ job ? (job.background_criteria.importance_ratio || 0) : 0 }}</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Project Score</label>
+                  <div class="score-display">
+                    <span class="score-value">{{ candidate.project_score || 0 }}</span>
+                    <span class="score-max">/{{ job ? (job.project_criteria.importance_ratio || 0) : 0 }}</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Skill Score</label>
+                  <div class="score-display">
+                    <span class="score-value">{{ candidate.skill_score || 0 }}</span>
+                    <span class="score-max">/{{ job ? (job.skill_criteria.importance_ratio || 0) : 0 }}</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Certificate Score</label>
+                  <div class="score-display">
+                    <span class="score-value">{{ candidate.certificate_score || 0 }}</span>
+                    <span class="score-max">/{{ job ? (job.certification_criteria.importance_ratio || 0) : 0 }}</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Total Score</label>
+                  <div class="score-display total-score">
+                    <span class="score-value">{{ candidate.total_score || 0 }}</span>
+                    <span class="score-max">/{{ totalImportanceRatio }}</span>
+                  </div>
                 </div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Project Score</label>
-                <div class="score-display">
-                  <span class="score-value">{{ candidate.project_score || 0 }}</span>
-                  <span class="score-max">/100</span>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Skill Score</label>
-                <div class="score-display">
-                  <span class="score-value">{{ candidate.skill_score || 0 }}</span>
-                  <span class="score-max">/100</span>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Certificate Score</label>
-                <div class="score-display">
-                  <span class="score-value">{{ candidate.certificate_score || 0 }}</span>
-                  <span class="score-max">/100</span>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Total Score</label>
-                <div class="score-display total-score">
-                  <span class="score-value">{{ candidate.total_score || 0 }}</span>
-                  <span class="score-max">/100</span>
-                </div>
-              </div>
-            </div>
+            </a-spin>
           </div>
 
           <!-- Notes Section -->
@@ -231,8 +276,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { formatDate as formatDateUtil } from '../../../shared/utils/dateHelpers'
+import candidatesService from '../api/candidates.service'
 import { 
   CheckCircleOutlined, 
   FileSearchOutlined, 
@@ -241,7 +287,13 @@ import {
   UserAddOutlined,
   CloseCircleOutlined,
   EyeOutlined,
-  DownloadOutlined
+  DownloadOutlined,
+  LinkOutlined,
+  ManOutlined,
+  WomanOutlined,
+  EnvironmentOutlined,
+  FundOutlined,
+  CalendarOutlined
 } from '@ant-design/icons-vue'
 
 const props = defineProps({
@@ -258,10 +310,61 @@ const props = defineProps({
 const emit = defineEmits(['update:visible'])
 
 const loading = ref(false)
+const job = ref(null)
+const jobLoading = ref(false)
+
+const totalImportanceRatio = computed(() => {
+  if (!job.value) return 100
+  const ratios = [
+    job.value.background_criteria.importance_ratio || 0,
+    job.value.project_criteria.importance_ratio || 0,
+    job.value.skill_criteria.importance_ratio || 0,
+    job.value.certification_criteria.importance_ratio || 0
+  ]
+  return ratios.reduce((sum, ratio) => sum + ratio, 0)
+})
+
+watch(() => props.visible, (newVisible) => {
+  if (newVisible && props.candidate && props.candidate.id) {
+    fetchJobInfo(props.candidate.id)
+  }
+})
+
+const fetchJobInfo = async (candidateId) => {
+  jobLoading.value = true
+  try {
+    const response = await candidatesService.getCandidateJob(candidateId)
+    job.value = response.data
+  } catch (error) {
+    console.error('Error fetching job information:', error)
+  } finally {
+    jobLoading.value = false
+  }
+}
+
+onMounted(() => {
+  if (props.visible && props.candidate && props.candidate.id) {
+    fetchJobInfo(props.candidate.id)
+  }
+})
 
 const formatDate = (dateString) => {
-  if (!dateString) return 'N/A'
-  return formatDateUtil(dateString, 'YYYY-MM-DD HH:mm')
+  if (!dateString) return '';
+  
+  try {
+    // Create date object and add 7 hours for GMT+7
+    const date = new Date(dateString);
+    date.setHours(date.getHours() + 7);
+    return formatDateUtil(date, 'YYYY-MM-DD HH:mm');
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString;
+  }
+}
+
+const capitalizeFirstLetter = (string) => {
+  if (!string) return 'N/A'
+  return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase()
 }
 
 const getStatusColor = (status) => {
@@ -642,5 +745,52 @@ const isPdf = (url) => {
 
 .view-button :deep(svg), .download-button :deep(svg) {
   margin-right: 8px;
+}
+
+.education-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.education-item {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.education-item:last-child {
+  border-bottom: none;
+}
+
+.external-links-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.external-link-item {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.external-link-item:last-child {
+  border-bottom: none;
+}
+
+.external-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.external-link:hover {
+  color: #40a9ff;
+}
+
+.external-link :deep(svg) {
+  font-size: 14px;
 }
 </style>

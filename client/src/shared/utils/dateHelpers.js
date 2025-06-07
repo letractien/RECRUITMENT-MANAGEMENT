@@ -7,11 +7,14 @@
 export const formatDate = (date, format = 'YYYY-MM-DD') => {
   if (!date) return '';
   
-  const d = typeof date === 'string' ? new Date(date) : date;
+  let d = typeof date === 'string' ? new Date(date) : date;
   
   if (isNaN(d.getTime())) {
     return 'Invalid date';
   }
+  
+  // Trừ đi 7 tiếng (UTC+7)
+  d = new Date(d.getTime() - 7 * 60 * 60 * 1000);
   
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');

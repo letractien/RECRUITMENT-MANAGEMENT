@@ -25,7 +25,7 @@
           allowClear
           @change="handleFilterChange"
         >
-          <a-select-option value="">All</a-select-option>
+          <a-select-option value="">All Status</a-select-option>
           <a-select-option value="new">New</a-select-option>
           <a-select-option value="screening">Screening</a-select-option>
           <a-select-option value="interview">Interview</a-select-option>
@@ -59,7 +59,7 @@
             </template>
             <template v-else-if="column.key === 'status'">
               <a-tag :color="getStatusColor(record.status)">
-                {{ record.status }}
+                {{ capitalizeStatus(record.status) }}
               </a-tag>
             </template>
             <template v-else-if="column.key === 'experience'">
@@ -173,7 +173,9 @@ import {
   EditOutlined, 
   DeleteOutlined, 
   DownOutlined,
-  TrophyOutlined
+  TrophyOutlined,
+  ManOutlined,
+  WomanOutlined
 } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import { formatDate as formatDateUtil } from '../../../shared/utils/dateHelpers'
@@ -248,7 +250,14 @@ const columns = [
 // Format date helper
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
-  return formatDateUtil(dateString, 'YYYY-MM-DD HH:mm')
+  const d = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  if (isNaN(d.getTime())) return 'Invalid date';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
 // Load candidates from API
@@ -314,6 +323,11 @@ const getStatusColor = (status) => {
   }
   return colors[status] || 'default'
 }
+
+const capitalizeStatus = (status) => {
+  if (!status) return '';
+  return status.charAt(0).toUpperCase() + status.slice(1);
+};
 
 const candidateDialog = reactive({
   visible: false,
@@ -665,5 +679,23 @@ const updateScores = (candidate) => {
 
 :deep(.score-low) {
   color: #f5222d;
+}
+
+.gender-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gender-icon {
+  font-size: 16px;
+}
+
+.gender-icon.male {
+  color: #1890ff;
+}
+
+.gender-icon.female {
+  color: #eb2f96;
 }
 </style> 

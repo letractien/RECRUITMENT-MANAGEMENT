@@ -46,6 +46,9 @@ def transform_candidate_data(candidate):
     if "experience" not in candidate:
         candidate["experience"] = 0
         
+    if "sex" not in candidate:
+        candidate["sex"] = None
+        
     # Add timestamps if missing
     now = datetime.now()
     if "created_at" not in candidate:
@@ -56,17 +59,6 @@ def transform_candidate_data(candidate):
         
     if "applied_date" not in candidate:
         candidate["applied_date"] = now
-        
-    # Fix resume_url to be a valid URL
-    if "resume_url" in candidate and candidate["resume_url"]:
-        if not candidate["resume_url"].startswith(("http://", "https://")):
-            # Convert relative path to absolute URL
-            base_url = "https://ftp.cntt.io/view"
-            candidate["resume_url"] = f"{base_url}/{candidate['resume_url']}"
-            
-            # # Convert relative path to absolute URL with URL encoding for the path parameter
-            # path = urllib.parse.quote(candidate["resume_url"])
-            # candidate["resume_url"] = f"https://ftp.cntt.io/api/files/cat?path=%2F{path}"
     
     return candidate
 
@@ -281,11 +273,21 @@ async def delete_candidate(
             detail=f"Candidate with ID {candidate_id} not found",
         )
     
+    # Get the job_id before deleting the candidate
+    job_id = candidate.get("job_id")
+    
     # Delete the candidate
     await candidates_collection.delete_one({"id": candidate_id})
     
     # Delete associated interviews
     await interviews_collection.delete_many({"candidate_id": candidate_id})
+    
+    # If the candidate was associated with a job, decrease its applications count
+    if job_id:
+        await jobs_collection.update_one(
+            {"id": job_id},
+            {"$inc": {"applications": -1}}
+        )
     
     return None
 
@@ -314,9 +316,6 @@ async def update_candidate_status(
     
     # Get updated candidate
     updated_candidate = await candidates_collection.find_one({"id": candidate_id})
-    
-    # Transform the candidate data
-    transformed_candidate = transform_candidate_data(updated_candidate)
 
     # Get the candidate's email
     candidate_email = updated_candidate.get("email", "Unknown")
@@ -327,7 +326,6 @@ async def update_candidate_status(
     
     if job:
         job_title = job.get("title", "Unknown")
-        
     else:
         print(f"Job with ID {updated_candidate['job_id']} not found")
 
@@ -340,12 +338,16 @@ async def update_candidate_status(
             "email": candidate_email
         }
     }
-    print(status)
+    
     if (status =='hired'):
         send_acceptance_email(output)
     if (status =='rejected'):
         send_rejection_email(output)
-    return updated_candidate
+        
+    # Transform the candidate data
+    transformed_candidate = transform_candidate_data(updated_candidate)
+
+    return transformed_candidate
 
 
 @router.get("/{candidate_id}/interviews", response_model=List[Interview])
@@ -384,3 +386,40 @@ async def get_candidate_email_by_id(candidate_id: str):
     if candidate:
         return candidate.get("email")
     return None
+
+@router.get("/{candidate_id}/job")
+async def get_candidate_job(
+    candidate_id: str,
+):
+    """
+    Get a candidate's job information
+    """
+    # Find the candidate
+    candidate = await candidates_collection.find_one({"id": candidate_id})
+    if not candidate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Candidate with ID {candidate_id} not found",
+        )
+    
+    # Check if the candidate has a job_id
+    if not candidate.get("job_id"):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No job found for candidate with ID {candidate_id}",
+        )
+    
+    # Find the job
+    job = await jobs_collection.find_one({"id": candidate["job_id"]})
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job with ID {candidate['job_id']} not found",
+        )
+    
+    # Transform MongoDB _id to string
+    if "_id" in job:
+        job["id"] = str(job["_id"])
+        del job["_id"]
+    
+    return job

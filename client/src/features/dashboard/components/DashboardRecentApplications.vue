@@ -77,16 +77,18 @@ const columns = [
 
 const getStatusColor = (status) => {
   const colors = {
-    'Pending': 'blue',
-    'Interview': 'geekblue',
-    'Rejected': 'red',
+    'New': 'blue',
+    'Screening': 'orange',
+    'Interview': 'purple',
+    'Offer': 'geekblue',
     'Hired': 'green',
-    'Phone Screen': 'cyan',
-    'Technical': 'orange',
-    'HR': 'geekblue',
-    'Final': 'green'
+    'Rejected': 'red'
   }
-  return colors[status] || 'blue'
+  // Nếu status truyền vào là dạng thường (lowercase) thì chuyển về dạng viết hoa chữ cái đầu
+  const normalized = status
+    ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
+    : '';
+  return colors[normalized] || 'default';
 }
 
 const handleTableChange = (pagination) => {

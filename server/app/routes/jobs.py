@@ -105,38 +105,51 @@ async def get_job(
 @router.put("/{job_id}", response_model=Job)
 async def update_job(
     job_id: str,
-    job_data: dict,
+    job_data: JobUpdate,
 ):
     """
     Update a job posting
     """
-    # Check if job exists
-    job = await jobs_collection.find_one({"id": job_id})
-    if not job:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Job with ID {job_id} not found",
+    try:
+        # Check if job exists
+        job = await jobs_collection.find_one({"id": job_id})
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Job with ID {job_id} not found",
+            )
+        
+        # Convert job_data to dict and filter out None values
+        update_data = job_data.dict(exclude_unset=True)
+        
+        # Add updated timestamp
+        update_data["updated_at"] = datetime.now()
+        
+        # Update job
+        result = await jobs_collection.update_one(
+            {"id": job_id},
+            {"$set": update_data}
         )
-    
-    # Filter out None values from update data
-    update_data = {k: v for k, v in job_data.dict().items() if v is not None}
-    
-    if not update_data:
-        return job
-    
-    # Add updated timestamp
-    update_data["updated_at"] = datetime.now()
-    
-    # Update job
-    await jobs_collection.update_one(
-        {"id": job_id},
-        {"$set": update_data}
-    )
-    
-    # Get updated job
-    updated_job = await jobs_collection.find_one({"id": job_id})
-    
-    return updated_job
+        
+        if result.modified_count == 0:
+            # No changes were made, return the original job
+            return job
+        
+        # Get updated job
+        updated_job = await jobs_collection.find_one({"id": job_id})
+        if not updated_job:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve updated job",
+            )
+        
+        return updated_job
+    except Exception as e:
+        print(f"Error updating job: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update job: {str(e)}"
+        )
 
 
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -302,6 +315,9 @@ def transform_candidate_data(candidate):
     if "experience" not in candidate:
         candidate["experience"] = 0
         
+    if "sex" not in candidate:
+        candidate["sex"] = None
+        
     # Add timestamps if missing
     now = datetime.now()
     if "created_at" not in candidate:
@@ -312,16 +328,12 @@ def transform_candidate_data(candidate):
         
     if "applied_date" not in candidate:
         candidate["applied_date"] = now
-        
-    # Fix resume_url to be a valid URL
+    
+    # Preserve resume_drive_url and resume_download_url if they exist
     if "resume_url" in candidate and candidate["resume_url"]:
-        if not candidate["resume_url"].startswith(("http://", "https://")):
-            # Convert relative path to absolute URL
-            base_url = "https://ftp.cntt.io/view"
-            candidate["resume_url"] = f"{base_url}/{candidate['resume_url']}"
-            
-            # # Convert relative path to absolute URL with URL encoding for the path parameter
-            # path = urllib.parse.quote(candidate["resume_url"])
-            # candidate["resume_url"] = f"https://ftp.cntt.io/api/files/cat?path=%2F{path}"
+        if "resume_drive_url" not in candidate:
+            candidate["resume_drive_url"] = candidate["resume_url"]
+        if "resume_download_url" not in candidate:
+            candidate["resume_download_url"] = candidate["resume_url"]
     
     return candidate

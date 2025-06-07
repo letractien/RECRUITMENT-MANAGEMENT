@@ -38,6 +38,17 @@
               />
             </div>
             <div class="form-group">
+              <label class="form-label">Sex</label>
+              <a-select
+                v-model:value="form.sex"
+                placeholder="Select sex"
+              >
+                <a-select-option value="Male">Male</a-select-option>
+                <a-select-option value="Female">Female</a-select-option>
+                <a-select-option value="Other">Other</a-select-option>
+              </a-select>
+            </div>
+            <div class="form-group">
               <label class="form-label">Position</label>
               <a-select
                 v-model:value="form.position"
@@ -179,6 +190,7 @@ const form = reactive({
   name: '',
   email: '',
   phone: '',
+  sex: '',
   position: '',
   experience: 0,
   status: 'new',
@@ -274,6 +286,7 @@ const resetForm = () => {
     name: '',
     email: '',
     phone: '',
+    sex: '',
     position: '',
     experience: 0,
     status: 'new',
@@ -297,6 +310,7 @@ watch(() => props.candidate, (newCandidate) => {
       name: newCandidate.name,
       email: newCandidate.email,
       phone: newCandidate.phone,
+      sex: newCandidate.sex,
       position: newCandidate.position,
       experience: newCandidate.experience,
       status: newCandidate.status,
