@@ -290,7 +290,10 @@ import {
   DownloadOutlined,
   LinkOutlined,
   ManOutlined,
-  WomanOutlined
+  WomanOutlined,
+  EnvironmentOutlined,
+  FundOutlined,
+  CalendarOutlined
 } from '@ant-design/icons-vue'
 
 const props = defineProps({
@@ -346,8 +349,17 @@ onMounted(() => {
 })
 
 const formatDate = (dateString) => {
-  if (!dateString) return 'N/A'
-  return formatDateUtil(dateString, 'YYYY-MM-DD HH:mm')
+  if (!dateString) return '';
+  
+  try {
+    // Create date object and add 7 hours for GMT+7
+    const date = new Date(dateString);
+    date.setHours(date.getHours() + 7);
+    return formatDateUtil(date, 'YYYY-MM-DD HH:mm');
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString;
+  }
 }
 
 const capitalizeFirstLetter = (string) => {

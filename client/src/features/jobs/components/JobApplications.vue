@@ -338,12 +338,19 @@ const getStatusColor = (status) => {
   return colors[statusLower] || 'default';
 };
 
+// Add custom formatDate function to handle timezone
 const formatDate = (dateString) => {
-  if (!dateString) return 'N/A'
-  // Add 7 hours for UI display only
-  const date = new Date(dateString)
-  const plus7h = new Date(date.getTime() + 7 * 60 * 60 * 1000)
-  return formatDateUtil(plus7h, 'YYYY-MM-DD HH:mm')
+  if (!dateString) return '';
+  
+  try {
+    // Create date object and convert to local timezone
+    const date = new Date(dateString);
+    const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+    return formatDateUtil(localDate, 'YYYY-MM-DD HH:mm');
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return dateString;
+  }
 }
 
 // Use the same method names and structure as in Candidates.vue

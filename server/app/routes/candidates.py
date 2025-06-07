@@ -273,11 +273,21 @@ async def delete_candidate(
             detail=f"Candidate with ID {candidate_id} not found",
         )
     
+    # Get the job_id before deleting the candidate
+    job_id = candidate.get("job_id")
+    
     # Delete the candidate
     await candidates_collection.delete_one({"id": candidate_id})
     
     # Delete associated interviews
     await interviews_collection.delete_many({"candidate_id": candidate_id})
+    
+    # If the candidate was associated with a job, decrease its applications count
+    if job_id:
+        await jobs_collection.update_one(
+            {"id": job_id},
+            {"$inc": {"applications": -1}}
+        )
     
     return None
 
