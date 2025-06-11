@@ -159,6 +159,13 @@
       :candidate="updateStatusDialog.candidate"
       @saved="fetchCandidates"
     />
+
+    <!-- Delete Candidate Dialog -->
+    <CandidateDeleteConfirm
+      v-model:visible="deleteDialog.visible"
+      :candidate="deleteDialog.candidate"
+      @saved="fetchCandidates"
+    />
   </div>
 </template>
 
@@ -185,6 +192,7 @@ import CandidateViewProfile from '../components/CandidateViewProfile.vue'
 import UpdateScoresCandidate from '../components/CandidateUpdateScores.vue'
 import CandidateMakeScheduleInterview from '../components/CandidateMakeScheduleInterview.vue'
 import CandidateUpdateStatus from '../components/CandidateUpdateStatus.vue'
+import CandidateDeleteConfirm from '../components/CandidateDeleteConfirm.vue'
 
 const store = useStore()
 
@@ -429,24 +437,14 @@ const updateStatus = (candidate) => {
   updateStatusDialog.visible = true
 }
 
+const deleteDialog = reactive({
+  visible: false,
+  candidate: null
+})
+
 const deleteCandidate = (candidate) => {
-  Modal.confirm({
-    title: 'Are you sure you want to delete this candidate?',
-    content: `This will permanently remove ${candidate.name} from the system.`,
-    okText: 'Yes, Delete',
-    okType: 'danger',
-    cancelText: 'No, Cancel',
-    onOk: async () => {
-      try {
-        await candidatesService.deleteCandidate(candidate.id)
-        message.success('Candidate deleted successfully')
-        fetchCandidates()
-      } catch (error) {
-        console.error('Error deleting candidate:', error)
-        message.error('Failed to delete candidate')
-      }
-    }
-  })
+  deleteDialog.candidate = candidate
+  deleteDialog.visible = true
 }
 
 const scoreDialog = reactive({

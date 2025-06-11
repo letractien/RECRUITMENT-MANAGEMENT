@@ -178,6 +178,13 @@
       :job="changeStatusDialog.job"
       @statusChanged="handleStatusChanged"
     />
+
+    <!-- Delete Job Dialog -->
+    <JobDeleteConfirm
+      v-model:visible="deleteDialog.visible"
+      :job="deleteDialog.job"
+      @saved="store.dispatch('jobs/fetchJobs')"
+    />
   </div>
 </template>
 
@@ -200,6 +207,7 @@ import { formatDate } from '../../../shared/utils/dateHelpers.js'
 import JobApplications from '../components/JobApplications.vue'
 import JobViewDetail from '../components/JobViewDetail.vue'
 import JobChangeStatus from '../components/JobChangeStatus.vue'
+import JobDeleteConfirm from '../components/JobDeleteConfirm.vue'
 
 const store = useStore()
 const search = ref('')
@@ -372,6 +380,11 @@ const changeStatusDialog = reactive({
   job: null
 })
 
+const deleteDialog = reactive({
+  visible: false,
+  job: null
+})
+
 const showCreateJobDialog = () => {
   jobDialog.isEdit = false
   jobDialog.visible = true
@@ -520,22 +533,8 @@ const handleStatusChanged = () => {
 }
 
 const deleteJob = (job) => {
-  Modal.confirm({
-    title: 'Are you sure you want to delete this job?',
-    content: `This will permanently delete the job posting "${job.title}"`,
-    okText: 'Yes',
-    okType: 'danger',
-    cancelText: 'Cancel',
-    onOk: async () => {
-      try {
-        await store.dispatch('jobs/deleteJob', job.id)
-        message.success('Job deleted successfully')
-      } catch (error) {
-        console.error('Error deleting job:', error)
-        message.error('Failed to delete job. Please try again later.')
-      }
-    }
-  })
+  deleteDialog.job = job
+  deleteDialog.visible = true
 }
 
 const handleSubmitClick = () => {
