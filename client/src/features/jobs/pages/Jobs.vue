@@ -591,8 +591,12 @@ const formatJobDate = (job) => {
     return 'N/A'; // Return N/A if no date is available
   }
   
+  // Create a new Date object and add 7 hours
+  const date = new Date(dateValue);
+  date.setHours(date.getHours() + 7);
+  
   // Use a format that includes date and time (hours and minutes)
-  return formatDate(dateValue, 'YYYY-MM-DD HH:mm');
+  return formatDate(date, 'YYYY-MM-DD HH:mm');
 }
 </script>
 
