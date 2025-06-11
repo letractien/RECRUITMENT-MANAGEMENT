@@ -286,7 +286,7 @@ async def delete_candidate(
     if job_id:
         await jobs_collection.update_one(
             {"id": job_id},
-            {"$inc": {"applications": -1}}
+            {"$inc": {"applicants": -1}}
         )
     
     return None
