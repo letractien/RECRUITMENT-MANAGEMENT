@@ -142,6 +142,14 @@
     :candidate="updateStatusDialog.candidate"
     @saved="loadJobApplications(props.jobId)"
   />
+
+  <!-- Delete Application Dialog -->
+  <ApplicationDeleteConfirm
+    v-model:visible="deleteDialog.visible"
+    :application="deleteDialog.application"
+    :on-delete="handleDeleteApplication"
+    @saved="loadJobApplications(props.jobId)"
+  />
 </template>
 
 <script setup>
@@ -166,6 +174,7 @@ import CandidateViewProfile from '../../../features/candidates/components/Candid
 import UpdateScoresCandidate from '../../../features/candidates/components/CandidateUpdateScores.vue';
 import CandidateMakeScheduleInterview from '../../../features/candidates/components/CandidateMakeScheduleInterview.vue';
 import CandidateUpdateStatus from '../../../features/candidates/components/CandidateUpdateStatus.vue';
+import ApplicationDeleteConfirm from './ApplicationDeleteConfirm.vue'
 
 const store = useStore();
 const loading = computed(() => store.state.jobs.loading);
@@ -201,6 +210,11 @@ const updateStatusDialog = reactive({
   visible: false,
   candidate: null
 });
+
+const deleteDialog = reactive({
+  visible: false,
+  application: null
+})
 
 const props = defineProps({
   jobId: {
@@ -458,24 +472,20 @@ const updateStatus = (application) => {
 };
 
 const deleteApplication = (application) => {
-  Modal.confirm({
-    title: 'Are you sure you want to delete this application?',
-    content: `This will permanently remove ${application.candidateName}'s application for this job.`,
-    okText: 'Yes, Delete',
-    okType: 'danger',
-    cancelText: 'No, Cancel',
-    onOk: async () => {
-      try {
-        // Implement delete logic
-        message.success('Application deleted successfully');
-        loadJobApplications(props.jobId);
-      } catch (error) {
-        console.error('Error deleting application:', error);
-        message.error('Failed to delete application');
-      }
-    }
-  });
-};
+  deleteDialog.application = application
+  deleteDialog.visible = true
+}
+
+const handleDeleteApplication = async (application) => {
+  try {
+    // Implement delete logic
+    message.success('Application deleted successfully')
+    loadJobApplications(props.jobId)
+  } catch (error) {
+    console.error('Error deleting application:', error)
+    message.error('Failed to delete application')
+  }
+}
 </script>
 
 <style scoped>
